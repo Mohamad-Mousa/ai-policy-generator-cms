@@ -1,0 +1,30 @@
+<section class="dashboard container-fluid py-4">
+  @if (isMobileSidebarOpen) {
+    <div class="mobile-sidebar-overlay" (click)="closeMobileSidebar()"></div>
+  }
+  <div class="row g-4">
+    <div class="col-12">
+      <app-header (menuToggle)="toggleMobileSidebar()"></app-header>
+    </div>
+
+    <div
+      class="col-12"
+      [class.col-lg-3]="!isSidebarCollapsed"
+      [class.col-lg-1]="isSidebarCollapsed"
+    >
+      <app-sidebar
+        (collapsedChange)="onSidebarCollapsed($event)"
+        [mobileOpen]="isMobileSidebarOpen"
+        (mobileOpenChange)="isMobileSidebarOpen = $event"
+      ></app-sidebar>
+    </div>
+
+    <div
+      class="col-12"
+      [class.col-lg-9]="!isSidebarCollapsed"
+      [class.col-lg-11]="isSidebarCollapsed"
+    >
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</section>

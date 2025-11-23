@@ -1,0 +1,50 @@
+@if (open) {
+<div class="sidebar-overlay" (click)="handleClose('backdrop')">
+  <div class="sidebar-panel" [style.width]="width" (click)="$event.stopPropagation()">
+    <header class="sidebar-header">
+      <div>
+        <h3>{{ title }}</h3>
+      </div>
+      <button class="icon-button" type="button" (click)="handleClose('close-button')" aria-label="Close sidebar">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </header>
+
+    <section class="sidebar-body">
+      @if (fields.length > 0) {
+      <div class="sidebar-fields">
+        @for (field of fields; track field.key) {
+        <div class="sidebar-field">
+          <label class="field-label">{{ field.label }}</label>
+          <div class="field-value">
+            @switch (field.type) {
+            @case ('badge') {
+            <app-status-pill [label]="getFieldLabel(field)" [tone]="badgeClassFor(field)" size="sm"></app-status-pill>
+            }
+            @case ('image') {
+            @if (getImageUrl(field)) {
+            <img [src]="getImageUrl(field)" [alt]="field.label" class="field-image" />
+            } @else {
+            <span class="text-muted">—</span>
+            }
+            }
+            @case ('date') {
+            <span>{{ formatDate(getFieldValue(field)) }}</span>
+            }
+            @default {
+            <span>{{ getFieldLabel(field) }}</span>
+            }
+            }
+          </div>
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="sidebar-empty">
+        <p class="text-muted">No fields configured</p>
+      </div>
+      }
+    </section>
+  </div>
+</div>
+}

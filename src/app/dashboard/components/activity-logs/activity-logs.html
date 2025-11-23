@@ -1,0 +1,32 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Audit Trail</p>
+        <h2 class="h4 mb-0">Activity Logs</h2>
+      </div>
+    </div>
+
+    <app-table
+      [columns]="columns"
+      [rows]="logs()"
+      [totalCount]="totalCount()"
+      [showActions]="false"
+      [enableFilters]="true"
+      [enableSorting]="true"
+      [enablePagination]="true"
+      [loading]="tableLoading()"
+      loadingLabel="Loading activity logs..."
+      [serverSideSearch]="true"
+      [serverSideFilters]="true"
+      [sortBy]="sortBy"
+      [sortDirection]="sortDirection"
+      (pageChange)="onPageChange($event)"
+      (limitChange)="onLimitChange($event)"
+      (searchChange)="onSearchChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)">
+    </app-table>
+  </div>
+</div>
+

@@ -1,0 +1,71 @@
+/* You can add global styles to this file, and also import other style files */
+
+// Dialog footer button styles (matching profile and logout styles)
+// These are global to work with Angular's view encapsulation and projected content
+[dialog-footer] {
+  .btn-text {
+    border: none;
+    background: transparent;
+    color: #475467;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .btn-text:hover {
+    background: rgba(15, 23, 42, 0.05);
+  }
+
+  .btn-text:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(120deg, #6366f1, #8b5cf6);
+    box-shadow: 0 15px 30px rgba(99, 102, 241, 0.25);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 35px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-danger {
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(120deg, #ef4444, #f97316);
+    box-shadow: 0 18px 35px rgba(239, 68, 68, 0.25);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 20px 40px rgba(239, 68, 68, 0.3);
+  }
+
+  .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}

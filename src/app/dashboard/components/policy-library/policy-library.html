@@ -1,0 +1,199 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Repository</p>
+        <h2 class="h4 mb-0">Policy Library</h2>
+      </div>
+      <a routerLink="/dashboard/policy-generator"
+        class="btn btn-primary btn-sm text-decoration-none d-flex align-items-center">
+        <span class="material-symbols-rounded me-1" style="font-size: 18px;">add</span>
+        <span>New Policy</span>
+      </a>
+    </div>
+
+    @if (viewMode === 'list') {
+    <!-- Filters and Search -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <input type="text" class="form-control" placeholder="Search policies..." [(ngModel)]="searchTerm" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <select class="form-select" [(ngModel)]="filterStatus">
+              @for (option of statusOptions; track option) {
+              <option [value]="option">{{ option | titlecase }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Sector</label>
+            <select class="form-select" [(ngModel)]="filterSector">
+              @for (option of sectorOptions; track option) {
+              <option [value]="option">{{ option | titlecase }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Policies List -->
+    <div class="policies-list">
+      @if (filteredPolicies.length === 0) {
+      <div class="text-center py-5">
+        <span class="material-symbols-rounded text-muted" style="font-size: 4rem;">folder_open</span>
+        <p class="text-muted mt-3">No policies found. Create your first policy using the Policy Generator.</p>
+      </div>
+      } @else {
+      <div class="row g-3">
+        @for (policy of filteredPolicies; track policy.id) {
+        <div class="col-12">
+          <div class="card border-0 shadow-sm policy-card">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between">
+                <div class="flex-grow-1">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <h6 class="mb-0">{{ policy.title }}</h6>
+                    <span class="badge {{ getStatusClass(policy.status) }}">
+                      {{ policy.status | titlecase }}
+                    </span>
+                    <span class="badge bg-light text-dark">v{{ policy.version }}</span>
+                  </div>
+                  <div class="text-muted small mb-2 d-flex align-items-center gap-3">
+                    <span class="d-flex align-items-center">
+                      <span class="material-symbols-rounded me-1" style="font-size: 16px;">business</span>
+                      <span>{{ policy.sector }}</span>
+                    </span>
+                    <span class="d-flex align-items-center">
+                      <span class="material-symbols-rounded me-1" style="font-size: 16px;">groups</span>
+                      <span>{{ policy.organizationSize }}</span>
+                    </span>
+                  </div>
+                  <div class="text-muted small">
+                    Created: {{ policy.createdAt | date: 'short' }}
+                    <span class="mx-2">•</span>
+                    Modified: {{ policy.lastModified | date: 'short' }}
+                  </div>
+                </div>
+                <div class="d-flex gap-2 ms-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center"
+                    (click)="selectPolicy(policy)" title="View Details">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">visibility</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center"
+                    (click)="editPolicy(policy)" title="Edit">
+                    <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
+                  </button>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center"
+                      type="button" data-bs-toggle="dropdown" title="More Options">
+                      <span class="material-symbols-rounded" style="font-size: 18px;">more_vert</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <a class="dropdown-item d-flex align-items-center" (click)="exportPolicy(policy, 'pdf')">
+                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">picture_as_pdf</span>
+                          <span>Export PDF</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item d-flex align-items-center" (click)="exportPolicy(policy, 'docx')">
+                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">description</span>
+                          <span>Export DOCX</span>
+                        </a>
+                      </li>
+                      <li>
+                        <hr class="dropdown-divider" />
+                      </li>
+                      <li>
+                        <a class="dropdown-item d-flex align-items-center" (click)="viewVersionHistory(policy)">
+                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">history</span>
+                          <span>Version History</span>
+                        </a>
+                      </li>
+                      <li>
+                        <hr class="dropdown-divider" />
+                      </li>
+                      <li>
+                        <a class="dropdown-item text-danger d-flex align-items-center" (click)="deletePolicy(policy)">
+                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">delete</span>
+                          <span>Delete</span>
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+      }
+    </div>
+    } @else {
+    <!-- Policy Detail View -->
+    <div class="policy-detail">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
+          (click)="backToList()">
+          <span class="material-symbols-rounded me-2">arrow_back</span>
+          <span>Back to Library</span>
+        </button>
+      </div>
+
+      @if (selectedPolicy) {
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between mb-4">
+            <div>
+              <h4 class="mb-2">{{ selectedPolicy.title }}</h4>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge {{ getStatusClass(selectedPolicy.status) }} fs-6">
+                  {{ selectedPolicy.status | titlecase }}
+                </span>
+                <span class="badge bg-light text-dark">Version {{ selectedPolicy.version }}</span>
+              </div>
+            </div>
+            <div class="d-flex gap-2">
+              <app-button label="Edit" size="sm" variant="outline" icon="edit"
+                (click)="editPolicy(selectedPolicy)"></app-button>
+              <app-button label="Export PDF" size="sm" variant="outline" icon="picture_as_pdf"
+                (click)="exportPolicy(selectedPolicy, 'pdf')"></app-button>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <strong class="text-muted small">Sector:</strong>
+              <p class="mb-0">{{ selectedPolicy.sector }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong class="text-muted small">Organization Size:</strong>
+              <p class="mb-0">{{ selectedPolicy.organizationSize }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong class="text-muted small">Created:</strong>
+              <p class="mb-0">{{ selectedPolicy.createdAt | date: 'medium' }}</p>
+            </div>
+            <div class="col-md-6">
+              <strong class="text-muted small">Last Modified:</strong>
+              <p class="mb-0">{{ selectedPolicy.lastModified | date: 'medium' }}</p>
+            </div>
+          </div>
+
+          <div class="alert alert-info mb-0" role="alert">
+            <strong>Policy Content:</strong> Full policy content, sections, rationale, and references
+            will be displayed here. Implementation pending.
+          </div>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,31 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Controls</p>
+        <h2 class="h4 mb-0">Settings</h2>
+      </div>
+      <app-button
+        label="Audit Logs"
+        size="sm"
+        variant="outline"
+        icon="visibility"
+      ></app-button>
+    </div>
+
+    <div class="preferences">
+      @for (pref of preferences; track pref.label) {
+        <div class="preference border rounded-3 p-3">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <p class="fw-semibold mb-0">{{ pref.label }}</p>
+            <span class="badge" [class]="pref.enabled ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'">
+              {{ pref.enabled ? 'Enabled' : 'Disabled' }}
+            </span>
+          </div>
+          <p class="text-muted small mb-0">{{ pref.description }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+

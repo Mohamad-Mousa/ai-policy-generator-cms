@@ -1,0 +1,10 @@
+<div [ngClass]="hostClasses">
+  <div class="spinner">
+    <div class="ring"></div>
+    <div class="ring"></div>
+  </div>
+  @if (label) {
+    <p class="loader-label">{{ label }}</p>
+  }
+</div>
+

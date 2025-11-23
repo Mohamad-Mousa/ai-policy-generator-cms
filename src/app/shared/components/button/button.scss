@@ -1,0 +1,25 @@
+:host {
+  display: inline-flex;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  position: relative;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+app-loader {
+  display: inline-flex;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+

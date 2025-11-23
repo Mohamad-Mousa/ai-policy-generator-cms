@@ -1,0 +1,68 @@
+<aside
+  class="sidebar card border-0 shadow-sm h-100"
+  [class.collapsed]="isCollapsed"
+  [class.mobile-open]="mobileOpen"
+>
+  <div class="card-body d-flex flex-column gap-4">
+    <div class="nav-section">
+      <div class="d-flex align-items-center justify-content-between sidebar-header">
+        <div>
+          @if (!isCollapsed) {
+            <p class="text-uppercase text-muted fw-semibold small mb-1">Navigation</p>
+            <h2 class="h5 mb-0">Workspace Tabs</h2>
+          } @else {
+            <span class="material-symbols-rounded header-icon">dashboard</span>
+          }
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          @if (!isCollapsed) {
+            <span class="badge bg-primary-subtle text-primary-emphasis">
+              {{ navTabs.length }}
+            </span>
+          }
+          <button
+            type="button"
+            class="close-mobile-toggle material-symbols-rounded d-lg-none"
+            (click)="closeMobilePanel()"
+            aria-label="Close sidebar"
+          >
+            close
+          </button>
+          <button
+            type="button"
+            class="collapse-toggle material-symbols-rounded"
+            (click)="toggleSidebar()"
+            [attr.aria-label]="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          >
+            {{ isCollapsed ? 'chevron_right' : 'chevron_left' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-grid mt-3">
+        @for (tab of navTabs; track tab.label) {
+          <a
+            class="nav-tile w-100 text-start"
+            [routerLink]="tab.absolute ? ['/', tab.path] : ['/dashboard', tab.path]"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            #rla="routerLinkActive"
+            [attr.title]="isCollapsed ? tab.label : null"
+            (click)="handleNavSelection()"
+          >
+            <span class="material-symbols-rounded nav-icon" [class.active]="rla.isActive">
+              {{ tab.icon }}
+            </span>
+            @if (!isCollapsed) {
+              <div class="nav-copy flex-grow-1">
+                <p class="mb-1 fw-bold">{{ tab.label }}</p>
+                <small class="text-muted">{{ tab.description }}</small>
+              </div>
+              <span class="chevron ms-auto">&rsaquo;</span>
+            }
+          </a>
+        }
+      </div>
+    </div>
+  </div>
+</aside>

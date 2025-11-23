@@ -1,0 +1,11 @@
+<span
+  class="pill"
+  [ngClass]="[toneClass, 'size-' + size]"
+  [class.outline]="outline"
+>
+  @if (icon) {
+    <span class="material-symbols-rounded pill-icon">{{ icon }}</span>
+  }
+  {{ label }}
+</span>
+

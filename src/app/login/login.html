@@ -1,0 +1,81 @@
+<section class="login-page">
+  <div class="login-card">
+    <header>
+      <div class="brand-logo">admin-dashboard</div>
+      <p>Welcome back! Sign in to continue.</p>
+    </header>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+      <div class="form-field" [class.invalid]="email?.invalid && email?.touched">
+        <label for="email">Email address</label>
+        <div class="input-wrapper">
+          <i class="ri-mail-line" aria-hidden="true"></i>
+          <input id="email" type="email" placeholder="name@company.com" formControlName="email" autocomplete="email" />
+        </div>
+        @if (email?.errors?.['required']) {
+        <small>Email is required.</small>
+        }
+        @if (email?.errors?.['email']) {
+        <small>Enter a valid email.</small>
+        }
+      </div>
+
+      <div class="form-field" [class.invalid]="password?.invalid && password?.touched">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <i class="ri-lock-line" aria-hidden="true"></i>
+          <input id="password" type="password" placeholder="Enter your password" formControlName="password"
+            autocomplete="current-password" />
+        </div>
+        @if (password?.errors?.['required']) {
+        <small>Password is required.</small>
+        }
+        @if (password?.errors?.['minlength']) {
+        <small>Use at least 8 characters.</small>
+        }
+      </div>
+
+      <div class="form-meta">
+        <label class="remember">
+          <input type="checkbox" formControlName="rememberMe" />
+          <span>Remember me</span>
+        </label>
+        <a class="link" href="#">Forgot password?</a>
+      </div>
+
+      @if (errorMessage()) {
+      <div class="alert alert-danger mb-3" role="alert">
+        <small>{{ errorMessage() }}</small>
+      </div>
+      }
+
+      <button type="submit" [disabled]="isSubmitting() || loginForm.invalid">
+        @if (!isSubmitting()) {
+        <span>Sign in</span>
+        } @else {
+        <span>Signing in...</span>
+        }
+      </button>
+    </form>
+
+    <footer>
+      <p>
+        Don’t have an account?
+        <a class="link" href="#">Contact the administrator</a>
+      </p>
+    </footer>
+  </div>
+
+  <div class="hero-panel">
+    <h2>Analytics that help you grow</h2>
+    <p>
+      Visualize performance, manage admins, and keep your PhD project running
+      smoothly from a single dashboard.
+    </p>
+    <ul>
+      <li>Secure authentication with role-based access</li>
+      <li>Real-time dashboards and configurable tables</li>
+      <li>Smart notifications for critical updates</li>
+    </ul>
+  </div>
+</section>

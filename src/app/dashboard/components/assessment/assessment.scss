@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.assessment-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.domain-nav-btn {
+  background-color: #f8f9fa;
+  transition: all 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #e9ecef;
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background-color: var(--bs-primary);
+    color: white;
+
+    .material-symbols-rounded {
+      color: white;
+    }
+
+    small {
+      color: white;
+    }
+  }
+
+  &.completed {
+    border: 2px solid var(--bs-success) !important;
+  }
+
+  .material-symbols-rounded {
+    font-size: 2rem;
+    color: var(--bs-primary);
+  }
+}
+
+.domain-header-icon {
+  font-size: 3rem;
+  color: var(--bs-primary);
+}
+
+.question-container {
+  min-height: 200px;
+}
+

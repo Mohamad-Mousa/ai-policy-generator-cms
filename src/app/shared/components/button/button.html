@@ -1,0 +1,11 @@
+<button [type]="type" [ngClass]="hostClasses" [disabled]="isDisabled || loading" (click)="onClick($event)">
+  @if (icon && !loading) {
+  <span class="material-symbols-rounded align-middle me-1" aria-hidden="true">
+    {{ icon }}
+  </span>
+  }
+  @if (loading) {
+  <app-loader size="sm" context="button" class="me-2"></app-loader>
+  }
+  <span class="align-middle">{{ label }}</span>
+</button>

@@ -1,0 +1,96 @@
+@if (profile(); as currentProfile) {
+<section class="profile-view card border-0 shadow-sm">
+  <div class="profile-cover"></div>
+  <div class="profile-body p-4 p-md-5">
+    <div class="d-flex flex-column flex-md-row gap-4 align-items-center align-items-md-start">
+      <div class="avatar-wrapper">
+        <div class="avatar">
+          @if (getProfileImage()) {
+          <img [src]="getProfileImage()"
+            [alt]="(currentProfile.firstName || '') + ' ' + (currentProfile.lastName || '')" class="img-fluid" />
+          } @else {
+          <div class="avatar-placeholder">{{ initials }}</div>
+          }
+        </div>
+        <span class="status-pill" [class.inactive]="!isActive">
+          {{ isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <div class="flex-grow-1">
+        <header
+          class="d-flex flex-column flex-md-row gap-2 align-items-center align-items-md-start justify-content-between">
+          <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <h2 class="mb-0">
+                {{ currentProfile.firstName }} {{ currentProfile.lastName }}
+              </h2>
+              <button type="button" class="edit-btn material-symbols-rounded" (click)="openEditDialog()">
+                edit
+              </button>
+            </div>
+            <a class="email-link" [href]="'mailto:' + currentProfile.email">
+              {{ currentProfile.email }}
+            </a>
+          </div>
+          <div class="badge bg-primary-subtle text-primary-emphasis px-3 py-2 rounded-pill text-uppercase fw-semibold">
+            {{ adminTypeName }}
+          </div>
+        </header>
+
+        <div class="info-grid">
+          <div>
+            <p class="label">First name</p>
+            <p class="value">{{ currentProfile.firstName }}</p>
+          </div>
+          <div>
+            <p class="label">Last name</p>
+            <p class="value">{{ currentProfile.lastName }}</p>
+          </div>
+          <div>
+            <p class="label">Email</p>
+            <p class="value">{{ currentProfile.email }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+} @else {
+<section class="profile-view card border-0 shadow-sm">
+  <div class="profile-body p-4 p-md-5">
+    <div class="text-center py-5">
+      <p class="text-muted">Loading profile...</p>
+    </div>
+  </div>
+</section>
+}
+
+<app-dialog [open]="isEditDialogOpen" title="Edit profile"
+  description="Update your personal details for other admins to reference." width="560px" (closed)="closeEditDialog()">
+  <form dialog-body [formGroup]="profileForm" class="profile-form">
+    <div class="image-field">
+      <app-image-upload label="Avatar" hint="PNG or JPG up to 5MB" [value]="getImageUploadValue()"
+        (valueChange)="onImageChange($event)" (fileSelected)="onImageFileSelected($event)"
+        [disabled]="profileForm.disabled || isSaving()" shape="round"></app-image-upload>
+    </div>
+    <label>
+      <span>First name</span>
+      <input type="text" formControlName="firstName" />
+    </label>
+    <label>
+      <span>Last name</span>
+      <input type="text" formControlName="lastName" />
+    </label>
+    <label>
+      <span>Email</span>
+      <input type="email" formControlName="email" />
+    </label>
+  </form>
+
+  <div dialog-footer>
+    <app-button label="Cancel" variant="text" [disabled]="isSaving()" (clicked)="closeEditDialog()"></app-button>
+    <app-button [label]="saveButtonLabel" variant="primary-gradient" [loading]="isSaving()" [disabled]="isSaving()"
+      (clicked)="saveProfile()"></app-button>
+  </div>
+</app-dialog>

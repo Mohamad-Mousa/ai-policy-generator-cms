@@ -1,0 +1,93 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Directory</p>
+        <h2 class="h4 mb-0">Administrators</h2>
+      </div>
+      <app-button label="Create Admin" size="sm" variant="primary" icon="add" [functionKey]="functionKey"
+        [privilegeAccess]="writePrivilege" (click)="openCreateAdminDialog()"></app-button>
+    </div>
+
+    <app-table [columns]="columns" [rows]="admins()" [totalCount]="totalCount()" [showActions]="true"
+      [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
+      loadingLabel="Loading administrators..." [functionKey]="functionKey" [excludedActions]="excludedActions"
+      [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
+      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
+      (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (readAction)="onRead($event)"
+      (updateAction)="onUpdate($event)" (deleteAction)="onDelete($event)"></app-table>
+  </div>
+</div>
+
+<app-dialog [open]="isCreateDialogOpen" [title]="dialogTitle" [description]="dialogDescription"
+  (closed)="closeCreateAdminDialog()">
+  <form dialog-body [formGroup]="createAdminForm" class="form-grid">
+    <app-form-input [control]="emailControl" formControlName="email" label="Email" type="email"
+      placeholder="admin@gmail.com" [required]="true">
+    </app-form-input>
+
+    <app-form-input [control]="firstNameControl" formControlName="firstName" label="First Name" type="text"
+      placeholder="John" [required]="true" [minlength]="2">
+    </app-form-input>
+
+    <app-form-input [control]="lastNameControl" formControlName="lastName" label="Last Name" type="text"
+      placeholder="Doe" [required]="true" [minlength]="2">
+    </app-form-input>
+
+    <app-form-input [control]="passwordControl" formControlName="password" label="Password" type="password"
+      [placeholder]="isEditMode ? 'Leave blank to keep current password' : 'Enter password'" [required]="!isEditMode"
+      [minlength]="6" hint="Minimum 6 characters">
+    </app-form-input>
+
+    <app-form-input [control]="typeControl" formControlName="type" label="Type" type="select"
+      placeholder="Select admin type" [options]="adminTypeOptions" [required]="true">
+    </app-form-input>
+
+    <div class="image-field">
+      <app-image-upload label="Image" hint="PNG or JPG up to 5MB" [value]="imagePreview"
+        (valueChange)="onImageChange($event)" (fileSelected)="onImageFileSelected($event)"
+        [disabled]="createAdminForm.disabled">
+      </app-image-upload>
+    </div>
+  </form>
+
+  <div dialog-footer>
+    <app-button label="Cancel" variant="text" [disabled]="createDialogLoading()"
+      (clicked)="closeCreateAdminDialog()"></app-button>
+    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="createDialogLoading()"
+      [disabled]="createDialogLoading()" [functionKey]="functionKey"
+      [privilegeAccess]="isEditMode ? PrivilegeAccess.U : PrivilegeAccess.W" (clicked)="onCreateAdminSubmit()">
+    </app-button>
+  </div>
+</app-dialog>
+
+<app-dialog [open]="isDeleteDialogOpen" title="Delete administrator" description="This action cannot be undone."
+  width="460px" (closed)="closeDeleteDialog()">
+  <div dialog-body>
+    <div class="d-flex align-items-start gap-3">
+      <div class="text-danger">
+        <span class="material-symbols-rounded" style="font-size: 2rem;">warning</span>
+      </div>
+      <div>
+        <p class="fw-semibold mb-1">Are you sure you want to delete this administrator?</p>
+        @if (adminToDelete) {
+        <p class="text-muted mb-0">
+          <strong>{{ adminToDelete.firstName }} {{ adminToDelete.lastName }}</strong> will be permanently
+          removed from the system. This action cannot be undone.
+        </p>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <app-button label="Cancel" variant="text" [disabled]="deleteDialogLoading()"
+      (clicked)="closeDeleteDialog()"></app-button>
+    <app-button [label]="deleteButtonLabel" variant="danger-gradient" [loading]="deleteDialogLoading()"
+      [disabled]="deleteDialogLoading()" [functionKey]="functionKey" [privilegeAccess]="deletePrivilege"
+      (clicked)="confirmDelete()"></app-button>
+  </div>
+</app-dialog>
+
+<app-sidebar [open]="isSidebarOpen" title="Admin Details" [fields]="sidebarFields" [data]="sidebarData"
+  (closed)="closeSidebar()"></app-sidebar>

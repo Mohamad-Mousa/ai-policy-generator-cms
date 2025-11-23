@@ -1,0 +1,172 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Analysis</p>
+        <h2 class="h4 mb-0">Readiness Reports</h2>
+      </div>
+      <div class="d-flex gap-2">
+        <app-button
+          label="Export PDF"
+          size="sm"
+          variant="outline"
+          icon="picture_as_pdf"
+          (click)="exportReport('pdf')"
+        ></app-button>
+        <app-button
+          label="Export Excel"
+          size="sm"
+          variant="outline"
+          icon="table_chart"
+          (click)="exportReport('excel')"
+        ></app-button>
+      </div>
+    </div>
+
+    @if (viewMode === 'overview') {
+      <!-- Overall Readiness Summary -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h5 class="mb-3">Overall AI Readiness</h5>
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="readiness-score-display text-center mb-3 mb-md-0">
+                <div class="score-circle mx-auto mb-3">
+                  <span class="score-value">{{ overallReadiness.percentage }}%</span>
+                </div>
+                <span class="badge {{ getLevelClass(overallReadiness.level) }} fs-6">
+                  {{ overallReadiness.level | titlecase }} Readiness
+                </span>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="readiness-details">
+                <p class="text-muted mb-2">
+                  <strong>Score:</strong> {{ overallReadiness.totalScore }} / {{ overallReadiness.maxScore }}
+                </p>
+                <p class="text-muted mb-2">
+                  <strong>Last Updated:</strong> {{ overallReadiness.lastUpdated | date: 'medium' }}
+                </p>
+                <p class="text-muted mb-0">
+                  <strong>Status:</strong> Complete assessment to view detailed analysis
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Domain Scores -->
+      <div class="domains-scores">
+        <h5 class="mb-3">Domain Scores</h5>
+        <div class="row g-3">
+          @for (domain of domainScores; track domain.id) {
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card border-0 shadow-sm domain-score-card h-100" (click)="selectDomain(domain)">
+                <div class="card-body">
+                  <div class="d-flex align-items-start justify-content-between mb-3">
+                    <h6 class="mb-0">{{ domain.name }}</h6>
+                    <span class="badge {{ getStatusClass(domain.status) }}">
+                      {{ domain.status | titlecase }}
+                    </span>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="text-muted small">Score</span>
+                      <strong>{{ domain.score }} / {{ domain.maxScore }}</strong>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                      <div
+                        class="progress-bar"
+                        [class.bg-success]="domain.status === 'excellent'"
+                        [class.bg-info]="domain.status === 'good'"
+                        [class.bg-warning]="domain.status === 'moderate'"
+                        [class.bg-danger]="domain.status === 'needs-improvement'"
+                        role="progressbar"
+                        [style.width.%]="(domain.score / domain.maxScore) * 100"
+                        [attr.aria-valuenow]="domain.score"
+                        aria-valuemin="0"
+                        [attr.aria-valuemax]="domain.maxScore"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div class="text-muted small">
+                    <strong>Gaps:</strong> {{ domain.gaps.length }}
+                    <br>
+                    <strong>Recommendations:</strong> {{ domain.recommendations.length }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else {
+      <!-- Detailed Domain View -->
+      <div class="detailed-view">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <button
+            type="button"
+            class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
+            (click)="backToOverview()"
+          >
+            <span class="material-symbols-rounded me-2">arrow_back</span>
+            <span>Back to Overview</span>
+          </button>
+        </div>
+
+        @if (selectedDomain) {
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+              <div class="d-flex align-items-start justify-content-between mb-4">
+                <div>
+                  <h4 class="mb-2">{{ selectedDomain.name }}</h4>
+                  <div class="d-flex align-items-center gap-3">
+                    <span class="badge {{ getStatusClass(selectedDomain.status) }} fs-6">
+                      {{ selectedDomain.status | titlecase }}
+                    </span>
+                    <span class="text-muted">
+                      Score: <strong>{{ selectedDomain.score }} / {{ selectedDomain.maxScore }}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Gap Analysis -->
+              <div class="mb-4">
+                <h6 class="mb-3 d-flex align-items-center">
+                  <span class="material-symbols-rounded me-2">warning</span>
+                  <span>Gap Analysis</span>
+                </h6>
+                <ul class="list-group">
+                  @for (gap of selectedDomain.gaps; track gap) {
+                    <li class="list-group-item">{{ gap }}</li>
+                  }
+                </ul>
+              </div>
+
+              <!-- Recommendations -->
+              <div>
+                <h6 class="mb-3 d-flex align-items-center">
+                  <span class="material-symbols-rounded me-2">lightbulb</span>
+                  <span>Recommendations</span>
+                </h6>
+                <ul class="list-group">
+                  @for (recommendation of selectedDomain.recommendations; track recommendation) {
+                    <li class="list-group-item d-flex align-items-center">
+                      <span class="material-symbols-rounded me-2 text-primary">check_circle</span>
+                      <span>{{ recommendation }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+

@@ -1,0 +1,134 @@
+.image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  position: relative;
+}
+
+.label-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.label {
+  margin: 0;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.hint {
+  color: #64748b;
+}
+
+.upload-surface {
+  border: 2px dashed rgba(99, 102, 241, 0.4);
+  border-radius: 1rem;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  background: rgba(248, 250, 255, 0.8);
+  overflow: hidden;
+  transition: border 0.2s ease, background 0.2s ease;
+}
+
+.upload-surface.round {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+.upload-surface.dragging {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.upload-surface.has-image {
+  border-style: solid;
+  background: #fff;
+}
+
+.upload-surface img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.empty-state {
+  text-align: center;
+  color: #475467;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.empty-state .icon {
+  font-size: 2rem;
+  color: #7c3aed;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: none;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.disabled .upload-surface {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+

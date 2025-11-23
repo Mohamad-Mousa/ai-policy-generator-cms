@@ -1,0 +1,35 @@
+@if (open) {
+<div class="dialog-overlay" (click)="handleClose('backdrop')">
+  <div class="dialog-panel" [style.maxWidth]="width" (click)="$event.stopPropagation()">
+    <header>
+      <div>
+        <p class="eyebrow">Modal</p>
+        <h3>{{ title }}</h3>
+        @if (description) {
+        <p class="description">{{ description }}</p>
+        }
+      </div>
+      <button class="icon-button" type="button" (click)="handleClose('close-button')" aria-label="Close dialog">
+        ✕
+      </button>
+    </header>
+
+    <section class="dialog-body">
+      <ng-content select="[dialog-body]"></ng-content>
+    </section>
+
+    <footer class="dialog-footer">
+      @if (buttons.length > 0) {
+      @for (button of buttons; track $index) {
+      <app-button [label]="button.label" [variant]="button.variant || 'primary'" [size]="button.size || 'sm'"
+        [icon]="button.icon" [disabled]="button.disabled || false" [loading]="button.loading || false"
+        [functionKey]="button.functionKey" [privilegeAccess]="button.privilegeAccess" (clicked)="button.action()">
+      </app-button>
+      }
+      } @else {
+      <ng-content select="[dialog-footer]"></ng-content>
+      }
+    </footer>
+  </div>
+</div>
+}

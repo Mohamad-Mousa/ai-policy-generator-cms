@@ -1,0 +1,59 @@
+<header class="dashboard-header bg-white shadow-sm rounded-3 p-3 p-md-4 mb-3">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3 position-relative">
+      <button type="button" class="menu-toggle material-symbols-rounded d-lg-none" (click)="menuToggle.emit()"
+        aria-label="Toggle sidebar">
+        menu
+      </button>
+      <div class="profile-trigger">
+        <button type="button" class="brand-trigger p-0 border-0 bg-transparent" (click)="toggleProfileMenu($event)"
+          aria-haspopup="menu" [attr.aria-expanded]="isProfileMenuOpen">
+          <div class="brand-emblem d-flex align-items-center justify-content-center rounded-circle position-relative">
+            @if (shouldShowImage()) {
+            <img [src]="getAdminImage()" [alt]="getAdminInitials()" class="admin-image" (error)="onImageError()" />
+            } @else {
+            <span>{{ getAdminInitials() }}</span>
+            }
+            <span class="action-point"></span>
+          </div>
+        </button>
+
+        @if (isProfileMenuOpen) {
+        <div class="profile-dropdown" role="menu" (click)="onMenuClick($event)">
+          <button type="button" role="menuitem" (click)="goToProfile($event)">
+            Profile
+          </button>
+        </div>
+        }
+      </div>
+      <div>
+        <h1 class="h5 mb-1">Admin Console</h1>
+        <p class="text-muted mb-0 small">Monitor activity and manage access</p>
+      </div>
+    </div>
+
+    <button type="button" class="logout-button material-symbols-rounded" (click)="openLogoutDialog()"
+      aria-label="Logout" title="Logout">
+      power_settings_new
+    </button>
+  </div>
+</header>
+
+<app-dialog [open]="isLogoutDialogOpen" title="Sign out"
+  description="You will be redirected to the login page. Ongoing changes that aren't saved will be lost." width="460px"
+  (closed)="closeLogoutDialog()">
+  <div dialog-body class="logout-warning">
+    <div class="warning-icon material-symbols-rounded p-2">warning</div>
+    <div>
+      <p class="fw-semibold mb-1">Are you sure you want to logout?</p>
+      <p class="text-muted mb-0">
+        Make sure any pending admin or type changes are saved before you exit the dashboard.
+      </p>
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <app-button label="Stay" variant="text" (clicked)="closeLogoutDialog()"></app-button>
+    <app-button label="Logout" variant="danger-gradient" (clicked)="confirmLogout()"></app-button>
+  </div>
+</app-dialog>

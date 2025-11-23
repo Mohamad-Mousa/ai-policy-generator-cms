@@ -1,0 +1,53 @@
+<div class="image-upload" [class.disabled]="disabled">
+  <div class="label-stack">
+    <p class="label">{{ label }}</p>
+    <small class="hint">{{ hint }}</small>
+  </div>
+
+  <div
+    class="upload-surface"
+    [class.dragging]="isDragging"
+    [class.has-image]="value"
+    [class.round]="shape === 'round'"
+    [class.loading]="loading"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="triggerFileDialog()"
+  >
+    @if (value) {
+      <img [src]="value" alt="Uploaded image preview" />
+      @if (showRemove && !disabled) {
+        <button type="button" class="remove-btn" (click)="removeImage(); $event.stopPropagation()">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      }
+    } @else {
+      <div class="empty-state">
+        <span class="material-symbols-rounded icon">upload</span>
+        <p>Drop image or click to browse</p>
+        <small>{{ accept }}</small>
+      </div>
+    }
+
+    @if (loading) {
+      <div class="loading-overlay">
+        <div class="spinner"></div>
+      </div>
+    }
+  </div>
+
+  <input
+    #fileInput
+    type="file"
+    class="visually-hidden"
+    [accept]="accept"
+    [disabled]="disabled"
+    (change)="onFileChange($event)"
+  />
+
+  @if (errorMessage) {
+    <p class="error">{{ errorMessage }}</p>
+  }
+</div>
+
