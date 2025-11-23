@@ -27,6 +27,7 @@ import {
   FormInputComponent,
   SelectOption,
 } from '../../../shared/components/form-input/form-input';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-admins-section',
@@ -74,10 +75,11 @@ export class AdminsComponent implements OnInit, OnDestroy {
   ];
 
   protected admins = signal<Admin[]>([]);
+  protected tableRows = signal<Record<string, unknown>[]>([]);
   protected totalCount = signal(0);
   protected tableLoading = signal(false);
   protected adminTypes = signal<AdminType[]>([]);
-  protected createDialogLoading = signal(false);
+  protected dialogLoading = signal(false);
   protected deleteDialogLoading = signal(false);
   private currentPage = 1;
   private currentLimit = 10;
@@ -100,7 +102,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
   protected readonly deletePrivilege = PrivilegeAccess.D;
   protected readonly PrivilegeAccess = PrivilegeAccess;
 
-  protected isCreateDialogOpen = false;
+  protected isDialogOpen = false;
   protected createAdminForm: FormGroup;
   protected selectedImageFile?: File;
   protected imagePreview?: string;
@@ -123,6 +125,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
       password: ['', [Validators.required, Validators.minLength(6)]],
       type: ['', Validators.required],
       image: [''],
+      isActive: [true],
     });
   }
 
@@ -200,10 +203,11 @@ export class AdminsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          this.admins.set(response.data);
           const transformedAdmins = response.data.map((admin) =>
             this.transformAdminForTable(admin)
-          ) as Admin[];
-          this.admins.set(transformedAdmins);
+          );
+          this.tableRows.set(transformedAdmins);
           this.totalCount.set(response.totalCount);
           this.tableLoading.set(false);
         },
@@ -214,6 +218,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
             'Failed to load admins'
           );
           this.admins.set([]);
+          this.tableRows.set([]);
           this.totalCount.set(0);
           this.tableLoading.set(false);
         },
@@ -279,7 +284,6 @@ export class AdminsComponent implements OnInit, OnDestroy {
     sortBy: string;
     sortDirection: 'asc' | 'desc';
   }): void {
-    // Reset to first page when sorting changes
     this.loadAdmins(
       1,
       this.currentLimit,
@@ -321,6 +325,10 @@ export class AdminsComponent implements OnInit, OnDestroy {
     return this.createAdminForm.get('type') as FormControl;
   }
 
+  protected get isActiveControl(): FormControl {
+    return this.createAdminForm.get('isActive') as FormControl;
+  }
+
   protected get dialogTitle(): string {
     return this.isEditMode ? 'Edit administrator' : 'Create administrator';
   }
@@ -332,7 +340,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
   }
 
   protected get createButtonLabel(): string {
-    if (this.createDialogLoading()) {
+    if (this.dialogLoading()) {
       return this.isEditMode ? 'Updating...' : 'Creating...';
     }
     return this.isEditMode ? 'Update admin' : 'Create admin';
@@ -344,19 +352,19 @@ export class AdminsComponent implements OnInit, OnDestroy {
 
   protected openCreateAdminDialog() {
     this.selectedAdmin = undefined;
-    this.isCreateDialogOpen = true;
+    this.isDialogOpen = true;
     this.resetForm();
   }
 
   protected closeCreateAdminDialog() {
-    if (this.createDialogLoading()) {
-      return; // Prevent closing during API call
+    if (this.dialogLoading()) {
+      return;
     }
-    this.isCreateDialogOpen = false;
+    this.isDialogOpen = false;
     this.selectedAdmin = undefined;
     this.selectedImageFile = undefined;
     this.imagePreview = undefined;
-    this.createDialogLoading.set(false);
+    this.dialogLoading.set(false);
     this.resetForm();
   }
 
@@ -368,6 +376,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
       password: '',
       type: '',
       image: '',
+      isActive: true,
     });
     const passwordControl = this.createAdminForm.get('password');
     passwordControl?.setValidators([
@@ -382,43 +391,50 @@ export class AdminsComponent implements OnInit, OnDestroy {
   }
 
   protected onImageChange(value?: string) {
-    this.imagePreview = value;
+    this.imagePreview = environment.IMG_URL + value;
     const control = this.createAdminForm.get('image');
     control?.setValue(value ?? '', { emitEvent: true });
   }
 
   protected onCreateAdminSubmit() {
     this.createAdminForm.markAllAsTouched();
-    if (this.createAdminForm.invalid || this.createDialogLoading()) {
+    if (this.createAdminForm.invalid || this.dialogLoading()) {
       return;
     }
 
-    this.createDialogLoading.set(true);
+    this.dialogLoading.set(true);
     this.tableLoading.set(true);
     const formValue = this.createAdminForm.value;
 
-    const adminData: Partial<Admin> = {
+    const adminData: Omit<Partial<Admin>, 'isActive'> & {
+      isActive?: boolean;
+      password?: string;
+    } = {
       email: formValue.email,
       firstName: formValue.firstName,
       lastName: formValue.lastName,
       type: formValue.type,
+      isActive: formValue.isActive ? true : false,
+      ...(formValue.password ? { password: formValue.password } : {}),
     };
 
-    if (formValue.password) {
-      adminData['password'] = formValue.password;
-    }
-
     if (this.isEditMode && this.selectedAdmin?._id) {
-      adminData._id = this.selectedAdmin._id;
+      adminData['_id'] = this.selectedAdmin._id;
     }
 
     const operation = this.isEditMode
-      ? this.adminService.update(adminData, this.selectedImageFile)
-      : this.adminService.create(adminData, this.selectedImageFile);
+      ? this.adminService.update(
+          adminData as Partial<Admin>,
+          this.selectedImageFile
+        )
+      : this.adminService.create(
+          adminData as Partial<Admin>,
+          this.selectedImageFile
+        );
 
     operation.pipe(takeUntil(this.destroy$)).subscribe({
       next: (admin) => {
-        this.createDialogLoading.set(false);
+        this.dialogLoading.set(false);
         this.closeCreateAdminDialog();
         this.loadAdmins(
           this.currentPage,
@@ -441,7 +457,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
           `Error ${this.isEditMode ? 'updating' : 'creating'} admin:`,
           error
         );
-        this.createDialogLoading.set(false);
+        this.dialogLoading.set(false);
         this.notifications.danger(
           error.error?.message ||
             `An error occurred while ${
@@ -556,7 +572,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
     }
 
     this.selectedAdmin = fullAdmin;
-    this.isCreateDialogOpen = true;
+    this.isDialogOpen = true;
 
     this.createAdminForm.patchValue({
       email: fullAdmin.email,
@@ -564,15 +580,20 @@ export class AdminsComponent implements OnInit, OnDestroy {
       lastName: fullAdmin.lastName,
       type: fullAdmin.type?._id || '',
       image: fullAdmin.image || '',
+      isActive: fullAdmin.isActive,
     });
 
     if (fullAdmin.image) {
-      this.imagePreview = fullAdmin.image;
+      this.imagePreview = environment.IMG_URL + fullAdmin.image;
     }
 
     const passwordControl = this.createAdminForm.get('password');
     passwordControl?.clearValidators();
     passwordControl?.updateValueAndValidity();
+
+    if (fullAdmin.image) {
+      this.imagePreview = environment.IMG_URL + fullAdmin.image;
+    }
   }
 
   protected onDelete(admin: Record<string, unknown>): void {
@@ -593,7 +614,7 @@ export class AdminsComponent implements OnInit, OnDestroy {
 
   protected closeDeleteDialog() {
     if (this.deleteDialogLoading()) {
-      return; // Prevent closing during API call
+      return;
     }
     this.isDeleteDialogOpen = false;
     this.adminToDelete = undefined;

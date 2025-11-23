@@ -82,6 +82,13 @@
             <span class="text-muted">—</span>
             }
             }
+            @case ('icon') {
+            @if (row[column.key]) {
+            <span class="material-symbols-rounded table-icon">{{ row[column.key] }}</span>
+            } @else {
+            <span class="text-muted">—</span>
+            }
+            }
             @default {
             <span>{{ row[column.key] ?? '—' }}</span>
             }

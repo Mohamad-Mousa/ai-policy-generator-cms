@@ -17,53 +17,12 @@
 }
 
 .form-grid input,
-.form-grid select {
+.form-grid select,
+.form-grid textarea {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 0.65rem 0.85rem;
   font-size: 0.95rem;
-}
-
-.permissions {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.permissions legend {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6b7280;
-  padding: 0 0.25rem;
-}
-
-.permissions label {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-text {
-  border: none;
-  background: transparent;
-  color: #475467;
-  font-weight: 500;
-  padding: 0.5rem 0.75rem;
-  border-radius: 999px;
-}
-
-.btn-primary {
-  border: none;
-  border-radius: 999px;
-  padding: 0.65rem 1.5rem;
-  background: linear-gradient(120deg, #6366f1, #8b5cf6);
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 15px 30px rgba(99, 102, 241, 0.25);
 }
 
 .checkbox-field {

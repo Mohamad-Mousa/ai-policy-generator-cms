@@ -19,8 +19,8 @@
   </div>
 </div>
 
-<app-dialog [open]="isCreateDialogOpen" [title]="dialogTitle" [description]="dialogDescription"
-  width="720px" (closed)="closeCreateTypeDialog()">
+<app-dialog [open]="isDialogOpen" [title]="dialogTitle" [description]="dialogDescription" width="720px"
+  (closed)="closeCreateTypeDialog()">
   <form dialog-body [formGroup]="createTypeForm" class="form-grid">
     <label class="full-width">
       <span>Type name</span>
@@ -32,6 +32,14 @@
       <small class="error-text">Type name is required (min 3 characters).</small>
       }
     </label>
+
+    <div class="full-width checkbox-field">
+      <span class="field-label">Active Status</span>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" formControlName="isActive" id="isActive" />
+        <label for="isActive" class="checkbox-text">Enable or disable this admin type</label>
+      </div>
+    </div>
 
     <div class="full-width privileges-section">
       <div class="d-flex align-items-center justify-content-between mb-3">
@@ -77,10 +85,10 @@
   </form>
 
   <div dialog-footer>
-    <app-button label="Cancel" variant="text" [disabled]="createDialogLoading()"
+    <app-button label="Cancel" variant="text" [disabled]="dialogLoading()"
       (clicked)="closeCreateTypeDialog()"></app-button>
-    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="createDialogLoading()"
-      [disabled]="createDialogLoading()" [functionKey]="functionKey"
+    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="dialogLoading()"
+      [disabled]="dialogLoading()" [functionKey]="functionKey"
       [privilegeAccess]="isEditMode ? PrivilegeAccess.U : PrivilegeAccess.W" (clicked)="onCreateTypeSubmit()">
     </app-button>
   </div>

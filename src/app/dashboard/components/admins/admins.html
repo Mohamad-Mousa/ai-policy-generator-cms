@@ -9,7 +9,7 @@
         [privilegeAccess]="writePrivilege" (click)="openCreateAdminDialog()"></app-button>
     </div>
 
-    <app-table [columns]="columns" [rows]="admins()" [totalCount]="totalCount()" [showActions]="true"
+    <app-table [columns]="columns" [rows]="tableRows()" [totalCount]="totalCount()" [showActions]="true"
       [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
       loadingLabel="Loading administrators..." [functionKey]="functionKey" [excludedActions]="excludedActions"
       [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
@@ -19,7 +19,7 @@
   </div>
 </div>
 
-<app-dialog [open]="isCreateDialogOpen" [title]="dialogTitle" [description]="dialogDescription"
+<app-dialog [open]="isDialogOpen" [title]="dialogTitle" [description]="dialogDescription"
   (closed)="closeCreateAdminDialog()">
   <form dialog-body [formGroup]="createAdminForm" class="form-grid">
     <app-form-input [control]="emailControl" formControlName="email" label="Email" type="email"
@@ -49,13 +49,21 @@
         [disabled]="createAdminForm.disabled">
       </app-image-upload>
     </div>
+
+    <div class="checkbox-field">
+      <span class="field-label">Active Status</span>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" formControlName="isActive" id="isActive" />
+        <label for="isActive" class="checkbox-text">Enable or disable this administrator</label>
+      </div>
+    </div>
   </form>
 
   <div dialog-footer>
-    <app-button label="Cancel" variant="text" [disabled]="createDialogLoading()"
+    <app-button label="Cancel" variant="text" [disabled]="dialogLoading()"
       (clicked)="closeCreateAdminDialog()"></app-button>
-    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="createDialogLoading()"
-      [disabled]="createDialogLoading()" [functionKey]="functionKey"
+    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="dialogLoading()"
+      [disabled]="dialogLoading()" [functionKey]="functionKey"
       [privilegeAccess]="isEditMode ? PrivilegeAccess.U : PrivilegeAccess.W" (clicked)="onCreateAdminSubmit()">
     </app-button>
   </div>

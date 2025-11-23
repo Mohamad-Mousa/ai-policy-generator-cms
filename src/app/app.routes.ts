@@ -41,6 +41,14 @@ export const routes: Routes = [
         canActivate: [privilegeGuard('adminTypes', PrivilegeAccess.R)],
       },
       {
+        path: 'domains',
+        loadComponent: () =>
+          import('./dashboard/components/domains/domains').then(
+            (m) => m.DomainsComponent
+          ),
+        canActivate: [privilegeGuard('domains', PrivilegeAccess.R)],
+      },
+      {
         path: 'activity-logs',
         loadComponent: () =>
           import('./dashboard/components/activity-logs/activity-logs').then(

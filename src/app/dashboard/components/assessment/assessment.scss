@@ -7,10 +7,28 @@
   margin: 0 auto;
 }
 
+.domains-navigation {
+  .row {
+    display: flex;
+    align-items: stretch;
+  }
+
+  [class*="col-"] {
+    display: flex;
+  }
+}
+
 .domain-nav-btn {
   background-color: #f8f9fa;
   transition: all 0.2s;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
 
   &:hover {
     background-color: #e9ecef;

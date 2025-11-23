@@ -12,7 +12,7 @@ import { environment } from '../../../../environments/environment';
 export interface SidebarField {
   label: string;
   key: string;
-  type?: 'text' | 'badge' | 'image' | 'date';
+  type?: 'text' | 'badge' | 'image' | 'date' | 'icon';
   badgeClassKey?: string;
   format?: (value: any) => string;
 }

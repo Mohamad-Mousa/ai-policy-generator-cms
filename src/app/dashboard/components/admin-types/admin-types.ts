@@ -73,7 +73,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
   protected tableRows = signal<Record<string, unknown>[]>([]);
   protected totalCount = signal(0);
   protected tableLoading = signal(false);
-  protected createDialogLoading = signal(false);
+  protected dialogLoading = signal(false);
   protected deleteDialogLoading = signal(false);
   private currentPage = 1;
   private currentLimit = 10;
@@ -93,7 +93,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
   protected readonly FunctionKeys = FunctionKeys;
   protected readonly functionKeysArray = Object.values(FunctionKeys);
 
-  protected isCreateDialogOpen = false;
+  protected isDialogOpen = false;
   protected createTypeForm: FormGroup;
   protected selectedAdminType?: AdminType;
   protected isDeleteDialogOpen = false;
@@ -109,6 +109,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
     this.createTypeForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       privileges: this.fb.group({}),
+      isActive: [true],
     });
 
     this.functionKeysArray.forEach((key) => {
@@ -289,8 +290,12 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
       : 'Group permissions into reusable admin roles.';
   }
 
+  protected get isActiveControl(): FormControl {
+    return this.createTypeForm.get('isActive') as FormControl;
+  }
+
   protected get createButtonLabel(): string {
-    if (this.createDialogLoading()) {
+    if (this.dialogLoading()) {
       return this.isEditMode ? 'Updating...' : 'Creating...';
     }
     return this.isEditMode ? 'Update type' : 'Create type';
@@ -302,23 +307,24 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
 
   protected openCreateTypeDialog() {
     this.selectedAdminType = undefined;
-    this.isCreateDialogOpen = true;
+    this.isDialogOpen = true;
     this.resetForm();
   }
 
   protected closeCreateTypeDialog() {
-    if (this.createDialogLoading()) {
+    if (this.dialogLoading()) {
       return; // Prevent closing during API call
     }
-    this.isCreateDialogOpen = false;
+    this.isDialogOpen = false;
     this.selectedAdminType = undefined;
-    this.createDialogLoading.set(false);
+    this.dialogLoading.set(false);
     this.resetForm();
   }
 
   private resetForm() {
     this.createTypeForm.reset({
       name: '',
+      isActive: true,
     });
 
     // Reset all privileges
@@ -388,11 +394,11 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
 
   protected onCreateTypeSubmit() {
     this.createTypeForm.markAllAsTouched();
-    if (this.createTypeForm.invalid || this.createDialogLoading()) {
+    if (this.createTypeForm.invalid || this.dialogLoading()) {
       return;
     }
 
-    this.createDialogLoading.set(true);
+    this.dialogLoading.set(true);
     this.tableLoading.set(true);
     const formValue = this.createTypeForm.value;
     const privilegesGroup = formValue.privileges as Record<string, any>;
@@ -417,6 +423,9 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
         _id: this.selectedAdminType._id,
         name: formValue.name,
         privileges,
+        ...(formValue.isActive !== undefined
+          ? { isActive: (formValue.isActive ? 'true' : 'false') as string }
+          : {}),
       };
 
       this.adminTypeService
@@ -424,7 +433,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (adminType) => {
-            this.createDialogLoading.set(false);
+            this.dialogLoading.set(false);
             this.closeCreateTypeDialog();
             this.loadAdminTypes(
               this.currentPage,
@@ -442,7 +451,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error updating admin type:', error);
-            this.createDialogLoading.set(false);
+            this.dialogLoading.set(false);
             this.notifications.danger(
               error.error?.message ||
                 'An error occurred while updating the admin type',
@@ -455,6 +464,9 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
       const createData: CreateAdminTypeRequest = {
         name: formValue.name,
         privileges,
+        ...(formValue.isActive !== undefined
+          ? { isActive: (formValue.isActive ? 'true' : 'false') as string }
+          : {}),
       };
 
       this.adminTypeService
@@ -462,7 +474,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (adminType) => {
-            this.createDialogLoading.set(false);
+            this.dialogLoading.set(false);
             this.closeCreateTypeDialog();
             this.loadAdminTypes(
               this.currentPage,
@@ -480,7 +492,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error creating admin type:', error);
-            this.createDialogLoading.set(false);
+            this.dialogLoading.set(false);
             this.notifications.danger(
               error.error?.message ||
                 'An error occurred while creating the admin type',
@@ -570,10 +582,11 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
     }
 
     this.selectedAdminType = fullAdminType;
-    this.isCreateDialogOpen = true;
+    this.isDialogOpen = true;
 
     this.createTypeForm.patchValue({
       name: fullAdminType.name,
+      isActive: fullAdminType.isActive,
     });
 
     // Set privileges from existing data

@@ -21,7 +21,7 @@ import { environment } from '../../../../environments/environment';
 export interface TableColumn {
   label: string;
   key: string;
-  type?: 'text' | 'badge' | 'image';
+  type?: 'text' | 'badge' | 'image' | 'icon';
   badgeClassKey?: string;
   filterable?: boolean;
   filterType?: 'text' | 'select';

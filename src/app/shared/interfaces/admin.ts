@@ -41,12 +41,14 @@ export interface PrivilegePermission {
 export interface CreateAdminTypeRequest {
   name: string;
   privileges: Record<string, PrivilegePermission>;
+  isActive?: boolean | string;
 }
 
 export interface UpdateAdminTypeRequest {
   _id: string;
   name: string;
   privileges: Record<string, PrivilegePermission>;
+  isActive?: boolean | string;
 }
 
 export interface AdminTypePaginatedResponse {
@@ -85,4 +87,36 @@ export interface UserAuthenticated {
   accessToken: string;
   refreshToken: string;
   privileges: Privilege[];
+}
+
+export interface Domain {
+  _id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  __v?: number;
+}
+
+export interface DomainPaginatedResponse {
+  data: Domain[];
+  totalCount: number;
+}
+
+export interface CreateDomainRequest {
+  title: string;
+  description: string;
+  icon?: string;
+  isActive?: boolean | string;
+}
+
+export interface UpdateDomainRequest {
+  _id: string;
+  title?: string;
+  description?: string;
+  icon?: string;
+  isActive?: boolean | string;
 }

@@ -26,4 +26,8 @@ export const Functions: Record<FunctionKeys, FunctionItem> = {
     functionKey: FunctionKeys.dashboard,
     functionId: '6921ecbb87ce8d9f132a864c',
   },
+  [FunctionKeys.domains]: {
+    functionKey: FunctionKeys.domains,
+    functionId: '69233f8330c8f9f18c0640df',
+  },
 };

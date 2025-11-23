@@ -9,27 +9,27 @@ import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '@shared/interfaces';
 import {
-  AdminType,
-  AdminTypePaginatedResponse,
-  CreateAdminTypeRequest,
-  UpdateAdminTypeRequest,
-} from '@shared/interfaces/admin';
+  Domain,
+  DomainPaginatedResponse,
+  CreateDomainRequest,
+  UpdateDomainRequest,
+} from '@shared/interfaces';
 
 @Injectable({ providedIn: 'root' })
-export class AdminTypeService {
+export class DomainService {
   API_URL = environment.ApiUrl;
 
   constructor(private http: HttpClient) {}
 
   /**
-   * Get paginated list of admin types
+   * Get paginated list of domains
    * @param page - Page number (default: 1)
    * @param limit - Items per page (default: 10)
    * @param search - Search term (optional)
    * @param sortBy - Field name to sort by (optional)
    * @param sortDirection - Sort direction: 'asc' or 'desc' (optional)
    * @param filters - Filter object with column keys and values (optional)
-   * @returns Observable with paginated admin type data
+   * @returns Observable with paginated domain data
    */
   findMany(
     page: number = 1,
@@ -38,7 +38,7 @@ export class AdminTypeService {
     sortBy?: string,
     sortDirection?: 'asc' | 'desc',
     filters?: Record<string, string>
-  ): Observable<AdminTypePaginatedResponse> {
+  ): Observable<DomainPaginatedResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
@@ -66,8 +66,8 @@ export class AdminTypeService {
     }
 
     return this.http
-      .get<ApiResponse<AdminTypePaginatedResponse>>(
-        `${this.API_URL}/admin/admin-type`,
+      .get<ApiResponse<DomainPaginatedResponse>>(
+        `${this.API_URL}/admin/domain`,
         { params }
       )
       .pipe(
@@ -84,13 +84,13 @@ export class AdminTypeService {
   }
 
   /**
-   * Get a single admin type by ID
-   * @param id - Admin type ID
-   * @returns Observable with admin type data
+   * Get a single domain by ID
+   * @param id - Domain ID
+   * @returns Observable with domain data
    */
-  findOne(id: string): Observable<AdminType> {
+  findOne(id: string): Observable<Domain> {
     return this.http
-      .get<ApiResponse<AdminType>>(`${this.API_URL}/admin/admin-type/${id}`)
+      .get<ApiResponse<Domain>>(`${this.API_URL}/admin/domain/${id}`)
       .pipe(
         map((res) => {
           if (!res.results) {
@@ -105,20 +105,17 @@ export class AdminTypeService {
   }
 
   /**
-   * Create a new admin type
-   * @param adminTypeData - Admin type data to create
-   * @returns Observable with created admin type data
+   * Create a new domain
+   * @param domainData - Domain data to create
+   * @returns Observable with created domain data
    */
-  create(adminTypeData: CreateAdminTypeRequest): Observable<AdminType> {
+  create(domainData: CreateDomainRequest): Observable<Domain> {
     return this.http
-      .post<ApiResponse<AdminType>>(
-        `${this.API_URL}/admin/admin-type`,
-        adminTypeData
-      )
+      .post<ApiResponse<Domain>>(`${this.API_URL}/admin/domain`, domainData)
       .pipe(
         map((res) => {
           if (res.error === false && res.results === null) {
-            return adminTypeData as unknown as AdminType;
+            return domainData as unknown as Domain;
           }
           if (res.results) {
             return res.results;
@@ -126,7 +123,7 @@ export class AdminTypeService {
           if (res.error === true) {
             throw new Error(String(res.message || 'Create failed'));
           }
-          return adminTypeData as unknown as AdminType;
+          return domainData as unknown as Domain;
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
@@ -135,20 +132,20 @@ export class AdminTypeService {
   }
 
   /**
-   * Update an existing admin type
-   * @param adminTypeData - Admin type data to update (must include _id)
-   * @returns Observable with updated admin type data
+   * Update an existing domain
+   * @param domainData - Domain data to update (must include _id)
+   * @returns Observable with updated domain data
    */
-  update(adminTypeData: UpdateAdminTypeRequest): Observable<AdminType> {
+  update(domainData: UpdateDomainRequest): Observable<Domain> {
     return this.http
-      .put<ApiResponse<AdminType>>(
-        `${this.API_URL}/admin/admin-type/update`,
-        adminTypeData
+      .put<ApiResponse<Domain>>(
+        `${this.API_URL}/admin/domain/update`,
+        domainData
       )
       .pipe(
         map((res) => {
           if (res.error === false && res.results === null) {
-            return adminTypeData as unknown as AdminType;
+            return domainData as unknown as Domain;
           }
           if (res.results) {
             return res.results;
@@ -156,7 +153,7 @@ export class AdminTypeService {
           if (res.error === true) {
             throw new Error(String(res.message || 'Update failed'));
           }
-          return adminTypeData as unknown as AdminType;
+          return domainData as unknown as Domain;
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
@@ -165,7 +162,7 @@ export class AdminTypeService {
   }
 
   /**
-   * Delete one or more admin types
+   * Delete one or more domains
    * @param ids - Single ID string or array of ID strings
    * @returns Observable with deletion result
    */
@@ -174,7 +171,7 @@ export class AdminTypeService {
 
     return this.http
       .delete<ApiResponse<any>>(
-        `${this.API_URL}/admin/admin-type/delete/${idsParam}`
+        `${this.API_URL}/admin/domain/delete/${idsParam}`
       )
       .pipe(
         map((res) => {

@@ -66,6 +66,13 @@ export class Sidebar {
       functionKey: 'adminTypes',
     },
     {
+      label: 'Domains',
+      description: 'Manage and configure domains',
+      path: 'domains',
+      icon: 'category',
+      functionKey: 'domains',
+    },
+    {
       label: 'Activity Logs',
       description: 'View system activity and audit trail',
       path: 'activity-logs',

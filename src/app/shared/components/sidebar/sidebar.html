@@ -28,6 +28,13 @@
             <span class="text-muted">—</span>
             }
             }
+            @case ('icon') {
+            @if (getFieldValue(field)) {
+            <span class="material-symbols-rounded field-icon">{{ getFieldValue(field) }}</span>
+            } @else {
+            <span class="text-muted">—</span>
+            }
+            }
             @case ('date') {
             <span>{{ formatDate(getFieldValue(field)) }}</span>
             }

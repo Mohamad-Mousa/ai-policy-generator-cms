@@ -4,4 +4,5 @@ export enum FunctionKeys {
   userLogs = 'userLogs',
   settings = 'settings',
   dashboard = 'dashboard',
+  domains = 'domains',
 }
