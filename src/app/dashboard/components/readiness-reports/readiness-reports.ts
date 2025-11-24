@@ -1,6 +1,35 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
+import {
+  DialogButton,
+  DialogComponent,
+} from '@shared/components/dialog/dialog';
+import { Domain } from '@shared/interfaces';
+
+interface AssessmentDomain {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  completed: boolean;
+  progress: number;
+  questions: any[];
+}
+
+interface Assessment {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  domainId: string;
+  domainTitle?: string;
+  overallProgress: number;
+  isCompleted: boolean;
+  domains?: AssessmentDomain[];
+}
 
 interface DomainScore {
   id: string;
@@ -23,11 +52,11 @@ interface OverallReadiness {
 @Component({
   selector: 'app-readiness-reports',
   standalone: true,
-  imports: [CommonModule, ButtonComponent],
+  imports: [CommonModule, ButtonComponent, DialogComponent],
   templateUrl: './readiness-reports.html',
   styleUrl: './readiness-reports.scss',
 })
-export class ReadinessReportsComponent {
+export class ReadinessReportsComponent implements OnInit {
   protected overallReadiness: OverallReadiness = {
     totalScore: 0,
     maxScore: 100,
@@ -95,7 +124,30 @@ export class ReadinessReportsComponent {
   ];
 
   protected selectedDomain: DomainScore | null = null;
-  protected viewMode: 'overview' | 'detailed' = 'overview';
+  protected viewMode: 'overview' | 'detailed' | 'assessments' = 'overview';
+  protected selectedDomainFromState: Domain | null = null;
+  protected assessments = signal<Assessment[]>([]);
+  protected drafts = signal<Assessment[]>([]);
+  protected completed = signal<Assessment[]>([]);
+  protected isDeleteDialogOpen = false;
+  protected assessmentToDelete: Assessment | null = null;
+
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    const navigation = this.router.getCurrentNavigation();
+    const domainFromState =
+      (navigation?.extras?.state?.['domain'] as Domain | undefined) ??
+      (history.state?.['domain'] as Domain | undefined);
+
+    if (domainFromState?._id) {
+      this.selectedDomainFromState = domainFromState;
+      this.viewMode = 'assessments';
+      this.loadAssessments(domainFromState._id);
+    } else {
+      this.loadAllAssessments();
+    }
+  }
 
   protected getStatusClass(status: string): string {
     const classes: Record<string, string> = {
@@ -128,5 +180,105 @@ export class ReadinessReportsComponent {
 
   protected exportReport(format: 'pdf' | 'excel') {
     console.log(`Exporting report as ${format}`);
+  }
+
+  protected backToAssessments() {
+    this.viewMode = 'assessments';
+  }
+
+  protected viewAssessment(assessment: Assessment) {
+    this.router.navigate(['/dashboard/assessment'], {
+      state: {
+        domain: this.selectedDomainFromState,
+        assessmentId: assessment.id,
+      },
+    });
+  }
+
+  protected deleteAssessment(assessment: Assessment, event: Event) {
+    event.stopPropagation();
+    this.assessmentToDelete = assessment;
+    this.isDeleteDialogOpen = true;
+  }
+
+  protected closeDeleteDialog() {
+    this.isDeleteDialogOpen = false;
+    this.assessmentToDelete = null;
+  }
+
+  protected confirmDeleteAssessment() {
+    if (!this.assessmentToDelete) {
+      return;
+    }
+
+    const stored = localStorage.getItem('assessments');
+    if (stored) {
+      const assessments: Assessment[] = JSON.parse(stored);
+      const filtered = assessments.filter(
+        (a) => a.id !== this.assessmentToDelete!.id
+      );
+      localStorage.setItem('assessments', JSON.stringify(filtered));
+      this.loadAssessments(this.assessmentToDelete.domainId);
+    }
+
+    this.closeDeleteDialog();
+  }
+
+  protected get deleteDialogDescription(): string {
+    if (!this.assessmentToDelete) {
+      return 'Are you sure you want to delete this assessment? This action cannot be undone.';
+    }
+    return `Are you sure you want to delete "${this.assessmentToDelete.name}"? This action cannot be undone.`;
+  }
+
+  protected get deleteDialogButtons(): DialogButton[] {
+    return [
+      {
+        label: 'Cancel',
+        variant: 'outline',
+        action: () => this.closeDeleteDialog(),
+      },
+      {
+        label: 'Delete',
+        variant: 'danger',
+        icon: 'delete',
+        action: () => this.confirmDeleteAssessment(),
+      },
+    ];
+  }
+
+  protected createNewAssessment() {
+    if (this.selectedDomainFromState) {
+      this.router.navigate(['/dashboard/assessment'], {
+        state: {
+          domain: this.selectedDomainFromState,
+        },
+      });
+    }
+  }
+
+  private loadAssessments(domainId: string) {
+    const stored = localStorage.getItem('assessments');
+    if (stored) {
+      const allAssessments: Assessment[] = JSON.parse(stored);
+      const filtered = allAssessments.filter((a) => a.domainId === domainId);
+      this.assessments.set(filtered);
+      this.drafts.set(filtered.filter((a) => !a.isCompleted));
+      this.completed.set(filtered.filter((a) => a.isCompleted));
+    } else {
+      this.assessments.set([]);
+      this.drafts.set([]);
+      this.completed.set([]);
+    }
+  }
+
+  private loadAllAssessments() {
+    const stored = localStorage.getItem('assessments');
+    if (stored) {
+      const allAssessments: Assessment[] = JSON.parse(stored);
+      this.assessments.set(allAssessments);
+      this.drafts.set(allAssessments.filter((a) => !a.isCompleted));
+      this.completed.set(allAssessments.filter((a) => a.isCompleted));
+    }
   }
 }

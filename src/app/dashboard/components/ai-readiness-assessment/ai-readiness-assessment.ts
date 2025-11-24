@@ -73,6 +73,23 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected viewAssessments() {
+    const domain = this.selectedDomain();
+    if (!domain) {
+      this.notifications.info(
+        'Please select a domain to view assessments.',
+        'Domain required'
+      );
+      return;
+    }
+
+    this.router.navigate(['/dashboard/readiness-reports'], {
+      state: {
+        domain: domain.payload,
+      },
+    });
+  }
+
   private loadDomains() {
     this.isLoading.set(true);
     this.domainService

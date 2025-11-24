@@ -5,8 +5,12 @@
         <p class="text-uppercase text-muted fw-semibold small mb-1">Assessment</p>
         <h2 class="h4 mb-0">AI Readiness Assessment</h2>
       </div>
-      <app-button label="New Assessment" size="sm" variant="primary" icon="add" [disabled]="!selectedDomain()"
-        (click)="startNewAssessment()"></app-button>
+      <div class="d-flex gap-2">
+        <app-button label="View Assessments" size="sm" variant="outline" icon="visibility"
+          [disabled]="!selectedDomain()" (click)="viewAssessments()"></app-button>
+        <app-button label="New Assessment" size="sm" variant="primary" icon="add" [disabled]="!selectedDomain()"
+          (click)="startNewAssessment()"></app-button>
+      </div>
     </div>
 
     <div class="alert alert-info mb-4" role="alert">

@@ -45,10 +45,12 @@ interface Assessment {
   name: string;
   description: string;
   createdAt: Date;
+  updatedAt?: Date;
   domains: AssessmentDomain[];
   overallProgress: number;
   domainId: string | null;
   domainTitle?: string;
+  isCompleted?: boolean;
 }
 
 @Component({
@@ -429,7 +431,38 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     this.isSaving.set(true);
     setTimeout(() => {
       this.isSaving.set(false);
-      console.log('Assessment saved:', this.assessment);
+      
+      // Generate or use existing ID
+      if (!this.assessment.id) {
+        this.assessment.id = `assessment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      // Save to localStorage
+      const stored = localStorage.getItem('assessments');
+      const assessments = stored ? JSON.parse(stored) : [];
+      const existingIndex = assessments.findIndex((a: Assessment) => a.id === this.assessment.id);
+      
+      const assessmentToSave: Assessment = {
+        id: this.assessment.id,
+        name: this.assessment.name,
+        description: this.assessment.description,
+        createdAt: this.assessment.createdAt,
+        updatedAt: new Date(),
+        domainId: this.assessment.domainId || '',
+        domainTitle: this.assessment.domainTitle,
+        overallProgress: this.assessment.overallProgress,
+        isCompleted: this.assessment.overallProgress === 100,
+        domains: this.assessment.domains,
+      };
+
+      if (existingIndex >= 0) {
+        assessments[existingIndex] = assessmentToSave;
+      } else {
+        assessments.push(assessmentToSave);
+      }
+
+      localStorage.setItem('assessments', JSON.stringify(assessments));
+      
       this.notifications.success(
         'Progress saved successfully.',
         'Assessment updated'
@@ -440,8 +473,47 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   protected completeAssessment() {
     if (this.assessment.domains.every((d) => d.completed)) {
-      console.log('Assessment completed:', this.assessment);
-      this.router.navigate(['/dashboard/readiness-reports']);
+      // Generate or use existing ID
+      if (!this.assessment.id) {
+        this.assessment.id = `assessment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      }
+
+      // Save completed assessment to localStorage
+      const stored = localStorage.getItem('assessments');
+      const assessments = stored ? JSON.parse(stored) : [];
+      const existingIndex = assessments.findIndex((a: Assessment) => a.id === this.assessment.id);
+      
+      const assessmentToSave: Assessment = {
+        id: this.assessment.id,
+        name: this.assessment.name,
+        description: this.assessment.description,
+        createdAt: this.assessment.createdAt,
+        updatedAt: new Date(),
+        domainId: this.assessment.domainId || '',
+        domainTitle: this.assessment.domainTitle,
+        overallProgress: 100,
+        isCompleted: true,
+        domains: this.assessment.domains,
+      };
+
+      if (existingIndex >= 0) {
+        assessments[existingIndex] = assessmentToSave;
+      } else {
+        assessments.push(assessmentToSave);
+      }
+
+      localStorage.setItem('assessments', JSON.stringify(assessments));
+      
+      this.notifications.success(
+        'Assessment completed successfully!',
+        'Assessment completed'
+      );
+      
+      this.router.navigate(['/dashboard/readiness-reports'], {
+        state: {
+          domain: this.selectedDomain,
+        },
+      });
     }
   }
 
