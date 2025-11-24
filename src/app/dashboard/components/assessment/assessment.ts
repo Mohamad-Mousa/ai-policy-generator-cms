@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
+import { Domain } from '@shared/interfaces';
+import { NotificationService } from '@shared/components/notification/notification.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 interface AssessmentDomain {
   id: string;
@@ -31,6 +35,8 @@ interface Assessment {
   createdAt: Date;
   domains: AssessmentDomain[];
   overallProgress: number;
+  domainId: string | null;
+  domainTitle?: string;
 }
 
 @Component({
@@ -40,20 +46,24 @@ interface Assessment {
   templateUrl: './assessment.html',
   styleUrl: './assessment.scss',
 })
-export class AssessmentComponent implements OnInit {
+export class AssessmentComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
   protected assessment: Assessment = {
     name: '',
     description: '',
     createdAt: new Date(),
     domains: [],
     overallProgress: 0,
+    domainId: null,
+    domainTitle: '',
   };
 
   protected currentDomainIndex = 0;
   protected currentQuestionIndex = 0;
   protected isSaving = false;
+  protected selectedDomain?: Domain;
 
-  protected readonly domains: AssessmentDomain[] = [
+  protected readonly domainTemplates: AssessmentDomain[] = [
     {
       id: 'technological-infrastructure',
       name: 'Technological Infrastructure',
@@ -231,11 +241,36 @@ export class AssessmentComponent implements OnInit {
     },
   ];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private notifications: NotificationService
+  ) {}
 
   ngOnInit(): void {
-    this.assessment.domains = JSON.parse(JSON.stringify(this.domains));
+    const navigation = this.router.getCurrentNavigation();
+    const domainFromState =
+      (navigation?.extras?.state?.['domain'] as Domain | undefined) ??
+      (history.state?.['domain'] as Domain | undefined);
+
+    if (!domainFromState?._id) {
+      this.notifications.info(
+        'Please select a domain from the AI readiness page before creating an assessment.',
+        'Domain required'
+      );
+      this.router.navigate(['/dashboard/ai-readiness-assessment']);
+      return;
+    }
+
+    this.selectedDomain = domainFromState;
+    this.assessment.domainId = domainFromState._id;
+    this.assessment.domainTitle = domainFromState.title;
+    this.assessment.domains = JSON.parse(JSON.stringify(this.domainTemplates));
     this.calculateProgress();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   protected get currentDomain(): AssessmentDomain {
@@ -358,5 +393,6 @@ export class AssessmentComponent implements OnInit {
       this.router.navigate(['/dashboard/ai-readiness-assessment']);
     }
   }
+
 }
 

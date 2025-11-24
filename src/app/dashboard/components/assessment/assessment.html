@@ -33,6 +33,16 @@
         </div>
       </div>
 
+    @if (assessment.domainTitle) {
+      <div class="alert alert-primary d-flex align-items-center gap-2 mb-4" role="alert">
+        <span class="material-symbols-rounded">category</span>
+        <span>
+          Creating assessment for
+          <strong class="ms-1">{{ assessment.domainTitle }}</strong>
+        </span>
+      </div>
+    }
+
       <!-- Assessment Info -->
       <div class="row g-3 mb-4">
         <div class="col-md-6">
