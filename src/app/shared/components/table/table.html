@@ -89,6 +89,17 @@
             <span class="text-muted">—</span>
             }
             }
+            @case ('tags') {
+            @if (hasTagValues(row, column)) {
+            <div class="table-tags">
+              @for (tag of tagValues(row, column); track $index) {
+              <span class="table-tag">{{ tag }}</span>
+              }
+            </div>
+            } @else {
+            <span class="text-muted">—</span>
+            }
+            }
             @default {
             <span>{{ row[column.key] ?? '—' }}</span>
             }

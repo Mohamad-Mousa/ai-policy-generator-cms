@@ -24,6 +24,17 @@ table {
   margin-bottom: 0;
 }
 
+@media (max-width: 992px) {
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 720px;
+  }
+}
+
 thead th {
   text-transform: uppercase;
   font-size: 0.75rem;
@@ -36,6 +47,23 @@ thead th {
 
 tbody td {
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.table-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.table-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background-color: rgba(15, 23, 42, 0.06);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #0f172a;
 }
 
 tbody tr:last-child td {

@@ -49,6 +49,35 @@
         }
       </div>
     }
+    @case ('tags') {
+      <div class="input-wrapper tag-input-wrapper" (click)="focusTagInput(tagInput)">
+        @if (isArray(value) && value.length) {
+        <div class="tag-list">
+          @for (tag of value; track $index; let tagIndex = $index) {
+          <span class="tag-pill">
+            <span>{{ tag }}</span>
+            <button type="button" class="tag-remove" [disabled]="disabled || readonly"
+              (click)="removeTag(tagIndex); $event.stopPropagation()">
+              <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+          </span>
+          }
+        </div>
+        }
+        <input
+          #tagInput
+          type="text"
+          class="form-control tag-input"
+          [placeholder]="placeholder"
+          [disabled]="disabled || readonly"
+          [readonly]="readonly"
+          (keydown)="onTagInputKeydown($event)"
+          (blur)="onTagInputBlur($event)" />
+        @if (hasError) {
+          <span class="material-symbols-rounded error-icon" aria-hidden="true">error</span>
+        }
+      </div>
+    }
     @default {
       <div class="input-wrapper">
         <input

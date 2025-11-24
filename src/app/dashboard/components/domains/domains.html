@@ -29,6 +29,10 @@
       placeholder="Enter domain description" [required]="true" [minlength]="3">
     </app-form-input>
 
+    <app-form-input [control]="subDomainsControl" formControlName="subDomains" label="Subdomains" type="tags"
+      placeholder="Type a subdomain and press Enter" hint="Each subdomain will show as a tag.">
+    </app-form-input>
+
     <app-form-input [control]="iconControl" formControlName="icon" label="Icon" type="text"
       placeholder="e.g., category, folder, domain" hint="Enter a Google Material Icon name">
     </app-form-input>

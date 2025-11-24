@@ -5,7 +5,7 @@
         <p class="text-uppercase text-muted fw-semibold small mb-1">Generation</p>
         <h2 class="h4 mb-0">AI Policy Generator</h2>
       </div>
-      @if (isGenerated) {
+      @if (isGenerated()) {
         <div class="d-flex gap-2">
           <app-button
             label="Save Policy"
@@ -38,19 +38,38 @@
       with citations, rationale, and references tailored to your needs.
     </div>
 
-    @if (!showPreview) {
+      @if (!showPreview()) {
       <!-- Policy Context Form -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
           <h5 class="mb-4">Policy Context</h5>
           
           <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Domain <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                [(ngModel)]="selectedDomainId"
+                [disabled]="isGenerating() || isLoadingDomains()"
+              >
+                <option value="">{{ isLoadingDomains() ? 'Loading domains...' : 'Select domain' }}</option>
+                @for (domain of domains(); track domain._id) {
+                  <option [value]="domain._id">{{ domain.title }}</option>
+                }
+              </select>
+              @if (!isLoadingDomains() && !domains().length) {
+                <small class="text-muted d-block mt-1">
+                  No active domains available. Please create or enable a domain first.
+                </small>
+              }
+            </div>
+
             <div class="col-md-6">
               <label class="form-label">Sector <span class="text-danger">*</span></label>
               <select
                 class="form-select"
                 [(ngModel)]="policyContext.sector"
-                [disabled]="isGenerating"
+                [disabled]="isGenerating()"
               >
                 <option value="">Select sector</option>
                 @for (option of sectorOptions; track option) {
@@ -64,7 +83,7 @@
               <select
                 class="form-select"
                 [(ngModel)]="policyContext.organizationSize"
-                [disabled]="isGenerating"
+                [disabled]="isGenerating()"
               >
                 <option value="">Select size</option>
                 @for (option of sizeOptions; track option) {
@@ -78,7 +97,7 @@
               <select
                 class="form-select"
                 [(ngModel)]="policyContext.riskAppetite"
-                [disabled]="isGenerating"
+                [disabled]="isGenerating()"
               >
                 <option value="">Select risk appetite</option>
                 @for (option of riskAppetiteOptions; track option) {
@@ -92,7 +111,7 @@
               <select
                 class="form-select"
                 [(ngModel)]="policyContext.timeline"
-                [disabled]="isGenerating"
+                [disabled]="isGenerating()"
               >
                 <option value="">Select timeline</option>
                 @for (option of timelineOptions; track option) {
@@ -104,18 +123,18 @@
 
           <div class="mt-4">
             <app-button
-              [label]="isGenerating ? 'Generating...' : 'Generate Policy'"
+              [label]="isGenerating() ? 'Generating...' : 'Generate Policy'"
               size="md"
               variant="primary"
               icon="auto_awesome"
-              [disabled]="!isFormValid() || isGenerating"
+              [disabled]="!isFormValid() || isGenerating()"
               (click)="generatePolicy()"
             ></app-button>
           </div>
         </div>
       </div>
 
-      @if (isGenerating) {
+      @if (isGenerating()) {
         <div class="text-center py-5">
           <div class="spinner-border text-primary mb-3" role="status">
             <span class="visually-hidden">Generating...</span>
@@ -130,12 +149,23 @@
           <button
             type="button"
             class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
-            (click)="showPreview = false"
+            (click)="editContext()"
           >
             <span class="material-symbols-rounded me-2">arrow_back</span>
             <span>Edit Context</span>
           </button>
         </div>
+
+        @if (selectedDomain()) {
+        <div class="alert alert-primary d-flex align-items-center gap-2 mb-4" role="alert">
+          <span class="material-symbols-rounded">category</span>
+          <span>
+            Generated for the
+            <strong class="ms-1">{{ selectedDomain()?.title }}</strong>
+            domain.
+          </span>
+        </div>
+        }
 
         <!-- Executive Summary -->
         <div class="card border-0 shadow-sm mb-4">
@@ -144,7 +174,7 @@
               <span class="material-symbols-rounded me-2">summarize</span>
               <span>Executive Summary</span>
             </h5>
-            <p class="mb-0">{{ executiveSummary }}</p>
+            <p class="mb-0">{{ executiveSummary() }}</p>
           </div>
         </div>
 
@@ -153,7 +183,7 @@
           <div class="card-body">
             <h5 class="mb-4">Policy Sections</h5>
             
-            @for (section of policySections; track section.id) {
+            @for (section of policySections(); track section.id) {
               <div class="policy-section mb-4 pb-4 border-bottom">
                 <h6 class="mb-3">{{ section.id }}. {{ section.title }}</h6>
                 <p class="mb-3">{{ section.content }}</p>

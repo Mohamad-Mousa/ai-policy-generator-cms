@@ -24,7 +24,6 @@ interface Policy {
 })
 export class PolicyLibraryComponent {
   protected policies: Policy[] = [
-    // Sample data - will be replaced with actual data from service
     {
       id: '1',
       title: 'AI Governance Policy - Healthcare Sector',
@@ -53,7 +52,13 @@ export class PolicyLibraryComponent {
   protected filterStatus: string = 'all';
   protected filterSector: string = 'all';
 
-  protected readonly statusOptions = ['all', 'draft', 'review', 'approved', 'archived'];
+  protected readonly statusOptions = [
+    'all',
+    'draft',
+    'review',
+    'approved',
+    'archived',
+  ];
   protected readonly sectorOptions = [
     'all',
     'Government',
@@ -71,8 +76,10 @@ export class PolicyLibraryComponent {
         policy.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         policy.sector.toLowerCase().includes(this.searchTerm.toLowerCase());
 
-      const matchesStatus = this.filterStatus === 'all' || policy.status === this.filterStatus;
-      const matchesSector = this.filterSector === 'all' || policy.sector === this.filterSector;
+      const matchesStatus =
+        this.filterStatus === 'all' || policy.status === this.filterStatus;
+      const matchesSector =
+        this.filterSector === 'all' || policy.sector === this.filterSector;
 
       return matchesSearch && matchesStatus && matchesSector;
     });
@@ -99,7 +106,6 @@ export class PolicyLibraryComponent {
   }
 
   protected editPolicy(policy: Policy) {
-    // Navigate to edit or open edit modal
     console.log('Editing policy:', policy.id);
   }
 
@@ -117,4 +123,3 @@ export class PolicyLibraryComponent {
     console.log('Viewing version history for:', policy.id);
   }
 }
-

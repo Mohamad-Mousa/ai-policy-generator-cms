@@ -111,14 +111,11 @@ export class SidebarComponent {
     if (!value || typeof value !== 'string') {
       return undefined;
     }
-    
-    // If the value already starts with http:// or https://, return as is
+
     if (value.startsWith('http://') || value.startsWith('https://')) {
       return value;
     }
-    
-    // Otherwise, prepend environment.IMG_URL
+
     return environment.IMG_URL + value;
   }
 }
-

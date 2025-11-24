@@ -1,31 +1,121 @@
 <div class="card border-0 shadow-sm h-100">
-  <div class="card-body">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="card-body settings-body">
+    <div class="settings-header">
       <div>
         <p class="text-uppercase text-muted fw-semibold small mb-1">Controls</p>
-        <h2 class="h4 mb-0">Settings</h2>
+        <h2 class="h4 mb-1">Workspace settings</h2>
+        <p class="text-muted mb-0">
+          Keep contact preferences, notifications, and legal policies in sync.
+        </p>
       </div>
-      <app-button
-        label="Audit Logs"
-        size="sm"
-        variant="outline"
-        icon="visibility"
-      ></app-button>
+      <div class="settings-actions">
+        @if (lastSavedAt()) {
+        <small class="text-muted d-block mb-2">
+          Last updated {{ lastSavedAt() | date: 'medium' }}
+        </small>
+        }
+        <div class="d-flex gap-2 justify-content-end">
+          <app-button type="button" label="Reset" variant="outline" size="sm" icon="history" (click)="resetToInitial()"
+            [disabled]="isLoading() || isSaving() || !hasUnsavedChanges"></app-button>
+          <app-button type="button" [label]="saveButtonLabel" icon="save" (click)="saveSettings()"
+            [disabled]="isLoading() || isSaving() || settingsForm.invalid"></app-button>
+        </div>
+      </div>
     </div>
 
-    <div class="preferences">
-      @for (pref of preferences; track pref.label) {
-        <div class="preference border rounded-3 p-3">
-          <div class="d-flex align-items-center justify-content-between mb-1">
-            <p class="fw-semibold mb-0">{{ pref.label }}</p>
-            <span class="badge" [class]="pref.enabled ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis'">
-              {{ pref.enabled ? 'Enabled' : 'Disabled' }}
-            </span>
-          </div>
-          <p class="text-muted small mb-0">{{ pref.description }}</p>
-        </div>
-      }
+    @if (isLoading()) {
+    <div class="py-5 text-center">
+      <app-loader size="lg" label="Loading settings..."></app-loader>
     </div>
+    } @else {
+    <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()" class="settings-form" autocomplete="off">
+      <div class="row g-4">
+        <div class="col-12">
+          <section class="card border-0 shadow-sm h-100">
+            <div class="card-body" formGroupName="contact">
+              <div class="section-heading">
+                <h3>Contact preferences</h3>
+                <p>Used for notifications, escalation paths, and audit reports.</p>
+              </div>
+              <div class="d-grid gap-3">
+                <app-form-input label="Primary email" type="email" placeholder="compliance@example.com"
+                  formControlName="email" [required]="true" [control]="contactEmailControl"></app-form-input>
+                <div class="row g-3" formGroupName="phone">
+                  <div class="col-12 col-sm-4">
+                    <app-form-input label="Country code" type="text" placeholder="+1" formControlName="code"
+                      hint="ISO dialing code" [control]="contactPhoneCodeControl" [maxlength]="6"></app-form-input>
+                  </div>
+                  <div class="col-12 col-sm-8">
+                    <app-form-input label="Phone number" type="tel" placeholder="415 555 2671" formControlName="number"
+                      hint="Digits only, no country code" [control]="contactPhoneNumberControl"
+                      [maxlength]="20"></app-form-input>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12">
+          <section class="card border-0 shadow-sm h-100">
+            <div class="card-body" formGroupName="subscriptions">
+              <div class="section-heading">
+                <h3>Subscriptions</h3>
+                <p>Control how your team receives important updates.</p>
+              </div>
+              <div class="toggle-list">
+                <label class="form-check form-switch toggle-item">
+                  <input type="checkbox" role="switch" class="form-check-input" formControlName="notifications" />
+                  <div>
+                    <p class="mb-0 fw-semibold">Security notifications</p>
+                    <small class="text-muted">
+                      Escalate credential or policy incidents instantly.
+                    </small>
+                  </div>
+                </label>
+                <label class="form-check form-switch toggle-item">
+                  <input type="checkbox" role="switch" class="form-check-input" formControlName="emails" />
+                  <div>
+                    <p class="mb-0 fw-semibold">Digest emails</p>
+                    <small class="text-muted">
+                      Weekly overview of approvals, audits, and ownership changes.
+                    </small>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12">
+          <section class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="section-heading mb-3">
+                <h3>Privacy policy</h3>
+                <p>Publish the latest commitments for data privacy and AI usage.</p>
+              </div>
+              <app-text-editor formControlName="privacyPolicy" [control]="privacyPolicyControl" label="Privacy policy"
+                placeholder="Describe how you handle data, retention, AI guardrails..."
+                [required]="true"></app-text-editor>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12">
+          <section class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <div class="section-heading mb-3">
+                <h3>Terms & conditions</h3>
+                <p>Outline acceptable use, responsibilities, and enforcement.</p>
+              </div>
+              <app-text-editor formControlName="termsAndConditions" [control]="termsControl" label="Terms & conditions"
+                placeholder="Provide contract language, support SLAs, breach handling..."
+                [required]="true"></app-text-editor>
+            </div>
+          </section>
+        </div>
+      </div>
+    </form>
+    }
   </div>
 </div>
-

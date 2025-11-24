@@ -19,7 +19,7 @@
             size="sm"
             variant="outline"
             icon="save"
-            [loading]="isSaving"
+            [loading]="isSaving()"
             (click)="saveAssessment()"
           ></app-button>
           <app-button
@@ -52,6 +52,7 @@
             class="form-control"
             placeholder="e.g., Q1 2024 AI Readiness Assessment"
             [(ngModel)]="assessment.name"
+            (ngModelChange)="markAsDirty()"
           />
         </div>
         <div class="col-md-6">
@@ -61,55 +62,11 @@
             class="form-control"
             placeholder="Brief description of this assessment"
             [(ngModel)]="assessment.description"
+            (ngModelChange)="markAsDirty()"
           />
         </div>
       </div>
 
-      <!-- Overall Progress -->
-      <div class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-muted small">Overall Progress</span>
-          <strong>{{ assessment.overallProgress | number: '1.0-0' }}%</strong>
-        </div>
-        <div class="progress" style="height: 10px;">
-          <div
-            class="progress-bar"
-            role="progressbar"
-            [style.width.%]="assessment.overallProgress"
-            [attr.aria-valuenow]="assessment.overallProgress"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          ></div>
-        </div>
-      </div>
-
-      <!-- Domain Navigation -->
-      <div class="domains-navigation">
-        <div class="row g-2">
-          @for (domain of assessment.domains; track domain.id; let i = $index) {
-            <div class="col-6 col-md-4 col-lg">
-              <button
-                type="button"
-                class="domain-nav-btn w-100 p-2 rounded border-0"
-                [class.active]="currentDomainIndex === i"
-                [class.completed]="domain.completed"
-                (click)="selectDomain(i)"
-              >
-                <span class="material-symbols-rounded d-block mb-1">{{ domain.icon }}</span>
-                <small class="d-block fw-semibold">{{ domain.name }}</small>
-                <div class="progress mt-2" style="height: 4px;">
-                  <div
-                    class="progress-bar"
-                    [class.bg-success]="domain.completed"
-                    role="progressbar"
-                    [style.width.%]="domain.progress"
-                  ></div>
-                </div>
-              </button>
-            </div>
-          }
-        </div>
-      </div>
     </div>
   </div>
 
@@ -145,7 +102,7 @@
               type="text"
               class="form-control"
               [(ngModel)]="currentQuestion.answer"
-              (ngModelChange)="calculateProgress()"
+              (ngModelChange)="handleAnswerChange()"
             />
           }
           @case ('textarea') {
@@ -153,14 +110,14 @@
               class="form-control"
               rows="4"
               [(ngModel)]="currentQuestion.answer"
-              (ngModelChange)="calculateProgress()"
+              (ngModelChange)="handleAnswerChange()"
             ></textarea>
           }
           @case ('select') {
             <select
               class="form-select"
               [(ngModel)]="currentQuestion.answer"
-              (ngModelChange)="calculateProgress()"
+              (ngModelChange)="handleAnswerChange()"
             >
               <option [value]="undefined">Select an option</option>
               @for (option of currentQuestion.options; track option) {
@@ -241,5 +198,13 @@
       </div>
     </div>
   </div>
+
+  <app-dialog
+    [open]="isCancelDialogOpen"
+    title="Leave this assessment?"
+    description="Your current answers are not saved. If you go back now, all progress for this assessment will be lost."
+    [buttons]="cancelDialogButtons"
+    (closed)="closeCancelDialog()"
+  ></app-dialog>
 </div>
 

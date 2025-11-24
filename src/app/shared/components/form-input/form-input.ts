@@ -1,10 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  Input,
-  forwardRef,
-  OnInit,
-} from '@angular/core';
+import { Component, Input, forwardRef, OnInit } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -35,7 +30,16 @@ export interface SelectOption {
 })
 export class FormInputComponent implements ControlValueAccessor, OnInit {
   @Input() label = '';
-  @Input() type: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'textarea' | 'select' = 'text';
+  @Input() type:
+    | 'text'
+    | 'email'
+    | 'password'
+    | 'number'
+    | 'tel'
+    | 'url'
+    | 'textarea'
+    | 'select'
+    | 'tags' = 'text';
   @Input() placeholder = '';
   @Input() hint = '';
   @Input() disabled = false;
@@ -47,11 +51,11 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
   @Input() step?: number;
   @Input() maxlength?: number;
   @Input() minlength?: number;
-  @Input() rows?: number; // For textarea
-  @Input() options: SelectOption[] = []; // For select
-  @Input() errorMessage?: string; // Custom error message
-  @Input() showError = true; // Whether to show error messages
-  @Input() control?: AbstractControl | null; // Allow passing control directly
+  @Input() rows?: number;
+  @Input() options: SelectOption[] = [];
+  @Input() errorMessage?: string;
+  @Input() showError = true;
+  @Input() control?: AbstractControl | null;
 
   value: any = '';
   private _touched = false;
@@ -62,7 +66,6 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    // Subscribe to control status changes if control is provided
     if (this.control && this.control instanceof FormControl) {
       this.control.statusChanges.subscribe(() => {
         if (this.control instanceof FormControl) {
@@ -80,6 +83,8 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
       this.value = value ?? null;
     } else if (this.type === 'select') {
       this.value = value ?? '';
+    } else if (this.type === 'tags') {
+      this.value = Array.isArray(value) ? [...value] : [];
     } else {
       this.value = value ?? '';
     }
@@ -98,21 +103,106 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
   }
 
   onInputChange(event: Event): void {
-    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const target = event.target as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement;
     let value: any = target.value;
-    
-    // Convert to number if type is number
+
     if (this.type === 'number' && value !== '') {
       value = Number(value);
     }
-    
-    // Handle empty select values
+
     if (this.type === 'select' && value === '') {
       value = null;
     }
-    
+
     this.value = value;
     this.onChange(value);
+  }
+
+  onTagInputKeydown(event: KeyboardEvent): void {
+    if (this.type !== 'tags' || this.disabled || this.readonly) {
+      return;
+    }
+
+    const input = event.target as HTMLInputElement;
+
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      this.addTag(input.value);
+      input.value = '';
+      return;
+    }
+
+    if (
+      event.key === 'Backspace' &&
+      !input.value &&
+      Array.isArray(this.value) &&
+      this.value.length
+    ) {
+      event.preventDefault();
+      this.removeTag(this.value.length - 1);
+    }
+  }
+
+  onTagInputBlur(event: FocusEvent): void {
+    if (this.type !== 'tags') {
+      return;
+    }
+
+    const input = event.target as HTMLInputElement;
+    if (input.value?.trim()) {
+      this.addTag(input.value);
+      input.value = '';
+    }
+    this.onBlur();
+  }
+
+  focusTagInput(input: HTMLInputElement | null): void {
+    if (!input || this.disabled || this.readonly) {
+      return;
+    }
+    input.focus();
+  }
+
+  addTag(rawValue: string): void {
+    if (this.type !== 'tags') {
+      return;
+    }
+
+    const normalized = rawValue?.trim();
+    if (!normalized) {
+      return;
+    }
+
+    const currentTags = Array.isArray(this.value) ? [...this.value] : [];
+    if (currentTags.includes(normalized)) {
+      return;
+    }
+    currentTags.push(normalized);
+    this.value = currentTags;
+    this.onChange(currentTags);
+    this.onTouched();
+  }
+
+  removeTag(index: number): void {
+    if (this.type !== 'tags' || !Array.isArray(this.value)) {
+      return;
+    }
+
+    if (index < 0 || index >= this.value.length) {
+      return;
+    }
+
+    const updated = this.value.filter((_, idx) => idx !== index);
+    this.value = updated;
+    this.onChange(updated);
+    this.onTouched();
+  }
+
+  protected isArray(value: unknown): value is Array<unknown> {
+    return Array.isArray(value);
   }
 
   onBlur(): void {
@@ -121,14 +211,25 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
   }
 
   get hasError(): boolean {
-    if (!this.showError || !this.control || !(this.control instanceof FormControl)) {
+    if (
+      !this.showError ||
+      !this.control ||
+      !(this.control instanceof FormControl)
+    ) {
       return false;
     }
-    return this.control.invalid && (this.control.dirty || this.control.touched || this._touched);
+    return (
+      this.control.invalid &&
+      (this.control.dirty || this.control.touched || this._touched)
+    );
   }
 
   get errorText(): string {
-    if (!this.hasError || !this.control || !(this.control instanceof FormControl)) {
+    if (
+      !this.hasError ||
+      !this.control ||
+      !(this.control instanceof FormControl)
+    ) {
       return '';
     }
 
@@ -149,11 +250,15 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
     }
     if (errors['minlength']) {
       const requiredLength = errors['minlength'].requiredLength;
-      return `${this.label || 'This field'} must be at least ${requiredLength} characters.`;
+      return `${
+        this.label || 'This field'
+      } must be at least ${requiredLength} characters.`;
     }
     if (errors['maxlength']) {
       const requiredLength = errors['maxlength'].requiredLength;
-      return `${this.label || 'This field'} must not exceed ${requiredLength} characters.`;
+      return `${
+        this.label || 'This field'
+      } must not exceed ${requiredLength} characters.`;
     }
     if (errors['min']) {
       const min = errors['min'].min;
@@ -170,4 +275,3 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
     return 'Invalid value.';
   }
 }
-

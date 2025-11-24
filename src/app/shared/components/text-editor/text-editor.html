@@ -1,0 +1,72 @@
+<div class="editor-field" [class.required]="required">
+  @if (label) {
+    <label class="label-header">
+      <span>{{ label }}</span>
+      @if (required) {
+        <span class="text-danger">*</span>
+      }
+    </label>
+  }
+
+  <div
+    class="editor-wrapper"
+    [class.focused]="isFocused"
+    [class.disabled]="disabled"
+    [class.has-error]="hasError"
+  >
+    <div class="toolbar">
+      <button type="button" (click)="exec('bold')" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_bold</span>
+      </button>
+      <button type="button" (click)="exec('italic')" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_italic</span>
+      </button>
+      <button type="button" (click)="exec('underline')" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_underlined</span>
+      </button>
+      <span class="toolbar-divider"></span>
+      <button type="button" (click)="exec('insertUnorderedList')" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_list_bulleted</span>
+      </button>
+      <button type="button" (click)="exec('insertOrderedList')" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_list_numbered</span>
+      </button>
+      <span class="toolbar-divider"></span>
+      <button type="button" (click)="createLink()" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">link</span>
+      </button>
+      <button type="button" (click)="removeFormatting()" [disabled]="disabled || readonly">
+        <span class="material-symbols-rounded" aria-hidden="true">format_clear</span>
+      </button>
+      <button type="button" (click)="clearAll()" [disabled]="disabled || readonly" class="ms-auto">
+        <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+      </button>
+    </div>
+
+    <div
+      #editor
+      class="editor"
+      [class.placeholder-visible]="!value"
+      [style.min-height.px]="minHeight"
+      [attr.contenteditable]="disabled || readonly ? 'false' : 'true'"
+      role="textbox"
+      spellcheck="true"
+      (input)="onEditorInput()"
+      (focus)="onEditorFocus()"
+      (blur)="onEditorBlur()"
+    ></div>
+
+    @if (!value && placeholder) {
+      <div class="placeholder-text">{{ placeholder }}</div>
+    }
+  </div>
+
+  @if (hint && !hasError) {
+    <small class="form-text text-muted">{{ hint }}</small>
+  }
+
+  @if (hasError) {
+    <small class="error-text">{{ errorText }}</small>
+  }
+</div>
+

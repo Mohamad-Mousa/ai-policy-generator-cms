@@ -55,7 +55,6 @@ export class AdminTypeService {
       params = params.set('sortDirection', sortDirection);
     }
 
-    // Add filters as query parameters (similar to term)
     if (filters) {
       Object.keys(filters).forEach((key) => {
         const value = filters[key];

@@ -239,7 +239,6 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
   }
 
   protected onSearchChange(searchTerm: string): void {
-    // Reset to first page when search changes
     this.loadAdminTypes(
       1,
       this.currentLimit,
@@ -265,7 +264,6 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
     sortBy: string;
     sortDirection: 'asc' | 'desc';
   }): void {
-    // Reset to first page when sorting changes
     this.loadAdminTypes(
       1,
       this.currentLimit,
@@ -313,7 +311,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
 
   protected closeCreateTypeDialog() {
     if (this.dialogLoading()) {
-      return; // Prevent closing during API call
+      return;
     }
     this.isDialogOpen = false;
     this.selectedAdminType = undefined;
@@ -327,7 +325,6 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
       isActive: true,
     });
 
-    // Reset all privileges
     const privilegesGroup = this.createTypeForm.get('privileges') as FormGroup;
     this.functionKeysArray.forEach((key) => {
       const functionId = Functions[key].functionId;
@@ -403,11 +400,9 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
     const formValue = this.createTypeForm.value;
     const privilegesGroup = formValue.privileges as Record<string, any>;
 
-    // Build privileges object with function IDs as keys
     const privileges: Record<string, any> = {};
     Object.keys(privilegesGroup).forEach((functionId) => {
       const perm = privilegesGroup[functionId];
-      // Only include if at least one permission is true
       if (perm.read || perm.write || perm.update || perm.delete) {
         privileges[functionId] = {
           read: perm.read || false,
@@ -589,7 +584,6 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
       isActive: fullAdminType.isActive,
     });
 
-    // Set privileges from existing data
     const privilegesGroup = this.createTypeForm.get('privileges') as FormGroup;
     if (fullAdminType.privileges && fullAdminType.privileges.length > 0) {
       fullAdminType.privileges.forEach((privilege) => {
@@ -625,7 +619,7 @@ export class AdminTypesComponent implements OnInit, OnDestroy {
 
   protected closeDeleteDialog() {
     if (this.deleteDialogLoading()) {
-      return; // Prevent closing during API call
+      return;
     }
     this.isDeleteDialogOpen = false;
     this.adminTypeToDelete = undefined;

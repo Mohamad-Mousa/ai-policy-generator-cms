@@ -62,6 +62,13 @@ export class DomainsComponent implements OnInit, OnDestroy {
       sortable: true,
     },
     {
+      label: 'Subdomains',
+      key: 'subDomains',
+      type: 'tags',
+      filterable: false,
+      sortable: false,
+    },
+    {
       label: 'Status',
       key: 'isActive',
       type: 'badge',
@@ -114,6 +121,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       title: ['', [Validators.required, Validators.minLength(2)]],
       description: ['', [Validators.required, Validators.minLength(3)]],
       icon: [''],
+      subDomains: this.fb.nonNullable.control<string[]>([]),
       isActive: [true],
     });
   }
@@ -199,6 +207,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       statusClass: domain.isActive ? 'success' : 'warning',
       isActive: domain.isActive ? 'Active' : 'Inactive',
       icon: domain.icon || '',
+      subDomains: domain.subDomains ?? [],
     };
   }
 
@@ -272,6 +281,10 @@ export class DomainsComponent implements OnInit, OnDestroy {
     return this.domainForm.get('description') as FormControl;
   }
 
+  protected get subDomainsControl(): FormControl<string[]> {
+    return this.domainForm.get('subDomains') as FormControl<string[]>;
+  }
+
   protected get iconControl(): FormControl {
     return this.domainForm.get('icon') as FormControl;
   }
@@ -322,6 +335,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       title: '',
       description: '',
       icon: '',
+      subDomains: [],
       isActive: true,
     });
   }
@@ -335,6 +349,11 @@ export class DomainsComponent implements OnInit, OnDestroy {
     this.dialogLoading.set(true);
     this.tableLoading.set(true);
     const formValue = this.domainForm.value;
+    const sanitizedSubDomains = Array.isArray(formValue.subDomains)
+      ? (formValue.subDomains as Array<string | null | undefined>)
+          .map((subDomain) => subDomain?.trim())
+          .filter((subDomain): subDomain is string => !!subDomain)
+      : [];
 
     const domainData: CreateDomainRequest | UpdateDomainRequest = {
       title: formValue.title,
@@ -344,6 +363,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       ...(formValue.isActive !== undefined && {
         isActive: formValue.isActive ? 'true' : 'false',
       }),
+      subDomains: sanitizedSubDomains,
     };
 
     if (this.isEditMode && this.selectedDomain?._id) {
@@ -356,7 +376,6 @@ export class DomainsComponent implements OnInit, OnDestroy {
 
     operation.pipe(takeUntil(this.destroy$)).subscribe({
       next: (domain) => {
-        // Store isEditMode before closing dialog (which clears selectedDomain)
         const wasEditMode = this.isEditMode;
         this.dialogLoading.set(false);
         this.closeDialog();
@@ -441,6 +460,13 @@ export class DomainsComponent implements OnInit, OnDestroy {
         type: 'icon',
       },
       {
+        label: 'Subdomains',
+        key: 'subDomains',
+        type: 'text',
+        format: (value) =>
+          Array.isArray(value) && value.length ? value.join(', ') : '—',
+      },
+      {
         label: 'Created At',
         key: 'createdAt',
         type: 'date',
@@ -460,6 +486,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       statusClass: this.sidebarDomain.isActive ? 'success' : 'warning',
       isActive: this.sidebarDomain.isActive ? 'Active' : 'Inactive',
       icon: this.sidebarDomain.icon || '',
+      subDomains: this.sidebarDomain.subDomains ?? [],
     };
   }
 
@@ -482,6 +509,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       title: fullDomain.title,
       description: fullDomain.description,
       icon: fullDomain.icon || '',
+      subDomains: [...(fullDomain.subDomains ?? [])],
       isActive: fullDomain.isActive,
     });
   }

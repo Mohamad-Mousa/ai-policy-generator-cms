@@ -33,14 +33,13 @@ export class ButtonComponent {
   @Input() disabled = false;
   @Input() icon?: string;
   @Input() loading = false;
-  @Input() functionKey?: string; // Function key for privilege checking
-  @Input() privilegeAccess?: PrivilegeAccess; // Required privilege access level
+  @Input() functionKey?: string;
+  @Input() privilegeAccess?: PrivilegeAccess;
   @Output() clicked = new EventEmitter<MouseEvent>();
 
   protected get hostClasses(): string[] {
     const classes: string[] = [];
-    
-    // For gradient variants, use custom classes instead of Bootstrap classes
+
     if (this.variant === 'text') {
       classes.push('btn-text');
     } else if (this.variant === 'primary-gradient') {
@@ -48,18 +47,20 @@ export class ButtonComponent {
     } else if (this.variant === 'danger-gradient') {
       classes.push('btn-danger');
     } else {
-      // Use Bootstrap classes for other variants
       classes.push('btn', `btn-${this.variantMap[this.variant] ?? 'primary'}`);
     }
-    
-    // Add size class only for Bootstrap variants
-    if (this.variant !== 'text' && this.variant !== 'primary-gradient' && this.variant !== 'danger-gradient') {
+
+    if (
+      this.variant !== 'text' &&
+      this.variant !== 'primary-gradient' &&
+      this.variant !== 'danger-gradient'
+    ) {
       const sizeClass = this.sizeClassMap[this.size];
       if (sizeClass) {
         classes.push(sizeClass);
       }
     }
-    
+
     return classes.filter(Boolean);
   }
 
@@ -70,7 +71,7 @@ export class ButtonComponent {
     danger: 'danger',
     outline: 'outline-secondary',
     ghost: 'link',
-    'text': 'text',
+    text: 'text',
     'primary-gradient': 'primary',
     'danger-gradient': 'danger',
   };
@@ -82,11 +83,9 @@ export class ButtonComponent {
   };
 
   protected get isDisabled(): boolean {
-    // Check manual disabled state
     if (this.disabled) {
       return true;
     }
-    // Check privilege if functionKey and privilegeAccess are provided
     if (this.functionKey && this.privilegeAccess) {
       return !this.authService.hasPrivilege(
         this.functionKey,

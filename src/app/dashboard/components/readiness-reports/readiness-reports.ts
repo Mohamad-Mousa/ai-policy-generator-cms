@@ -44,7 +44,9 @@ export class ReadinessReportsComponent {
       maxScore: 20,
       status: 'needs-improvement',
       gaps: ['No assessment completed yet'],
-      recommendations: ['Complete the AI Readiness Assessment to generate recommendations'],
+      recommendations: [
+        'Complete the AI Readiness Assessment to generate recommendations',
+      ],
     },
     {
       id: 'data-ecosystem',
@@ -53,7 +55,9 @@ export class ReadinessReportsComponent {
       maxScore: 20,
       status: 'needs-improvement',
       gaps: ['No assessment completed yet'],
-      recommendations: ['Complete the AI Readiness Assessment to generate recommendations'],
+      recommendations: [
+        'Complete the AI Readiness Assessment to generate recommendations',
+      ],
     },
     {
       id: 'human-capital',
@@ -62,7 +66,9 @@ export class ReadinessReportsComponent {
       maxScore: 20,
       status: 'needs-improvement',
       gaps: ['No assessment completed yet'],
-      recommendations: ['Complete the AI Readiness Assessment to generate recommendations'],
+      recommendations: [
+        'Complete the AI Readiness Assessment to generate recommendations',
+      ],
     },
     {
       id: 'government-policy',
@@ -71,7 +77,9 @@ export class ReadinessReportsComponent {
       maxScore: 20,
       status: 'needs-improvement',
       gaps: ['No assessment completed yet'],
-      recommendations: ['Complete the AI Readiness Assessment to generate recommendations'],
+      recommendations: [
+        'Complete the AI Readiness Assessment to generate recommendations',
+      ],
     },
     {
       id: 'ai-innovation',
@@ -80,7 +88,9 @@ export class ReadinessReportsComponent {
       maxScore: 20,
       status: 'needs-improvement',
       gaps: ['No assessment completed yet'],
-      recommendations: ['Complete the AI Readiness Assessment to generate recommendations'],
+      recommendations: [
+        'Complete the AI Readiness Assessment to generate recommendations',
+      ],
     },
   ];
 
@@ -117,8 +127,6 @@ export class ReadinessReportsComponent {
   }
 
   protected exportReport(format: 'pdf' | 'excel') {
-    // Export functionality will be implemented
     console.log(`Exporting report as ${format}`);
   }
 }
-

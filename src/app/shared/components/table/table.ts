@@ -21,7 +21,7 @@ import { environment } from '../../../../environments/environment';
 export interface TableColumn {
   label: string;
   key: string;
-  type?: 'text' | 'badge' | 'image' | 'icon';
+  type?: 'text' | 'badge' | 'image' | 'icon' | 'tags';
   badgeClassKey?: string;
   filterable?: boolean;
   filterType?: 'text' | 'select';
@@ -100,7 +100,6 @@ export class TableComponent implements OnDestroy, OnChanges {
       .pipe(
         debounceTime(this.searchDebounceTime),
         distinctUntilChanged((prev, curr) => {
-          // Compare filter objects by serializing them
           return JSON.stringify(prev) === JSON.stringify(curr);
         }),
         takeUntil(this.destroy$)
@@ -112,11 +111,9 @@ export class TableComponent implements OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['sortBy'] || changes['sortDirection']) {
-      // Sync internal state with inputs when they change
       if (this.sortBy !== undefined) {
         this.internalSortColumn = this.sortBy;
       } else if (changes['sortBy']?.previousValue !== undefined) {
-        // Only clear if sortBy was explicitly set to undefined
         this.internalSortColumn = undefined;
       }
       if (this.sortDirection !== undefined) {
@@ -163,6 +160,26 @@ export class TableComponent implements OnDestroy, OnChanges {
     canDelete: PrivilegeAccess.D,
   };
 
+  protected isArray(value: unknown): value is unknown[] {
+    return Array.isArray(value);
+  }
+
+  protected hasTagValues(
+    row: Record<string, unknown>,
+    column: TableColumn
+  ): boolean {
+    const value = row[column.key];
+    return this.isArray(value) && value.length > 0;
+  }
+
+  protected tagValues(
+    row: Record<string, unknown>,
+    column: TableColumn
+  ): string[] {
+    const value = row[column.key];
+    return this.isArray(value) ? (value as string[]) : [];
+  }
+
   protected get totalPages(): number {
     return Math.ceil(this.totalCount / this.pageSize) || 1;
   }
@@ -189,8 +206,6 @@ export class TableComponent implements OnDestroy, OnChanges {
   }
 
   protected get activeSortDirection(): 'asc' | 'desc' {
-    // Use input sortDirection if provided, otherwise use internal sortDirection
-    // If no sort column is active, default to 'asc'
     if (this.sortDirection !== undefined) {
       return this.sortDirection;
     }
@@ -291,9 +306,7 @@ export class TableComponent implements OnDestroy, OnChanges {
   }
 
   protected onFilterChange(columnKey: string, value: string): void {
-    // Update filters object
     if (value === '' || value === null || value === undefined) {
-      // Remove filter if empty
       const { [columnKey]: _, ...rest } = this.filters;
       this.filters = rest;
     } else {
@@ -303,9 +316,7 @@ export class TableComponent implements OnDestroy, OnChanges {
       };
     }
 
-    // Emit filter change for server-side filtering
     if (this.serverSideFilters) {
-      // Reset to first page when filters change
       if (this.currentPage !== 1) {
         this.currentPage = 1;
         this.pageChange.emit(1);
@@ -331,11 +342,9 @@ export class TableComponent implements OnDestroy, OnChanges {
       newDirection = 'asc';
     }
 
-    // Update internal state
     this.internalSortColumn = key;
     this.internalSortDirection = newDirection;
 
-    // Emit sort change event for parent component to handle query params
     this.sortChange.emit({
       sortBy: key,
       sortDirection: newDirection,
@@ -372,7 +381,6 @@ export class TableComponent implements OnDestroy, OnChanges {
       }
     }
 
-    // Only apply filters client-side if server-side filtering is disabled
     if (this.enableFilters && !this.serverSideFilters) {
       for (const column of this.columns) {
         if (!column.filterable || !this.filters[column.key]) continue;
@@ -387,7 +395,6 @@ export class TableComponent implements OnDestroy, OnChanges {
       }
     }
 
-    // Use sortBy input if provided, otherwise use internal sortColumn
     const activeSortColumn = this.activeSortColumn;
     const activeSortDirection = this.activeSortDirection;
 
@@ -434,12 +441,10 @@ export class TableComponent implements OnDestroy, OnChanges {
       return undefined;
     }
 
-    // If the value already starts with http:// or https://, return as is
     if (value.startsWith('http://') || value.startsWith('https://')) {
       return value;
     }
 
-    // Otherwise, prepend environment.IMG_URL
     return environment.IMG_URL + value;
   }
 

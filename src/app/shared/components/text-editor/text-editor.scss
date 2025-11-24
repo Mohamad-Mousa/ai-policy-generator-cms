@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+.editor-field {
+  display: block;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.label-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.editor-wrapper {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 1rem;
+  background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+
+  &.focused {
+    border-color: rgba(14, 116, 144, 0.7);
+    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15);
+  }
+
+  &.has-error {
+    border-color: rgba(220, 38, 38, 0.8);
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25);
+  }
+
+  &.disabled {
+    background-color: #f8fafc;
+    opacity: 0.8;
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background-color: rgba(248, 250, 255, 0.8);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+
+  button {
+    border: none;
+    background: transparent;
+    border-radius: 0.65rem;
+    padding: 0.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(14, 116, 144, 0.1);
+      color: #0f172a;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 1.5rem;
+  background-color: rgba(15, 23, 42, 0.1);
+}
+
+.editor {
+  padding: 1rem 1.25rem 1.25rem;
+  min-height: 240px;
+  outline: none;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #0f172a;
+
+  ul,
+  ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    margin-bottom: 0.75rem;
+  }
+
+  &:empty::before {
+    content: ' ';
+  }
+}
+
+.placeholder-text {
+  position: absolute;
+  top: 3.2rem;
+  left: 1.25rem;
+  color: rgba(15, 23, 42, 0.4);
+  pointer-events: none;
+  font-size: 0.95rem;
+}
+
+.error-text {
+  display: block;
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}

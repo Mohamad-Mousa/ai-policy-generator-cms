@@ -4,3 +4,4 @@ export { AdminTypeService } from './admin-type.service';
 export { UserLogService } from './user-log.service';
 export { DomainService } from './domain.service';
 export type { UserLog, UserLogPaginatedResponse } from './user-log.service';
+export { SettingService } from './setting.service';

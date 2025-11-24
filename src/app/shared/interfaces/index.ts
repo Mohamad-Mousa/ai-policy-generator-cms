@@ -17,3 +17,10 @@ export type {
 } from './admin';
 export type { Credentials } from './credentials';
 export type { ApiResponse } from './ApiResponse';
+export type {
+  Setting,
+  UpdateSettingRequest,
+  ContactSettings,
+  SettingSubscriptions,
+  Phone,
+} from './settings';

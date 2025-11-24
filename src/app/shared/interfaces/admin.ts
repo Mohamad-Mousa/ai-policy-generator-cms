@@ -94,6 +94,7 @@ export interface Domain {
   title: string;
   description: string;
   icon?: string;
+  subDomains?: string[];
   isActive: boolean;
   isDeleted: boolean;
   createdAt: string;
@@ -111,6 +112,7 @@ export interface CreateDomainRequest {
   description: string;
   icon?: string;
   isActive?: boolean | string;
+  subDomains?: string[];
 }
 
 export interface UpdateDomainRequest {
@@ -119,4 +121,5 @@ export interface UpdateDomainRequest {
   description?: string;
   icon?: string;
   isActive?: boolean | string;
+  subDomains?: string[];
 }
