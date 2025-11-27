@@ -1,0 +1,80 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Directory</p>
+        <h2 class="h4 mb-0">Questions</h2>
+      </div>
+      <app-button label="Create Question" size="sm" variant="primary" icon="add" [functionKey]="functionKey"
+        [privilegeAccess]="writePrivilege" (click)="openCreateQuestionDialog()"></app-button>
+    </div>
+
+    <app-table [columns]="columns" [rows]="tableRows()" [totalCount]="totalCount()" [showActions]="true"
+      [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
+      loadingLabel="Loading questions..." [functionKey]="functionKey" [excludedActions]="excludedActions"
+      [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
+      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
+      (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (readAction)="onRead($event)"
+      (updateAction)="onUpdate($event)" (deleteAction)="onDelete($event)"></app-table>
+  </div>
+</div>
+
+<app-dialog [open]="isDialogOpen" [title]="dialogTitle" [description]="dialogDescription" (closed)="closeDialog()">
+  <form dialog-body [formGroup]="questionForm" class="form-grid">
+    <app-form-input [control]="questionControl" formControlName="question" label="Question" type="textarea"
+      placeholder="Enter question text" [required]="true" [minlength]="3" [rows]="4">
+    </app-form-input>
+
+    <app-form-input [control]="domainControl" formControlName="domain" label="Domain" type="select"
+      placeholder="Select a domain" [required]="true" [options]="domainOptions">
+    </app-form-input>
+
+    <div class="checkbox-field">
+      <span class="field-label">Active Status</span>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" formControlName="isActive" id="isActive" />
+        <label for="isActive" class="checkbox-text">Enable or disable this question</label>
+      </div>
+    </div>
+  </form>
+
+  <div dialog-footer>
+    <app-button label="Cancel" variant="text" [disabled]="dialogLoading()" (clicked)="closeDialog()"></app-button>
+    <app-button [label]="createButtonLabel" variant="primary-gradient" [loading]="dialogLoading()"
+      [disabled]="dialogLoading()" [functionKey]="functionKey"
+      [privilegeAccess]="isEditMode ? PrivilegeAccess.U : PrivilegeAccess.W" (clicked)="onSubmit()">
+    </app-button>
+  </div>
+</app-dialog>
+
+<app-dialog [open]="isDeleteDialogOpen" title="Delete question" description="This action cannot be undone." width="460px"
+  (closed)="closeDeleteDialog()">
+  <div dialog-body>
+    <div class="d-flex align-items-start gap-3">
+      <div class="text-danger">
+        <span class="material-symbols-rounded" style="font-size: 2rem;">warning</span>
+      </div>
+      <div>
+        <p class="fw-semibold mb-1">Are you sure you want to delete this question?</p>
+        @if (questionToDelete) {
+        <p class="text-muted mb-0">
+          <strong>{{ questionToDelete.question }}</strong> will be permanently
+          removed from the system. This action cannot be undone.
+        </p>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <app-button label="Cancel" variant="text" [disabled]="deleteDialogLoading()"
+      (clicked)="closeDeleteDialog()"></app-button>
+    <app-button [label]="deleteButtonLabel" variant="danger-gradient" [loading]="deleteDialogLoading()"
+      [disabled]="deleteDialogLoading()" [functionKey]="functionKey" [privilegeAccess]="deletePrivilege"
+      (clicked)="confirmDelete()"></app-button>
+  </div>
+</app-dialog>
+
+<app-sidebar [open]="isSidebarOpen" title="Question Details" [fields]="sidebarFields" [data]="sidebarData"
+  (closed)="closeSidebar()"></app-sidebar>
+

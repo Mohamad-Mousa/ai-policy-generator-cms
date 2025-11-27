@@ -30,4 +30,8 @@ export const Functions: Record<FunctionKeys, FunctionItem> = {
     functionKey: FunctionKeys.domains,
     functionId: '69233f8330c8f9f18c0640df',
   },
+  [FunctionKeys.questions]: {
+    functionKey: FunctionKeys.questions,
+    functionId: '6928c7f7c3f5bbc38e6c3fe7', // TODO: Update with actual function ID from backend
+  },
 };

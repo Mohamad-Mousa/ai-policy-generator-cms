@@ -73,6 +73,13 @@ export class Sidebar {
       functionKey: 'domains',
     },
     {
+      label: 'Questions',
+      description: 'Manage assessment questions',
+      path: 'questions',
+      icon: 'quiz',
+      functionKey: 'questions',
+    },
+    {
       label: 'Activity Logs',
       description: 'View system activity and audit trail',
       path: 'activity-logs',

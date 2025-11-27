@@ -14,6 +14,10 @@ export type {
   DomainPaginatedResponse,
   CreateDomainRequest,
   UpdateDomainRequest,
+  Question,
+  QuestionPaginatedResponse,
+  CreateQuestionRequest,
+  UpdateQuestionRequest,
 } from './admin';
 export type { Credentials } from './credentials';
 export type { ApiResponse } from './ApiResponse';

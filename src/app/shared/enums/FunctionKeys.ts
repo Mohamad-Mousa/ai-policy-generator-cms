@@ -5,4 +5,5 @@ export enum FunctionKeys {
   settings = 'settings',
   dashboard = 'dashboard',
   domains = 'domains',
+  questions = 'questions',
 }
