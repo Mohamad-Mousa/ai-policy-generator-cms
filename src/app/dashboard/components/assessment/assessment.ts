@@ -3,12 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
-import { Domain } from '@shared/interfaces';
+import { LoaderComponent } from '@shared/components/loader/loader';
+import {
+  Domain,
+  Question as DbQuestion,
+  Assessment as ApiAssessment,
+  AssessmentQuestion as ApiAssessmentQuestion,
+} from '@shared/interfaces';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import {
   DialogButton,
   DialogComponent,
 } from '@shared/components/dialog/dialog';
+import { QuestionService, AssessmentService } from '@shared/services';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -44,6 +51,7 @@ interface Assessment {
   id?: string;
   name: string;
   description: string;
+  fullName: string;
   createdAt: Date;
   updatedAt?: Date;
   domains: AssessmentDomain[];
@@ -56,7 +64,7 @@ interface Assessment {
 @Component({
   selector: 'app-assessment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, DialogComponent],
+  imports: [CommonModule, FormsModule, ButtonComponent, DialogComponent, LoaderComponent],
   templateUrl: './assessment.html',
   styleUrl: './assessment.scss',
 })
@@ -65,6 +73,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   protected assessment: Assessment = {
     name: '',
     description: '',
+    fullName: '',
     createdAt: new Date(),
     domains: [],
     overallProgress: 0,
@@ -75,9 +84,12 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   protected currentDomainIndex = 0;
   protected currentQuestionIndex = 0;
   protected readonly isSaving = signal(false);
+  protected readonly isLoadingAssessment = signal(false);
+  protected readonly isLoadingQuestions = signal(false);
   protected selectedDomain?: Domain;
   protected isCancelDialogOpen = false;
   protected hasUnsavedChanges = false;
+  private pendingAnswers: ApiAssessmentQuestion[] | null = null;
 
   protected readonly domainTemplates: Record<string, AssessmentDomainTemplate> =
     {
@@ -292,7 +304,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    private questionService: QuestionService,
+    private assessmentService: AssessmentService
   ) {}
 
   ngOnInit(): void {
@@ -300,6 +314,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     const domainFromState =
       (navigation?.extras?.state?.['domain'] as Domain | undefined) ??
       (history.state?.['domain'] as Domain | undefined);
+    const assessmentIdFromState =
+      (navigation?.extras?.state?.['assessmentId'] as string | undefined) ??
+      (history.state?.['assessmentId'] as string | undefined);
 
     if (!domainFromState?._id) {
       this.notifications.info(
@@ -313,8 +330,15 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     this.selectedDomain = domainFromState;
     this.assessment.domainId = domainFromState._id;
     this.assessment.domainTitle = domainFromState.title;
-    this.assessment.domains = [this.buildAssessmentDomain(domainFromState)];
-    this.calculateProgress();
+
+    if (assessmentIdFromState) {
+      // Editing existing assessment: show assessment loader and load data
+      this.isLoadingAssessment.set(true);
+      this.loadExistingAssessment(assessmentIdFromState);
+    }
+
+    // Always load questions for the domain
+    this.loadQuestionsForDomain(domainFromState._id);
   }
 
   ngOnDestroy(): void {
@@ -322,12 +346,18 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  protected get currentDomain(): AssessmentDomain {
-    return this.assessment.domains[this.currentDomainIndex];
+  protected get currentDomain(): AssessmentDomain | null {
+    if (!this.assessment.domains || this.assessment.domains.length === 0) {
+      return null;
+    }
+    return this.assessment.domains[this.currentDomainIndex] || null;
   }
 
-  protected get currentQuestion(): Question {
-    return this.currentDomain.questions[this.currentQuestionIndex];
+  protected get currentQuestion(): Question | null {
+    if (!this.currentDomain) {
+      return null;
+    }
+    return this.currentDomain.questions[this.currentQuestionIndex] || null;
   }
 
   protected get hasPreviousQuestion(): boolean {
@@ -335,6 +365,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   }
 
   protected get hasNextQuestion(): boolean {
+    if (!this.currentDomain) {
+      return false;
+    }
     return this.currentQuestionIndex < this.currentDomain.questions.length - 1;
   }
 
@@ -347,6 +380,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   }
 
   protected get canCompleteDomain(): boolean {
+    if (!this.currentDomain) {
+      return false;
+    }
     return this.currentDomain.questions.every((q) => {
       if (q.required) {
         if (q.type === 'file') {
@@ -361,7 +397,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   protected previousQuestion() {
     if (this.hasPreviousQuestion) {
       this.currentQuestionIndex--;
-    } else if (this.hasPreviousDomain) {
+    } else if (this.hasPreviousDomain && this.currentDomain) {
       this.currentDomainIndex--;
       this.currentQuestionIndex = this.currentDomain.questions.length - 1;
     }
@@ -428,92 +464,212 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   }
 
   protected saveAssessment() {
-    this.isSaving.set(true);
-    setTimeout(() => {
-      this.isSaving.set(false);
-      
-      // Generate or use existing ID
-      if (!this.assessment.id) {
-        this.assessment.id = `assessment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      }
-
-      // Save to localStorage
-      const stored = localStorage.getItem('assessments');
-      const assessments = stored ? JSON.parse(stored) : [];
-      const existingIndex = assessments.findIndex((a: Assessment) => a.id === this.assessment.id);
-      
-      const assessmentToSave: Assessment = {
-        id: this.assessment.id,
-        name: this.assessment.name,
-        description: this.assessment.description,
-        createdAt: this.assessment.createdAt,
-        updatedAt: new Date(),
-        domainId: this.assessment.domainId || '',
-        domainTitle: this.assessment.domainTitle,
-        overallProgress: this.assessment.overallProgress,
-        isCompleted: this.assessment.overallProgress === 100,
-        domains: this.assessment.domains,
-      };
-
-      if (existingIndex >= 0) {
-        assessments[existingIndex] = assessmentToSave;
-      } else {
-        assessments.push(assessmentToSave);
-      }
-
-      localStorage.setItem('assessments', JSON.stringify(assessments));
-      
-      this.notifications.success(
-        'Progress saved successfully.',
-        'Assessment updated'
+    // For draft status, only title is required
+    if (!this.assessment.name) {
+      this.notifications.danger(
+        'Assessment name is required to save progress.',
+        'Validation error'
       );
-      this.hasUnsavedChanges = false;
-    }, 1000);
+      return;
+    }
+
+    this.isSaving.set(true);
+
+    // Map questions to API format: { question: ObjectId, answer: string }
+    const questions = this.currentDomain?.questions
+      .filter((q) => q.answer !== undefined && q.answer !== null && q.answer !== '')
+      .map((q) => ({
+        question: q.id,
+        answer: q.answer || '',
+      })) || [];
+
+    if (this.assessment.id) {
+      // Update existing assessment as draft
+      this.assessmentService
+        .update({
+          _id: this.assessment.id,
+          title: this.assessment.name,
+          ...(this.assessment.description && { description: this.assessment.description }),
+          ...(this.assessment.fullName && { fullName: this.assessment.fullName }),
+          ...(this.assessment.domainId && { domain: this.assessment.domainId }),
+          questions: questions,
+          status: 'draft',
+        })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.assessment.id = response._id;
+            this.notifications.success(
+              'Progress saved successfully as draft.',
+              'Assessment updated'
+            );
+            this.hasUnsavedChanges = false;
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Failed to save assessment', error);
+            this.notifications.danger(
+              error.error?.message || 'Failed to save assessment. Please try again.',
+              'Save failed'
+            );
+          },
+        });
+    } else {
+      // Create new assessment as draft
+      this.assessmentService
+        .create({
+          ...(this.assessment.domainId && { domain: this.assessment.domainId }),
+          title: this.assessment.name,
+          ...(this.assessment.description && { description: this.assessment.description }),
+          ...(this.assessment.fullName && { fullName: this.assessment.fullName }),
+          questions: questions,
+          status: 'draft',
+        })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.assessment.id = response._id;
+            this.notifications.success(
+              'Progress saved successfully as draft.',
+              'Assessment created'
+            );
+            this.hasUnsavedChanges = false;
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Failed to create assessment', error);
+            this.notifications.danger(
+              error.error?.message || 'Failed to create assessment. Please try again.',
+              'Create failed'
+            );
+          },
+        });
+    }
   }
 
   protected completeAssessment() {
-    if (this.assessment.domains.every((d) => d.completed)) {
-      // Generate or use existing ID
-      if (!this.assessment.id) {
-        this.assessment.id = `assessment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      }
-
-      // Save completed assessment to localStorage
-      const stored = localStorage.getItem('assessments');
-      const assessments = stored ? JSON.parse(stored) : [];
-      const existingIndex = assessments.findIndex((a: Assessment) => a.id === this.assessment.id);
-      
-      const assessmentToSave: Assessment = {
-        id: this.assessment.id,
-        name: this.assessment.name,
-        description: this.assessment.description,
-        createdAt: this.assessment.createdAt,
-        updatedAt: new Date(),
-        domainId: this.assessment.domainId || '',
-        domainTitle: this.assessment.domainTitle,
-        overallProgress: 100,
-        isCompleted: true,
-        domains: this.assessment.domains,
-      };
-
-      if (existingIndex >= 0) {
-        assessments[existingIndex] = assessmentToSave;
-      } else {
-        assessments.push(assessmentToSave);
-      }
-
-      localStorage.setItem('assessments', JSON.stringify(assessments));
-      
-      this.notifications.success(
-        'Assessment completed successfully!',
-        'Assessment completed'
+    if (!this.assessment.domainId) {
+      this.notifications.danger(
+        'Domain is required to complete assessment.',
+        'Validation error'
       );
-      
-      this.router.navigate(['/dashboard/readiness-reports'], {
-        state: {
-          domain: this.selectedDomain,
-        },
-      });
+      return;
+    }
+
+    if (!this.assessment.name) {
+      this.notifications.danger(
+        'Assessment name is required.',
+        'Validation error'
+      );
+      return;
+    }
+
+    if (!this.assessment.description) {
+      this.notifications.danger(
+        'Description is required to complete assessment.',
+        'Validation error'
+      );
+      return;
+    }
+
+    if (!this.assessment.fullName) {
+      this.notifications.danger(
+        'Full name is required to complete assessment.',
+        'Validation error'
+      );
+      return;
+    }
+
+    if (!this.canCompleteDomain) {
+      this.notifications.info(
+        'Please answer all required questions before completing the assessment.',
+        'Incomplete assessment'
+      );
+      return;
+    }
+
+    this.isSaving.set(true);
+
+    // Map all questions to API format: { question: ObjectId, answer: string }
+    const questions = this.currentDomain?.questions.map((q) => ({
+      question: q.id,
+      answer: q.answer || '',
+    })) || [];
+
+    if (this.assessment.id) {
+      // Update existing assessment as completed
+      this.assessmentService
+        .update({
+          _id: this.assessment.id,
+          domain: this.assessment.domainId,
+          title: this.assessment.name,
+          description: this.assessment.description,
+          fullName: this.assessment.fullName,
+          questions: questions,
+          status: 'completed',
+        })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.notifications.success(
+              'Assessment completed successfully!',
+              'Assessment completed'
+            );
+            
+            this.router.navigate(['/dashboard/readiness-reports'], {
+              state: {
+                domain: this.selectedDomain,
+              },
+            });
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Failed to complete assessment', error);
+            this.notifications.danger(
+              error.error?.message || 'Failed to complete assessment. Please try again.',
+              'Complete failed'
+            );
+          },
+        });
+    } else {
+      // Create new completed assessment
+      this.assessmentService
+        .create({
+          domain: this.assessment.domainId,
+          title: this.assessment.name,
+          description: this.assessment.description,
+          fullName: this.assessment.fullName,
+          questions: questions,
+          status: 'completed',
+        })
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.assessment.id = response._id;
+            this.notifications.success(
+              'Assessment completed successfully!',
+              'Assessment completed'
+            );
+            
+            this.router.navigate(['/dashboard/readiness-reports'], {
+              state: {
+                domain: this.selectedDomain,
+              },
+            });
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Failed to complete assessment', error);
+            this.notifications.danger(
+              error.error?.message || 'Failed to complete assessment. Please try again.',
+              'Complete failed'
+            );
+          },
+        });
     }
   }
 
@@ -552,6 +708,139 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   protected markAsDirty() {
     this.hasUnsavedChanges = true;
+  }
+
+  private loadExistingAssessment(assessmentId: string): void {
+    this.assessmentService
+      .findOne(assessmentId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (apiAssessment: ApiAssessment) => {
+          // Patch top-level assessment fields
+          this.assessment.id = apiAssessment._id;
+          this.assessment.name = apiAssessment.title;
+          this.assessment.description = apiAssessment.description || '';
+          this.assessment.fullName = apiAssessment.fullName || '';
+
+          if (apiAssessment.domain?._id) {
+            this.assessment.domainId = apiAssessment.domain._id;
+            this.assessment.domainTitle = apiAssessment.domain.title;
+          }
+
+          // Store answers and apply once questions are loaded
+          this.patchAnswersFromAssessment(apiAssessment.questions || []);
+          this.isLoadingAssessment.set(false);
+        },
+        error: (error) => {
+          console.error('Failed to load assessment', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load assessment details. Please try again.',
+            'Assessment load failed'
+          );
+          this.isLoadingAssessment.set(false);
+        },
+      });
+  }
+
+  private patchAnswersFromAssessment(
+    answers: ApiAssessmentQuestion[]
+  ): void {
+    if (!this.assessment.domains || this.assessment.domains.length === 0) {
+      // Questions not loaded yet; defer applying answers
+      this.pendingAnswers = answers;
+      return;
+    }
+
+    const currentDomain = this.assessment.domains[0];
+    const answerMap = new Map<string, string | undefined>();
+    answers.forEach((a) => {
+      if (a.question) {
+        answerMap.set(a.question, a.answer);
+      }
+    });
+
+    currentDomain.questions.forEach((q) => {
+      if (answerMap.has(q.id)) {
+        q.answer = answerMap.get(q.id) ?? '';
+      }
+    });
+
+    this.pendingAnswers = null;
+    this.calculateProgress();
+  }
+
+  private loadQuestionsForDomain(domainId: string): void {
+    this.isLoadingQuestions.set(true);
+    this.questionService
+      .findMany(1, 100, undefined, undefined, undefined, {
+        domain: domainId,
+        isActive: 'true',
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.isLoadingQuestions.set(false);
+          const domain = this.selectedDomain;
+          if (!domain) {
+            return;
+          }
+
+          // Map database questions to assessment questions
+          const assessmentQuestions: Question[] = response.data.map(
+            (dbQuestion) => ({
+              id: dbQuestion._id,
+              text: dbQuestion.question,
+              type: 'textarea' as const,
+              required: true,
+              answer: undefined,
+              evidenceFiles: undefined,
+            })
+          );
+
+          // Build assessment domain with questions from database
+          const assessmentDomain: AssessmentDomain = {
+            id: domain._id,
+            name: domain.title,
+            description: domain.description || '',
+            icon: domain.icon || 'category',
+            completed: false,
+            progress: 0,
+            questions: assessmentQuestions,
+          };
+
+          this.assessment.domains = [assessmentDomain];
+
+          if (this.pendingAnswers && this.pendingAnswers.length > 0) {
+            this.patchAnswersFromAssessment(this.pendingAnswers);
+          } else {
+            this.calculateProgress();
+          }
+        },
+        error: (error) => {
+          this.isLoadingQuestions.set(false);
+          console.error('Failed to load questions', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load questions for this domain. Please try again.',
+            'Questions fetch failed'
+          );
+          // Fallback to empty domain
+          const domain = this.selectedDomain;
+          if (domain) {
+            const assessmentDomain: AssessmentDomain = {
+              id: domain._id,
+              name: domain.title,
+              description: domain.description || '',
+              icon: domain.icon || 'category',
+              completed: false,
+              progress: 0,
+              questions: [],
+            };
+            this.assessment.domains = [assessmentDomain];
+          }
+        },
+      });
   }
 
   private buildAssessmentDomain(domain: Domain): AssessmentDomain {

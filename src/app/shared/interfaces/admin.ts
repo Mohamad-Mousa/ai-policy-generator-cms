@@ -155,3 +155,57 @@ export interface UpdateQuestionRequest {
   domain?: string;
   isActive?: boolean | string;
 }
+
+export interface AssessmentQuestion {
+  question: string;
+  answer?: string;
+}
+
+export interface Assessment {
+  _id: string;
+  title: string;
+  description: string;
+  fullName: string;
+  domain: {
+    _id: string;
+    title: string;
+  };
+  questions: AssessmentQuestion[];
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  __v?: number;
+}
+
+export interface AssessmentPaginatedResponse {
+  data: Assessment[];
+  totalCount: number;
+}
+
+export interface CreateAssessmentRequest {
+  domain?: string;
+  title: string;
+  description?: string;
+  fullName?: string;
+  questions?: Array<{
+    question: string;
+    answer?: string;
+  }>;
+  status?: string;
+  isActive?: boolean | string;
+}
+
+export interface UpdateAssessmentRequest {
+  _id: string;
+  domain?: string;
+  title?: string;
+  description?: string;
+  fullName?: string;
+  questions?: Array<{
+    question: string;
+    answer?: string;
+  }>;
+  status?: string;
+  isActive?: boolean | string;
+}

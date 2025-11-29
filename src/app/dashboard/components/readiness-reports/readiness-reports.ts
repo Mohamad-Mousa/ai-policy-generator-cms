@@ -2,11 +2,14 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
+import { LoaderComponent } from '@shared/components/loader/loader';
 import {
   DialogButton,
   DialogComponent,
 } from '@shared/components/dialog/dialog';
-import { Domain } from '@shared/interfaces';
+import { Assessment as ApiAssessment, Domain } from '@shared/interfaces';
+import { AssessmentService } from '@shared/services';
+import { NotificationService } from '@shared/components/notification/notification.service';
 
 interface AssessmentDomain {
   id: string;
@@ -21,14 +24,15 @@ interface AssessmentDomain {
 interface Assessment {
   id: string;
   name: string;
-  description: string;
+  description?: string;
+  fullName?: string;
   createdAt: Date;
   updatedAt?: Date;
-  domainId: string;
+  domainId?: string;
   domainTitle?: string;
-  overallProgress: number;
-  isCompleted: boolean;
-  domains?: AssessmentDomain[];
+  status?: string;
+  isActive?: boolean;
+  overallProgress?: number;
 }
 
 interface DomainScore {
@@ -52,7 +56,7 @@ interface OverallReadiness {
 @Component({
   selector: 'app-readiness-reports',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, DialogComponent],
+  imports: [CommonModule, ButtonComponent, DialogComponent, LoaderComponent],
   templateUrl: './readiness-reports.html',
   styleUrl: './readiness-reports.scss',
 })
@@ -129,10 +133,15 @@ export class ReadinessReportsComponent implements OnInit {
   protected assessments = signal<Assessment[]>([]);
   protected drafts = signal<Assessment[]>([]);
   protected completed = signal<Assessment[]>([]);
+  protected readonly isLoadingAssessments = signal(false);
   protected isDeleteDialogOpen = false;
   protected assessmentToDelete: Assessment | null = null;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private assessmentService: AssessmentService,
+    private notifications: NotificationService
+  ) {}
 
   ngOnInit(): void {
     const navigation = this.router.getCurrentNavigation();
@@ -186,6 +195,10 @@ export class ReadinessReportsComponent implements OnInit {
     this.viewMode = 'assessments';
   }
 
+  protected backToAIReadiness() {
+    this.router.navigate(['/dashboard/ai-readiness-assessment']);
+  }
+
   protected viewAssessment(assessment: Assessment) {
     this.router.navigate(['/dashboard/assessment'], {
       state: {
@@ -211,17 +224,32 @@ export class ReadinessReportsComponent implements OnInit {
       return;
     }
 
-    const stored = localStorage.getItem('assessments');
-    if (stored) {
-      const assessments: Assessment[] = JSON.parse(stored);
-      const filtered = assessments.filter(
-        (a) => a.id !== this.assessmentToDelete!.id
-      );
-      localStorage.setItem('assessments', JSON.stringify(filtered));
-      this.loadAssessments(this.assessmentToDelete.domainId);
-    }
-
-    this.closeDeleteDialog();
+    this.assessmentService
+      .delete(this.assessmentToDelete.id)
+      .subscribe({
+        next: () => {
+          // Reload list for current domain or all
+          if (this.selectedDomainFromState?._id) {
+            this.loadAssessments(this.selectedDomainFromState._id);
+          } else {
+            this.loadAllAssessments();
+          }
+          this.notifications.success(
+            'Assessment deleted successfully.',
+            'Assessment deleted'
+          );
+          this.closeDeleteDialog();
+        },
+        error: (error) => {
+          console.error('Failed to delete assessment', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Failed to delete assessment. Please try again.',
+            'Delete failed'
+          );
+          this.closeDeleteDialog();
+        },
+      });
   }
 
   protected get deleteDialogDescription(): string {
@@ -258,27 +286,94 @@ export class ReadinessReportsComponent implements OnInit {
   }
 
   private loadAssessments(domainId: string) {
-    const stored = localStorage.getItem('assessments');
-    if (stored) {
-      const allAssessments: Assessment[] = JSON.parse(stored);
-      const filtered = allAssessments.filter((a) => a.domainId === domainId);
-      this.assessments.set(filtered);
-      this.drafts.set(filtered.filter((a) => !a.isCompleted));
-      this.completed.set(filtered.filter((a) => a.isCompleted));
-    } else {
-      this.assessments.set([]);
-      this.drafts.set([]);
-      this.completed.set([]);
-    }
+    this.isLoadingAssessments.set(true);
+    this.assessmentService
+      .findMany(1, 100, undefined, undefined, undefined, {
+        domain: domainId,
+      })
+      .subscribe({
+        next: (response) => {
+          this.isLoadingAssessments.set(false);
+          const mapped = response.data.map((a) => this.mapAssessment(a));
+          this.assessments.set(mapped);
+          this.drafts.set(
+            mapped.filter((a) => (a.status || '').toLowerCase() === 'draft')
+          );
+          this.completed.set(
+            mapped.filter(
+              (a) => (a.status || '').toLowerCase() === 'completed'
+            )
+          );
+        },
+        error: (error) => {
+          this.isLoadingAssessments.set(false);
+          console.error('Failed to load assessments', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load assessments for this domain. Please try again.',
+            'Assessments fetch failed'
+          );
+          this.assessments.set([]);
+          this.drafts.set([]);
+          this.completed.set([]);
+        },
+      });
   }
 
   private loadAllAssessments() {
-    const stored = localStorage.getItem('assessments');
-    if (stored) {
-      const allAssessments: Assessment[] = JSON.parse(stored);
-      this.assessments.set(allAssessments);
-      this.drafts.set(allAssessments.filter((a) => !a.isCompleted));
-      this.completed.set(allAssessments.filter((a) => a.isCompleted));
-    }
+    this.isLoadingAssessments.set(true);
+    this.assessmentService
+      .findMany(1, 100)
+      .subscribe({
+        next: (response) => {
+          this.isLoadingAssessments.set(false);
+          const mapped = response.data.map((a) => this.mapAssessment(a));
+          this.assessments.set(mapped);
+          this.drafts.set(
+            mapped.filter((a) => (a.status || '').toLowerCase() === 'draft')
+          );
+          this.completed.set(
+            mapped.filter(
+              (a) => (a.status || '').toLowerCase() === 'completed'
+            )
+          );
+        },
+        error: (error) => {
+          this.isLoadingAssessments.set(false);
+          console.error('Failed to load assessments', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load assessments. Please try again.',
+            'Assessments fetch failed'
+          );
+          this.assessments.set([]);
+          this.drafts.set([]);
+          this.completed.set([]);
+        },
+      });
+  }
+
+  private mapAssessment(api: ApiAssessment): Assessment {
+    // Calculate progress based on answered questions
+    const totalQuestions = api.questions?.length || 0;
+    const answeredQuestions = api.questions?.filter(
+      (q) => q.answer && q.answer.trim() !== ''
+    ).length || 0;
+    const overallProgress =
+      totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+
+    return {
+      id: api._id,
+      name: api.title,
+      description: api.description,
+      fullName: api.fullName,
+      createdAt: new Date(api.createdAt),
+      updatedAt: api.updatedAt ? new Date(api.updatedAt) : undefined,
+      domainId: api.domain?._id,
+      domainTitle: api.domain?.title,
+      status: (api as any).status,
+      isActive: api.isActive,
+      overallProgress: overallProgress,
+    };
   }
 }

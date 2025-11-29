@@ -18,6 +18,11 @@ export type {
   QuestionPaginatedResponse,
   CreateQuestionRequest,
   UpdateQuestionRequest,
+  Assessment,
+  AssessmentQuestion,
+  AssessmentPaginatedResponse,
+  CreateAssessmentRequest,
+  UpdateAssessmentRequest,
 } from './admin';
 export type { Credentials } from './credentials';
 export type { ApiResponse } from './ApiResponse';
