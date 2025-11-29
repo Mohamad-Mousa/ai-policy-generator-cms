@@ -3,37 +3,22 @@
     <div class="card-body">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
-          <button
-            type="button"
-            class="btn btn-link text-decoration-none p-0 d-flex align-items-center mb-2"
-            (click)="cancelAssessment()"
-          >
+          <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center mb-2"
+            (click)="cancelAssessment()">
             <span class="material-symbols-rounded me-2">arrow_back</span>
             <span>Back to Assessments</span>
           </button>
           <h2 class="h4 mb-0">New AI Readiness Assessment</h2>
         </div>
         <div class="d-flex gap-2">
-          <app-button
-            label="Save Progress"
-            size="sm"
-            variant="outline"
-            icon="save"
-            [loading]="isSaving()"
-            (click)="saveAssessment()"
-          ></app-button>
-          <app-button
-            label="Complete Assessment"
-            size="sm"
-            variant="primary"
-            icon="check_circle"
-            [disabled]="assessment.overallProgress < 100"
-            (click)="completeAssessment()"
-          ></app-button>
+          <app-button label="Save as Draft" size="sm" variant="outline" icon="save" [loading]="isSaving()"
+            (click)="saveAssessment()"></app-button>
+          <app-button label="Complete Assessment" size="sm" variant="primary" icon="check_circle"
+            [disabled]="assessment.overallProgress < 100" (click)="completeAssessment()"></app-button>
         </div>
       </div>
 
-    @if (assessment.domainTitle) {
+      @if (assessment.domainTitle) {
       <div class="alert alert-primary d-flex align-items-center gap-2 mb-4" role="alert">
         <span class="material-symbols-rounded">category</span>
         <span>
@@ -41,39 +26,24 @@
           <strong class="ms-1">{{ assessment.domainTitle }}</strong>
         </span>
       </div>
-    }
+      }
 
       <!-- Assessment Info -->
       <div class="row g-3 mb-4">
         <div class="col-md-6">
           <label class="form-label">Assessment Name <span class="text-danger">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="e.g., Q1 2024 AI Readiness Assessment"
-            [(ngModel)]="assessment.name"
-            (ngModelChange)="markAsDirty()"
-          />
+          <input type="text" class="form-control" placeholder="e.g., Q1 2024 AI Readiness Assessment"
+            [(ngModel)]="assessment.name" (ngModelChange)="markAsDirty()" />
         </div>
         <div class="col-md-6">
           <label class="form-label">Full Name <span class="text-danger">*</span></label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Full name of the person being assessed"
-            [(ngModel)]="assessment.fullName"
-            (ngModelChange)="markAsDirty()"
-          />
+          <input type="text" class="form-control" placeholder="Full name of the person being assessed"
+            [(ngModel)]="assessment.fullName" (ngModelChange)="markAsDirty()" />
         </div>
         <div class="col-md-12">
           <label class="form-label">Description</label>
-          <input
-            type="text"
-            class="form-control"
-            placeholder="Brief description of this assessment"
-            [(ngModel)]="assessment.description"
-            (ngModelChange)="markAsDirty()"
-          />
+          <input type="text" class="form-control" placeholder="Brief description of this assessment"
+            [(ngModel)]="assessment.description" (ngModelChange)="markAsDirty()" />
         </div>
       </div>
 
@@ -84,68 +54,58 @@
   <div class="card border-0 shadow-sm">
     <div class="card-body">
       @if (isLoadingAssessment()) {
-        <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
-          <app-loader size="lg" variant="inline" label="Loading assessment..."></app-loader>
-        </div>
+      <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+        <app-loader size="lg" variant="inline" label="Loading assessment..."></app-loader>
+      </div>
       } @else if (isLoadingQuestions()) {
-        <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
-          <app-loader size="lg" variant="inline" label="Loading questions..."></app-loader>
-        </div>
+      <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+        <app-loader size="lg" variant="inline" label="Loading questions..."></app-loader>
+      </div>
       } @else if (currentDomain) {
-        <!-- Domain Header -->
-        <div class="d-flex align-items-start gap-3 mb-4">
-          <span class="material-symbols-rounded domain-header-icon">{{ currentDomain.icon }}</span>
-          <div class="flex-grow-1">
-            <h4 class="mb-1">{{ currentDomain.name }}</h4>
-            <p class="text-muted small mb-0">{{ currentDomain.description }}</p>
-            <div class="mt-2">
-              <span class="badge bg-primary-subtle text-primary-emphasis">
-                {{ currentDomain.questions.length }} Question{{ currentDomain.questions.length !== 1 ? 's' : '' }}
-              </span>
-            </div>
+      <!-- Domain Header -->
+      <div class="d-flex align-items-start gap-3 mb-4">
+        <span class="material-symbols-rounded domain-header-icon">{{ currentDomain.icon }}</span>
+        <div class="flex-grow-1">
+          <h4 class="mb-1">{{ currentDomain.name }}</h4>
+          <p class="text-muted small mb-0">{{ currentDomain.description }}</p>
+          <div class="mt-2">
+            <span class="badge bg-primary-subtle text-primary-emphasis">
+              {{ currentDomain.questions.length }} Question{{ currentDomain.questions.length !== 1 ? 's' : '' }}
+            </span>
           </div>
         </div>
+      </div>
 
-        <!-- All Questions -->
-        @if (currentDomain.questions.length === 0) {
-          <div class="alert alert-info mb-0" role="alert">
-            No questions available for this domain.
-          </div>
-        } @else {
-          <div class="questions-list">
-            @for (question of currentDomain.questions; track question.id) {
-              <div class="question-container mb-4">
-                <label class="form-label fw-semibold mb-2">
-                  {{ question.text }}
-                  @if (question.required) {
-                    <span class="text-danger">*</span>
-                  }
-                </label>
-                <textarea
-                  class="form-control"
-                  rows="4"
-                  placeholder="Enter your answer here..."
-                  [(ngModel)]="question.answer"
-                  (ngModelChange)="handleAnswerChange()"
-                ></textarea>
-              </div>
-            }
-          </div>
-        }
+      <!-- All Questions -->
+      @if (currentDomain.questions.length === 0) {
+      <div class="alert alert-info mb-0" role="alert">
+        No questions available for this domain.
+      </div>
       } @else {
-        <div class="alert alert-warning mb-0" role="alert">
-          Unable to load domain information.
+      <div class="questions-list">
+        @for (question of currentDomain.questions; track question.id) {
+        <div class="question-container mb-4">
+          <label class="form-label fw-semibold mb-2">
+            {{ question.text }}
+            @if (question.required) {
+            <span class="text-danger">*</span>
+            }
+          </label>
+          <textarea class="form-control" rows="4" placeholder="Enter your answer here..." [(ngModel)]="question.answer"
+            (ngModelChange)="handleAnswerChange()"></textarea>
         </div>
+        }
+      </div>
+      }
+      } @else {
+      <div class="alert alert-warning mb-0" role="alert">
+        Unable to load domain information.
+      </div>
       }
     </div>
   </div>
 
-  <app-dialog
-    [open]="isCancelDialogOpen"
-    title="Leave this assessment?"
+  <app-dialog [open]="isCancelDialogOpen" title="Leave this assessment?"
     description="Your current answers are not saved. If you go back now, all progress for this assessment will be lost."
-    [buttons]="cancelDialogButtons"
-    (closed)="closeCancelDialog()"
-  ></app-dialog>
+    [buttons]="cancelDialogButtons" (closed)="closeCancelDialog()"></app-dialog>
 </div>
-

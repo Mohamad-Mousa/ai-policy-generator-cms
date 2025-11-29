@@ -64,7 +64,13 @@ interface Assessment {
 @Component({
   selector: 'app-assessment',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, DialogComponent, LoaderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ButtonComponent,
+    DialogComponent,
+    LoaderComponent,
+  ],
   templateUrl: './assessment.html',
   styleUrl: './assessment.scss',
 })
@@ -467,7 +473,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     // For draft status, only title is required
     if (!this.assessment.name) {
       this.notifications.danger(
-        'Assessment name is required to save progress.',
+        'Assessment name is required to save as draft.',
         'Validation error'
       );
       return;
@@ -476,12 +482,15 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     this.isSaving.set(true);
 
     // Map questions to API format: { question: ObjectId, answer: string }
-    const questions = this.currentDomain?.questions
-      .filter((q) => q.answer !== undefined && q.answer !== null && q.answer !== '')
-      .map((q) => ({
-        question: q.id,
-        answer: q.answer || '',
-      })) || [];
+    const questions =
+      this.currentDomain?.questions
+        .filter(
+          (q) => q.answer !== undefined && q.answer !== null && q.answer !== ''
+        )
+        .map((q) => ({
+          question: q.id,
+          answer: q.answer || '',
+        })) || [];
 
     if (this.assessment.id) {
       // Update existing assessment as draft
@@ -489,8 +498,12 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .update({
           _id: this.assessment.id,
           title: this.assessment.name,
-          ...(this.assessment.description && { description: this.assessment.description }),
-          ...(this.assessment.fullName && { fullName: this.assessment.fullName }),
+          ...(this.assessment.description && {
+            description: this.assessment.description,
+          }),
+          ...(this.assessment.fullName && {
+            fullName: this.assessment.fullName,
+          }),
           ...(this.assessment.domainId && { domain: this.assessment.domainId }),
           questions: questions,
           status: 'draft',
@@ -510,7 +523,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.isSaving.set(false);
             console.error('Failed to save assessment', error);
             this.notifications.danger(
-              error.error?.message || 'Failed to save assessment. Please try again.',
+              error.error?.message ||
+                'Failed to save assessment. Please try again.',
               'Save failed'
             );
           },
@@ -521,8 +535,12 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .create({
           ...(this.assessment.domainId && { domain: this.assessment.domainId }),
           title: this.assessment.name,
-          ...(this.assessment.description && { description: this.assessment.description }),
-          ...(this.assessment.fullName && { fullName: this.assessment.fullName }),
+          ...(this.assessment.description && {
+            description: this.assessment.description,
+          }),
+          ...(this.assessment.fullName && {
+            fullName: this.assessment.fullName,
+          }),
           questions: questions,
           status: 'draft',
         })
@@ -541,7 +559,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.isSaving.set(false);
             console.error('Failed to create assessment', error);
             this.notifications.danger(
-              error.error?.message || 'Failed to create assessment. Please try again.',
+              error.error?.message ||
+                'Failed to create assessment. Please try again.',
               'Create failed'
             );
           },
@@ -593,10 +612,11 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     this.isSaving.set(true);
 
     // Map all questions to API format: { question: ObjectId, answer: string }
-    const questions = this.currentDomain?.questions.map((q) => ({
-      question: q.id,
-      answer: q.answer || '',
-    })) || [];
+    const questions =
+      this.currentDomain?.questions.map((q) => ({
+        question: q.id,
+        answer: q.answer || '',
+      })) || [];
 
     if (this.assessment.id) {
       // Update existing assessment as completed
@@ -618,7 +638,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
               'Assessment completed successfully!',
               'Assessment completed'
             );
-            
+
             this.router.navigate(['/dashboard/readiness-reports'], {
               state: {
                 domain: this.selectedDomain,
@@ -629,7 +649,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.isSaving.set(false);
             console.error('Failed to complete assessment', error);
             this.notifications.danger(
-              error.error?.message || 'Failed to complete assessment. Please try again.',
+              error.error?.message ||
+                'Failed to complete assessment. Please try again.',
               'Complete failed'
             );
           },
@@ -654,7 +675,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
               'Assessment completed successfully!',
               'Assessment completed'
             );
-            
+
             this.router.navigate(['/dashboard/readiness-reports'], {
               state: {
                 domain: this.selectedDomain,
@@ -665,7 +686,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.isSaving.set(false);
             console.error('Failed to complete assessment', error);
             this.notifications.danger(
-              error.error?.message || 'Failed to complete assessment. Please try again.',
+              error.error?.message ||
+                'Failed to complete assessment. Please try again.',
               'Complete failed'
             );
           },
@@ -743,9 +765,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       });
   }
 
-  private patchAnswersFromAssessment(
-    answers: ApiAssessmentQuestion[]
-  ): void {
+  private patchAnswersFromAssessment(answers: ApiAssessmentQuestion[]): void {
     if (!this.assessment.domains || this.assessment.domains.length === 0) {
       // Questions not loaded yet; defer applying answers
       this.pendingAnswers = answers;
