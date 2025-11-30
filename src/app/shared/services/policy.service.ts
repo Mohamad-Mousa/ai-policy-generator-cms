@@ -205,4 +205,43 @@ export class PolicyService {
         })
       );
   }
+
+  /**
+   * Delete one or more policies
+   * @param ids - Single ID string or array of ID strings
+   * @returns Observable with deletion result
+   */
+  delete(ids: string | string[]): Observable<any> {
+    const idsParam = Array.isArray(ids) ? ids.join(',') : ids;
+
+    return this.http
+      .delete<ApiResponse<any>>(
+        `${this.API_URL}/admin/policy/delete/${idsParam}`
+      )
+      .pipe(
+        map((res) => {
+          if (res.error === false && res.results === null) {
+            return {
+              success: true,
+              message: String(res.message || 'Successfully deleted'),
+              deletedIds: idsParam,
+            };
+          }
+          if (res.results) {
+            return res.results;
+          }
+          if (res.error === true) {
+            throw new Error(String(res.message || 'Delete failed'));
+          }
+          return {
+            success: true,
+            message: String(res.message || 'Successfully deleted'),
+            deletedIds: idsParam,
+          };
+        }),
+        catchError((err: HttpErrorResponse) => {
+          return throwError(() => err);
+        })
+      );
+  }
 }

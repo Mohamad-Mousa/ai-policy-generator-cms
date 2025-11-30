@@ -41,7 +41,8 @@ export class Sidebar {
     },
     {
       label: 'Policy Generator',
-      description: 'Generate customized AI policies based on readiness findings',
+      description:
+        'Generate customized AI policies based on readiness findings',
       path: 'policy-generator',
       icon: 'auto_awesome',
     },
@@ -50,20 +51,6 @@ export class Sidebar {
       description: 'View, manage, and export generated AI policies',
       path: 'policy-library',
       icon: 'folder_special',
-    },
-    {
-      label: 'Admins',
-      description: 'View and onboard new admins',
-      path: 'admins',
-      icon: 'groups',
-      functionKey: 'admins',
-    },
-    {
-      label: 'Admin Types',
-      description: 'Configure policies by role',
-      path: 'admin-types',
-      icon: 'badge',
-      functionKey: 'adminTypes',
     },
     {
       label: 'Domains',
@@ -78,6 +65,20 @@ export class Sidebar {
       path: 'questions',
       icon: 'quiz',
       functionKey: 'questions',
+    },
+    {
+      label: 'Admins',
+      description: 'View and onboard new admins',
+      path: 'admins',
+      icon: 'groups',
+      functionKey: 'admins',
+    },
+    {
+      label: 'Admin Types',
+      description: 'Configure policies by role',
+      path: 'admin-types',
+      icon: 'badge',
+      functionKey: 'adminTypes',
     },
     {
       label: 'Activity Logs',

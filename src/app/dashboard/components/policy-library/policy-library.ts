@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
+import { DialogComponent } from '@shared/components/dialog/dialog';
 import { PolicyService, Policy } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
@@ -19,6 +20,7 @@ import { takeUntil } from 'rxjs/operators';
     RouterLink,
     ButtonComponent,
     TableComponent,
+    DialogComponent,
   ],
   templateUrl: './policy-library.html',
   styleUrl: './policy-library.scss',
@@ -38,6 +40,9 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   protected expandedAssessmentIndex = signal<number | null>(0);
   protected assessmentPage = signal(1);
   protected assessmentLimit = signal(10);
+  protected isDeleteDialogOpen = false;
+  protected policyToDelete?: Policy;
+  protected deleteDialogLoading = signal(false);
 
   protected readonly excludedActions: Array<
     'canRead' | 'canWrite' | 'canEdit' | 'canDelete'
@@ -235,11 +240,50 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected deletePolicy(policy: Policy) {
-    if (confirm(`Are you sure you want to delete this policy?`)) {
-      console.log('Deleting policy:', policy._id);
-      // TODO: Implement delete API call
-      this.loadPolicies();
+    this.policyToDelete = policy;
+    this.isDeleteDialogOpen = true;
+  }
+
+  protected closeDeleteDialog() {
+    if (this.deleteDialogLoading()) {
+      return;
     }
+    this.isDeleteDialogOpen = false;
+    this.policyToDelete = undefined;
+    this.deleteDialogLoading.set(false);
+  }
+
+  protected confirmDelete() {
+    if (!this.policyToDelete?._id || this.deleteDialogLoading()) {
+      return;
+    }
+
+    this.deleteDialogLoading.set(true);
+    this.policyService
+      .delete(this.policyToDelete._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.deleteDialogLoading.set(false);
+          this.isDeleteDialogOpen = false;
+          this.policyToDelete = undefined;
+          this.loadPolicies();
+          this.notifications.success('Policy deleted successfully.', 'Success');
+        },
+        error: (error) => {
+          this.deleteDialogLoading.set(false);
+          console.error('Failed to delete policy', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to delete policy. Please try again later.',
+            'Delete failed'
+          );
+        },
+      });
+  }
+
+  protected get deleteButtonLabel(): string {
+    return this.deleteDialogLoading() ? 'Deleting...' : 'Delete';
   }
 
   protected exportPolicy(policy: Policy, format: 'pdf' | 'docx') {
