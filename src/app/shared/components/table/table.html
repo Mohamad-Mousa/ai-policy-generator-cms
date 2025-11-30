@@ -40,6 +40,21 @@
     <table class="table align-middle mb-0">
       <thead>
         <tr>
+          @if (enableSelection) {
+          <th scope="col" class="table-checkbox-column">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [checked]="isAllSelected"
+                [indeterminate]="isSomeSelected"
+                (change)="toggleSelectAll()"
+                [id]="'select-all-checkbox'"
+                [aria-label]="'Select all rows'"
+              />
+            </div>
+          </th>
+          }
           @for (column of columns; track column.key) {
           <th scope="col">
             <button class="sort-button" type="button" [disabled]="!enableSorting || column.sortable === false"
@@ -68,6 +83,20 @@
         @if (processedRows.length) {
         @for (row of processedRows; track row; let idx = $index) {
         <tr [class.row-open]="openRowIndex === idx && showActions">
+          @if (enableSelection) {
+          <td class="table-checkbox-column">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [checked]="isRowSelected(row)"
+                (change)="toggleRowSelection(row)"
+                [id]="'row-checkbox-' + idx"
+                [aria-label]="'Select row ' + (idx + 1)"
+              />
+            </div>
+          </td>
+          }
           @for (column of columns; track column.key) {
           <td>
             @switch (column.type) {
@@ -135,7 +164,7 @@
         }
         } @else {
         <tr>
-          <td [attr.colspan]="columns.length + (showActions ? 1 : 0)" class="text-center text-muted py-4">
+          <td [attr.colspan]="columns.length + (enableSelection ? 1 : 0) + (showActions ? 1 : 0)" class="text-center text-muted py-4">
             {{ emptyMessage }}
           </td>
         </tr>

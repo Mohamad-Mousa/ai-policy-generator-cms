@@ -8,7 +8,7 @@
             <span class="material-symbols-rounded me-2">arrow_back</span>
             <span>Back to Assessments</span>
           </button>
-          <h2 class="h4 mb-0">New AI Readiness Assessment</h2>
+          <h2 class="h4 mb-0">{{ assessment.id ? 'Edit' : 'New' }} AI Readiness Assessment</h2>
         </div>
         <div class="d-flex gap-2">
           <app-button label="Save as Draft" size="sm" variant="outline" icon="save" [loading]="isSaving()"
@@ -22,7 +22,7 @@
       <div class="alert alert-primary d-flex align-items-center gap-2 mb-4" role="alert">
         <span class="material-symbols-rounded">category</span>
         <span>
-          Creating assessment for
+          {{ assessment.id ? 'Editing' : 'Creating' }} assessment for
           <strong class="ms-1">{{ assessment.domainTitle }}</strong>
         </span>
       </div>

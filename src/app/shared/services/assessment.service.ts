@@ -203,5 +203,54 @@ export class AssessmentService {
         })
       );
   }
-}
 
+  /**
+   * Download assessment import template for a domain
+   * @param domainId - Domain ID
+   * @returns Observable with blob data
+   */
+  downloadTemplate(domainId: string): Observable<Blob> {
+    const params = new HttpParams().set('domain', domainId);
+
+    return this.http
+      .get(`${this.API_URL}/admin/assessment/template`, {
+        params,
+        responseType: 'blob',
+      })
+      .pipe(
+        catchError((err: HttpErrorResponse) => {
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * Import assessments from Excel file
+   * @param file - Excel file to import
+   * @returns Observable with import results
+   */
+  import(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http
+      .post<ApiResponse<any>>(
+        `${this.API_URL}/admin/assessment/import`,
+        formData
+      )
+      .pipe(
+        map((res) => {
+          if (res.results) {
+            return res.results;
+          }
+          if (res.error === true) {
+            throw new Error(String(res.message || 'Import failed'));
+          }
+          return res;
+        }),
+        catchError((err: HttpErrorResponse) => {
+          return throwError(() => err);
+        })
+      );
+  }
+}

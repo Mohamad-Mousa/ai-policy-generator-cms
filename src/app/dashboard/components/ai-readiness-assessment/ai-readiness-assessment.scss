@@ -54,3 +54,22 @@
   }
 }
 
+// Responsive button container
+@media (max-width: 991.98px) {
+  .d-flex.flex-wrap {
+    > div:last-child {
+      width: 100%;
+      margin-top: 1rem;
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .d-flex.flex-wrap.gap-2 {
+    app-button {
+      flex: 1 1 calc(50% - 0.5rem);
+      min-width: 140px;
+    }
+  }
+}
+

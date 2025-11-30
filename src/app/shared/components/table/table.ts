@@ -63,6 +63,9 @@ export class TableComponent implements OnDestroy, OnChanges {
   @Input() serverSideFilters = false;
   @Input() sortBy?: string;
   @Input() sortDirection?: 'asc' | 'desc';
+  @Input() enableSelection = false;
+  @Input() selectionKey = '_id';
+  @Input() selectedRows: Array<string | number> = [];
   @Output() pageChange = new EventEmitter<number>();
   @Output() limitChange = new EventEmitter<number>();
   @Output() searchChange = new EventEmitter<string>();
@@ -71,6 +74,7 @@ export class TableComponent implements OnDestroy, OnChanges {
     sortBy: string;
     sortDirection: 'asc' | 'desc';
   }>();
+  @Output() selectionChange = new EventEmitter<Array<Record<string, unknown>>>();
   @Output() readAction = new EventEmitter<Record<string, unknown>>();
   @Output() writeAction = new EventEmitter<Record<string, unknown>>();
   @Output() updateAction = new EventEmitter<Record<string, unknown>>();
@@ -84,6 +88,7 @@ export class TableComponent implements OnDestroy, OnChanges {
   protected internalSortColumn?: string;
   protected internalSortDirection: 'asc' | 'desc' = 'asc';
   protected globalSearch = '';
+  protected selectedRowIds = new Set<string | number>();
 
   constructor() {
     this.searchSubject
@@ -119,6 +124,10 @@ export class TableComponent implements OnDestroy, OnChanges {
       if (this.sortDirection !== undefined) {
         this.internalSortDirection = this.sortDirection;
       }
+    }
+
+    if (changes['selectedRows']) {
+      this.selectedRowIds = new Set(this.selectedRows);
     }
   }
 
@@ -463,5 +472,83 @@ export class TableComponent implements OnDestroy, OnChanges {
       return 'info';
     }
     return 'neutral';
+  }
+
+  protected getRowId(row: Record<string, unknown>): string | number {
+    const id = row[this.selectionKey];
+    if (id === null || id === undefined) {
+      throw new Error(
+        `Row is missing the selection key "${this.selectionKey}". Please provide a valid selectionKey or ensure rows have this property.`
+      );
+    }
+    return id as string | number;
+  }
+
+  protected isRowSelected(row: Record<string, unknown>): boolean {
+    if (!this.enableSelection) return false;
+    const id = this.getRowId(row);
+    return this.selectedRowIds.has(id);
+  }
+
+  protected toggleRowSelection(row: Record<string, unknown>): void {
+    if (!this.enableSelection) return;
+    const id = this.getRowId(row);
+
+    if (this.selectedRowIds.has(id)) {
+      this.selectedRowIds.delete(id);
+    } else {
+      this.selectedRowIds.add(id);
+    }
+
+    this.emitSelectionChange();
+  }
+
+  protected get isAllSelected(): boolean {
+    if (!this.enableSelection || this.processedRows.length === 0) {
+      return false;
+    }
+    return this.processedRows.every((row) => this.isRowSelected(row));
+  }
+
+  protected get isSomeSelected(): boolean {
+    if (!this.enableSelection || this.processedRows.length === 0) {
+      return false;
+    }
+    return (
+      this.processedRows.some((row) => this.isRowSelected(row)) &&
+      !this.isAllSelected
+    );
+  }
+
+  protected toggleSelectAll(): void {
+    if (!this.enableSelection) return;
+
+    if (this.isAllSelected) {
+      // Deselect all visible rows
+      this.processedRows.forEach((row) => {
+        const id = this.getRowId(row);
+        this.selectedRowIds.delete(id);
+      });
+    } else {
+      // Select all visible rows
+      this.processedRows.forEach((row) => {
+        const id = this.getRowId(row);
+        this.selectedRowIds.add(id);
+      });
+    }
+
+    this.emitSelectionChange();
+  }
+
+  private emitSelectionChange(): void {
+    const selectedRows = this.rows.filter((row) => {
+      const id = this.getRowId(row);
+      return this.selectedRowIds.has(id);
+    });
+    this.selectionChange.emit(selectedRows);
+  }
+
+  protected get selectedCount(): number {
+    return this.selectedRowIds.size;
   }
 }

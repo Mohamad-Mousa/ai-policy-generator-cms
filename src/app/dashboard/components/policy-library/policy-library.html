@@ -13,127 +13,22 @@
     </div>
 
     @if (viewMode === 'list') {
-    <!-- Filters and Search -->
-    <div class="card border-0 shadow-sm mb-4">
+    <!-- Policies Table -->
+    <div class="card border-0 shadow-sm">
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label class="form-label">Search</label>
-            <input type="text" class="form-control" placeholder="Search policies..." [(ngModel)]="searchTerm" />
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Status</label>
-            <select class="form-select" [(ngModel)]="filterStatus">
-              @for (option of statusOptions; track option) {
-              <option [value]="option">{{ option | titlecase }}</option>
-              }
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Sector</label>
-            <select class="form-select" [(ngModel)]="filterSector">
-              @for (option of sectorOptions; track option) {
-              <option [value]="option">{{ option | titlecase }}</option>
-              }
-            </select>
-          </div>
+        <div class="mb-3">
+          <h5 class="mb-1">Policies</h5>
+          <p class="text-muted small mb-0">Manage and view all generated policies</p>
         </div>
-      </div>
-    </div>
 
-    <!-- Policies List -->
-    <div class="policies-list">
-      @if (filteredPolicies.length === 0) {
-      <div class="text-center py-5">
-        <span class="material-symbols-rounded text-muted" style="font-size: 4rem;">folder_open</span>
-        <p class="text-muted mt-3">No policies found. Create your first policy using the Policy Generator.</p>
+        <app-table [columns]="tableColumns" [rows]="tableRows" [totalCount]="totalCount()" [enableFilters]="true"
+          [enableSorting]="true" [enableGlobalSearch]="true" [enablePagination]="true" [loading]="isLoading()"
+          emptyMessage="No policies found. Create your first policy using the Policy Generator." [showActions]="true"
+          [functionKey]="functionKey" [excludedActions]="excludedActions" (pageChange)="onPageChange($event)"
+          (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
+          (filterChange)="onFilterChange($event)" (readAction)="onRowClick($event)"
+          (deleteAction)="onDeleteAction($event)"></app-table>
       </div>
-      } @else {
-      <div class="row g-3">
-        @for (policy of filteredPolicies; track policy.id) {
-        <div class="col-12">
-          <div class="card border-0 shadow-sm policy-card">
-            <div class="card-body">
-              <div class="d-flex align-items-start justify-content-between">
-                <div class="flex-grow-1">
-                  <div class="d-flex align-items-center gap-2 mb-2">
-                    <h6 class="mb-0">{{ policy.title }}</h6>
-                    <span class="badge {{ getStatusClass(policy.status) }}">
-                      {{ policy.status | titlecase }}
-                    </span>
-                    <span class="badge bg-light text-dark">v{{ policy.version }}</span>
-                  </div>
-                  <div class="text-muted small mb-2 d-flex align-items-center gap-3">
-                    <span class="d-flex align-items-center">
-                      <span class="material-symbols-rounded me-1" style="font-size: 16px;">business</span>
-                      <span>{{ policy.sector }}</span>
-                    </span>
-                    <span class="d-flex align-items-center">
-                      <span class="material-symbols-rounded me-1" style="font-size: 16px;">groups</span>
-                      <span>{{ policy.organizationSize }}</span>
-                    </span>
-                  </div>
-                  <div class="text-muted small">
-                    Created: {{ policy.createdAt | date: 'short' }}
-                    <span class="mx-2">•</span>
-                    Modified: {{ policy.lastModified | date: 'short' }}
-                  </div>
-                </div>
-                <div class="d-flex gap-2 ms-3">
-                  <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center"
-                    (click)="selectPolicy(policy)" title="View Details">
-                    <span class="material-symbols-rounded" style="font-size: 18px;">visibility</span>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center"
-                    (click)="editPolicy(policy)" title="Edit">
-                    <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
-                  </button>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center"
-                      type="button" data-bs-toggle="dropdown" title="More Options">
-                      <span class="material-symbols-rounded" style="font-size: 18px;">more_vert</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                      <li>
-                        <a class="dropdown-item d-flex align-items-center" (click)="exportPolicy(policy, 'pdf')">
-                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">picture_as_pdf</span>
-                          <span>Export PDF</span>
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item d-flex align-items-center" (click)="exportPolicy(policy, 'docx')">
-                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">description</span>
-                          <span>Export DOCX</span>
-                        </a>
-                      </li>
-                      <li>
-                        <hr class="dropdown-divider" />
-                      </li>
-                      <li>
-                        <a class="dropdown-item d-flex align-items-center" (click)="viewVersionHistory(policy)">
-                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">history</span>
-                          <span>Version History</span>
-                        </a>
-                      </li>
-                      <li>
-                        <hr class="dropdown-divider" />
-                      </li>
-                      <li>
-                        <a class="dropdown-item text-danger d-flex align-items-center" (click)="deletePolicy(policy)">
-                          <span class="material-symbols-rounded me-2" style="font-size: 18px;">delete</span>
-                          <span>Delete</span>
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        }
-      </div>
-      }
     </div>
     } @else {
     <!-- Policy Detail View -->
@@ -146,50 +41,211 @@
         </button>
       </div>
 
-      @if (selectedPolicy) {
+      @if (isLoadingPolicy()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted">Loading policy details...</p>
+      </div>
+      } @else if (selectedPolicy()) {
+      @let policy = selectedPolicy()!;
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between mb-4">
             <div>
-              <h4 class="mb-2">{{ selectedPolicy.title }}</h4>
-              <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="badge {{ getStatusClass(selectedPolicy.status) }} fs-6">
-                  {{ selectedPolicy.status | titlecase }}
-                </span>
-                <span class="badge bg-light text-dark">Version {{ selectedPolicy.version }}</span>
-              </div>
+              <h4 class="mb-2">Policy Details</h4>
             </div>
             <div class="d-flex gap-2">
-              <app-button label="Edit" size="sm" variant="outline" icon="edit"
-                (click)="editPolicy(selectedPolicy)"></app-button>
               <app-button label="Export PDF" size="sm" variant="outline" icon="picture_as_pdf"
-                (click)="exportPolicy(selectedPolicy, 'pdf')"></app-button>
+                (click)="exportPolicy(policy, 'pdf')"></app-button>
+              <app-button label="Export DOCX" size="sm" variant="outline" icon="description"
+                (click)="exportPolicy(policy, 'docx')"></app-button>
             </div>
           </div>
 
           <div class="row g-3 mb-4">
             <div class="col-md-6">
-              <strong class="text-muted small">Sector:</strong>
-              <p class="mb-0">{{ selectedPolicy.sector }}</p>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">business</span>
+                <strong class="text-muted small">Sector:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.sector }}</p>
             </div>
             <div class="col-md-6">
-              <strong class="text-muted small">Organization Size:</strong>
-              <p class="mb-0">{{ selectedPolicy.organizationSize }}</p>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">groups</span>
+                <strong class="text-muted small">Organization Size:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.organizationSize }}</p>
             </div>
             <div class="col-md-6">
-              <strong class="text-muted small">Created:</strong>
-              <p class="mb-0">{{ selectedPolicy.createdAt | date: 'medium' }}</p>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">trending_up</span>
+                <strong class="text-muted small">Risk Appetite:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.riskAppetite }}</p>
             </div>
             <div class="col-md-6">
-              <strong class="text-muted small">Last Modified:</strong>
-              <p class="mb-0">{{ selectedPolicy.lastModified | date: 'medium' }}</p>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">schedule</span>
+                <strong class="text-muted small">Implementation Timeline:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.implementationTimeline }}</p>
             </div>
+            <div class="col-md-6">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">event</span>
+                <strong class="text-muted small">Created:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.createdAt | date: 'medium' }}</p>
+            </div>
+            @if (policy.updatedAt) {
+            <div class="col-md-6">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="material-symbols-rounded text-muted" style="font-size: 18px;">edit_calendar</span>
+                <strong class="text-muted small">Last Modified:</strong>
+              </div>
+              <p class="mb-0 ms-5">{{ policy.updatedAt | date: 'medium' }}</p>
+            </div>
+            }
           </div>
 
-          <div class="alert alert-info mb-0" role="alert">
-            <strong>Policy Content:</strong> Full policy content, sections, rationale, and references
-            will be displayed here. Implementation pending.
+          @if (policy.domains && policy.domains.length > 0) {
+          <div class="mb-4">
+            <h6 class="mb-3">Domains ({{ policy.domains.length }})</h6>
+            <div class="row g-2">
+              @for (domain of policy.domains; track domain._id) {
+              <div class="col-md-6">
+                <div class="card border">
+                  <div class="card-body p-3">
+                    <div class="d-flex align-items-center gap-2">
+                      @if (domain.icon) {
+                      <span class="material-symbols-rounded">{{ domain.icon }}</span>
+                      }
+                      <div>
+                        <strong class="d-block">{{ domain.title }}</strong>
+                        @if (domain.description) {
+                        <small class="text-muted">{{ domain.description }}</small>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              }
+            </div>
           </div>
+          }
+
+          @if (assessmentsData.length > 0 || assessmentsTotalCount > 0) {
+          <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h6 class="mb-0">Assessments ({{ assessmentsTotalCount }})</h6>
+              @if (assessmentsTotalCount > assessmentLimit()) {
+              <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" [value]="assessmentLimit()"
+                  (change)="onAssessmentLimitChange(+$any($event.target).value)" style="width: auto;">
+                  <option [value]="10">10 per page</option>
+                  <option [value]="25">25 per page</option>
+                  <option [value]="50">50 per page</option>
+                  <option [value]="100">100 per page</option>
+                </select>
+              </div>
+              }
+            </div>
+            <div class="assessments-accordion">
+              @for (assessment of assessmentsData; track assessment._id; let idx = $index) {
+              <div class="assessment-item border rounded mb-2">
+                <button
+                  class="assessment-header w-100 btn btn-link text-start text-decoration-none p-3 d-flex align-items-center justify-content-between"
+                  type="button" (click)="toggleAssessment(idx)" [attr.aria-expanded]="isAssessmentExpanded(idx)">
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <strong>{{ assessment.title }}</strong>
+                      @if (assessment.status) {
+                      <span class="badge bg-success-subtle text-success-emphasis">{{ assessment.status }}</span>
+                      }
+                      @if (assessment.questions && assessment.questions.length > 0) {
+                      <span class="badge bg-info-subtle text-info-emphasis">
+                        {{ assessment.questions.length }} question{{ assessment.questions.length > 1 ? 's' : '' }}
+                      </span>
+                      }
+                    </div>
+                    @if (assessment.description) {
+                    <small class="text-muted d-block mb-1">{{ assessment.description }}</small>
+                    }
+                    @if (assessment.fullName) {
+                    <small class="text-muted d-flex align-items-center gap-1">
+                      <span class="material-symbols-rounded" style="font-size: 16px;">person</span>
+                      {{ assessment.fullName }}
+                    </small>
+                    }
+                  </div>
+                  <span class="material-symbols-rounded ms-3" [class.rotated]="isAssessmentExpanded(idx)">
+                    expand_more
+                  </span>
+                </button>
+                @if (isAssessmentExpanded(idx)) {
+                <div class="assessment-content border-top p-3">
+                  @if (assessment.questions && assessment.questions.length > 0) {
+                  <h6 class="mb-3">Questions & Answers</h6>
+                  <div class="list-group">
+                    @for (question of assessment.questions; track question._id || $index) {
+                    <div class="list-group-item">
+                      <div class="mb-2">
+                        <strong class="text-primary small">Question:</strong>
+                        <p class="mb-1">{{ question.question }}</p>
+                      </div>
+                      <div>
+                        <strong class="text-success small">Answer:</strong>
+                        <p class="mb-0">{{ question.answer || 'No answer provided' }}</p>
+                      </div>
+                    </div>
+                    }
+                  </div>
+                  } @else {
+                  <p class="text-muted mb-0">No questions available for this assessment.</p>
+                  }
+                </div>
+                }
+              </div>
+              }
+            </div>
+
+            @if (assessmentsTotalCount > assessmentLimit()) {
+            <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
+              <div class="text-muted small">
+                Showing {{ (assessmentPage() - 1) * assessmentLimit() + 1 }} to
+                {{ Math.min(assessmentPage() * assessmentLimit(), assessmentsTotalCount) }} of
+                {{ assessmentsTotalCount }} assessments
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                  [disabled]="assessmentPage() === 1 || isLoadingPolicy()"
+                  (click)="onAssessmentPageChange(assessmentPage() - 1)" aria-label="Previous page">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">chevron_left</span>
+                </button>
+                <span class="text-muted small px-2">
+                  Page {{ assessmentPage() }} of {{ Math.ceil(assessmentsTotalCount / assessmentLimit()) }}
+                </span>
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                  [disabled]="assessmentPage() >= Math.ceil(assessmentsTotalCount / assessmentLimit()) || isLoadingPolicy()"
+                  (click)="onAssessmentPageChange(assessmentPage() + 1)" aria-label="Next page">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">chevron_right</span>
+                </button>
+              </div>
+            </div>
+            }
+          </div>
+          } @else if (!isLoadingPolicy()) {
+          <div class="mb-4">
+            <h6 class="mb-3">Assessments</h6>
+            <div class="alert alert-info mb-0" role="alert">
+              No assessments found for this policy.
+            </div>
+          </div>
+          }
         </div>
       </div>
       }

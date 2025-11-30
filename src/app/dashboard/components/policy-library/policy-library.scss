@@ -27,3 +27,57 @@
   }
 }
 
+.assessments-accordion {
+  .assessment-item {
+    background-color: #fff;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+
+    &:hover {
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+  }
+
+  .assessment-header {
+    color: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+
+    .material-symbols-rounded {
+      transition: transform 0.3s ease;
+      color: #6c757d;
+    }
+
+    .material-symbols-rounded.rotated {
+      transform: rotate(180deg);
+    }
+  }
+
+  .assessment-content {
+    background-color: #f8f9fa;
+    animation: slideDown 0.3s ease-out;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 2000px;
+  }
+}
+
