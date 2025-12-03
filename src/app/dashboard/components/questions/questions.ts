@@ -4,6 +4,7 @@ import {
   FormBuilder,
   FormControl,
   FormGroup,
+  FormArray,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -50,6 +51,19 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   protected readonly columns: TableColumn[] = [
     { label: 'Question', key: 'question', filterable: true, sortable: true },
     {
+      label: 'Type',
+      key: 'type',
+      filterable: true,
+      filterType: 'select',
+      filterOptions: [
+        { label: 'Text', value: 'text' },
+        { label: 'Radio', value: 'radio' },
+        { label: 'Checkbox', value: 'checkbox' },
+        { label: 'Number', value: 'number' },
+      ],
+      sortable: true,
+    },
+    {
       label: 'Domain',
       key: 'domain',
       filterable: true,
@@ -72,6 +86,13 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     },
   ];
 
+  protected readonly questionTypes = [
+    { label: 'Text', value: 'text' },
+    { label: 'Radio', value: 'radio' },
+    { label: 'Checkbox', value: 'checkbox' },
+    { label: 'Number', value: 'number' },
+  ];
+
   protected questions = signal<Question[]>([]);
   protected domains = signal<Domain[]>([]);
   protected tableRows = signal<Record<string, unknown>[]>([]);
@@ -86,6 +107,14 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   private currentFilters: Record<string, string> = {};
   protected sortBy?: string;
   protected sortDirection?: 'asc' | 'desc';
+
+  protected get currentPageValue(): number {
+    return this.currentPage;
+  }
+
+  protected get currentLimitValue(): number {
+    return this.currentLimit;
+  }
 
   protected readonly excludedActions: Array<
     'canRead' | 'canWrite' | 'canEdit' | 'canDelete'
@@ -111,9 +140,20 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   ) {
     this.questionForm = this.fb.group({
       question: ['', [Validators.required, Validators.minLength(3)]],
+      type: ['text', [Validators.required]],
       domain: ['', [Validators.required]],
+      answers: this.fb.array([]),
+      min: [null],
+      max: [null],
       isActive: [true],
     });
+
+    // Watch for type changes to update form validation
+    this.questionForm.get('type')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((type) => {
+        this.onTypeChange(type);
+      });
   }
 
   ngOnInit(): void {
@@ -220,11 +260,18 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   protected transformQuestionForTable(
     question: Question
   ): Record<string, unknown> {
+    const typeLabels: Record<string, string> = {
+      text: 'Text',
+      radio: 'Radio',
+      checkbox: 'Checkbox',
+      number: 'Number',
+    };
     return {
       ...question,
       statusClass: question.isActive ? 'success' : 'warning',
       isActive: question.isActive ? 'Active' : 'Inactive',
       domain: question.domain?.title || '—',
+      type: typeLabels[question.type] || question.type,
     };
   }
 
@@ -294,12 +341,37 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     return this.questionForm.get('question') as FormControl;
   }
 
+  protected get typeControl(): FormControl {
+    return this.questionForm.get('type') as FormControl;
+  }
+
   protected get domainControl(): FormControl {
     return this.questionForm.get('domain') as FormControl;
   }
 
+  protected get answersArray(): FormArray {
+    return this.questionForm.get('answers') as FormArray;
+  }
+
+  protected get minControl(): FormControl {
+    return this.questionForm.get('min') as FormControl;
+  }
+
+  protected get maxControl(): FormControl {
+    return this.questionForm.get('max') as FormControl;
+  }
+
   protected get isActiveControl(): FormControl {
     return this.questionForm.get('isActive') as FormControl;
+  }
+
+  protected get showAnswersField(): boolean {
+    const type = this.typeControl?.value;
+    return type === 'radio' || type === 'checkbox';
+  }
+
+  protected get showNumberFields(): boolean {
+    return this.typeControl?.value === 'number';
   }
 
   protected get dialogTitle(): string {
@@ -349,28 +421,122 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   private resetForm() {
     this.questionForm.reset({
       question: '',
+      type: 'text',
       domain: '',
       isActive: true,
     });
+    this.clearAnswers();
+    this.clearNumberFields();
+  }
+
+  private onTypeChange(type: string): void {
+    if (type === 'text') {
+      this.clearAnswers();
+      this.clearNumberFields();
+      this.answersArray.clearValidators();
+      this.minControl.clearValidators();
+      this.maxControl.clearValidators();
+    } else if (type === 'radio' || type === 'checkbox') {
+      this.clearNumberFields();
+      this.minControl.clearValidators();
+      this.maxControl.clearValidators();
+      if (this.answersArray.length === 0) {
+        this.addAnswer();
+      }
+      this.answersArray.setValidators([Validators.required, Validators.minLength(1)]);
+    } else if (type === 'number') {
+      this.clearAnswers();
+      this.answersArray.clearValidators();
+      this.minControl.setValidators([Validators.required]);
+      this.maxControl.setValidators([Validators.required]);
+    }
+    this.answersArray.updateValueAndValidity();
+    this.minControl.updateValueAndValidity();
+    this.maxControl.updateValueAndValidity();
+  }
+
+  private clearAnswers(): void {
+    while (this.answersArray.length !== 0) {
+      this.answersArray.removeAt(0);
+    }
+  }
+
+  private clearNumberFields(): void {
+    this.minControl.setValue(null);
+    this.maxControl.setValue(null);
+  }
+
+  protected addAnswer(): void {
+    const answerControl = this.fb.control('', [Validators.required]);
+    this.answersArray.push(answerControl);
+    // Trigger change detection to ensure form-input component picks up the new control
+    this.answersArray.updateValueAndValidity();
+  }
+
+  protected removeAnswer(index: number): void {
+    if (this.answersArray.length > 1 && index >= 0 && index < this.answersArray.length) {
+      this.answersArray.removeAt(index);
+      // Update validity after removal
+      this.answersArray.updateValueAndValidity();
+    }
+  }
+
+  protected getAnswerControl(index: number): FormControl {
+    return this.answersArray.at(index) as FormControl;
   }
 
   protected onSubmit() {
     this.questionForm.markAllAsTouched();
+    
+    // Additional validation for number type
+    const formValue = this.questionForm.value;
+    if (formValue.type === 'number') {
+      const min = formValue.min;
+      const max = formValue.max;
+      if (min !== null && max !== null && min >= max) {
+        this.minControl.setErrors({ minMaxInvalid: true });
+        this.maxControl.setErrors({ minMaxInvalid: true });
+        this.notifications.danger(
+          'Minimum value must be less than maximum value',
+          'Validation Error'
+        );
+        return;
+      }
+    }
+
     if (this.questionForm.invalid || this.dialogLoading()) {
       return;
     }
 
     this.dialogLoading.set(true);
     this.tableLoading.set(true);
-    const formValue = this.questionForm.value;
+    const type = formValue.type;
 
     const questionData: CreateQuestionRequest | UpdateQuestionRequest = {
       question: formValue.question.trim(),
+      type: type,
       domain: formValue.domain,
       ...(formValue.isActive !== undefined && {
         isActive: formValue.isActive ? 'true' : 'false',
       }),
     };
+
+    // Add type-specific fields
+    if (type === 'radio' || type === 'checkbox') {
+      const answers = formValue.answers
+        .map((answer: string) => answer?.trim())
+        .filter((answer: string) => answer);
+      if (answers.length > 0) {
+        questionData.answers = answers;
+      }
+    } else if (type === 'number') {
+      if (formValue.min !== null && formValue.min !== undefined) {
+        questionData.min = Number(formValue.min);
+      }
+      if (formValue.max !== null && formValue.max !== undefined) {
+        questionData.max = Number(formValue.max);
+      }
+    }
 
     if (this.isEditMode && this.selectedQuestion?._id) {
       (questionData as UpdateQuestionRequest)._id = this.selectedQuestion._id;
@@ -440,11 +606,25 @@ export class QuestionsComponent implements OnInit, OnDestroy {
 
   protected get sidebarFields(): SidebarField[] {
     if (!this.sidebarQuestion) return [];
-    return [
+    const fields: SidebarField[] = [
       {
         label: 'Question',
         key: 'question',
         type: 'text',
+      },
+      {
+        label: 'Type',
+        key: 'type',
+        type: 'text',
+        format: () => {
+          const typeLabels: Record<string, string> = {
+            text: 'Text',
+            radio: 'Radio',
+            checkbox: 'Checkbox',
+            number: 'Number',
+          };
+          return typeLabels[this.sidebarQuestion?.type || ''] || this.sidebarQuestion?.type || '—';
+        },
       },
       {
         label: 'Domain',
@@ -452,6 +632,36 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         type: 'text',
         format: () => this.sidebarQuestion?.domain?.title || '—',
       },
+    ];
+
+    // Add type-specific fields
+    if (this.sidebarQuestion.type === 'radio' || this.sidebarQuestion.type === 'checkbox') {
+      if (this.sidebarQuestion.answers && this.sidebarQuestion.answers.length > 0) {
+        fields.push({
+          label: 'Answers',
+          key: 'answers',
+          type: 'text',
+          format: () => this.sidebarQuestion?.answers?.join(', ') || '—',
+        });
+      }
+    } else if (this.sidebarQuestion.type === 'number') {
+      if (this.sidebarQuestion.min !== undefined || this.sidebarQuestion.max !== undefined) {
+        fields.push({
+          label: 'Min',
+          key: 'min',
+          type: 'text',
+          format: () => this.sidebarQuestion?.min?.toString() || '—',
+        });
+        fields.push({
+          label: 'Max',
+          key: 'max',
+          type: 'text',
+          format: () => this.sidebarQuestion?.max?.toString() || '—',
+        });
+      }
+    }
+
+    fields.push(
       {
         label: 'Status',
         key: 'isActive',
@@ -468,8 +678,10 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         label: 'Updated At',
         key: 'updatedAt',
         type: 'date',
-      },
-    ];
+      }
+    );
+
+    return fields;
   }
 
   protected get sidebarData(): Record<string, unknown> {
@@ -496,11 +708,45 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     this.selectedQuestion = fullQuestion;
     this.isDialogOpen = true;
 
+    // Clear existing form arrays
+    this.clearAnswers();
+    this.clearNumberFields();
+
+    // Set type without triggering change handler to avoid interference
+    this.typeControl.setValue(fullQuestion.type || 'text', { emitEvent: false });
+
+    // Set basic fields
     this.questionForm.patchValue({
       question: fullQuestion.question,
       domain: fullQuestion.domain._id,
       isActive: fullQuestion.isActive,
     });
+
+    // Set type-specific fields
+    if (fullQuestion.type === 'radio' || fullQuestion.type === 'checkbox') {
+      if (fullQuestion.answers && fullQuestion.answers.length > 0) {
+        fullQuestion.answers.forEach((answer) => {
+          this.addAnswer();
+          const lastIndex = this.answersArray.length - 1;
+          this.answersArray.at(lastIndex).setValue(answer);
+        });
+      } else {
+        this.addAnswer();
+      }
+      // Set validators for answers array
+      this.answersArray.setValidators([Validators.required, Validators.minLength(1)]);
+      this.answersArray.updateValueAndValidity();
+    } else if (fullQuestion.type === 'number') {
+      this.questionForm.patchValue({
+        min: fullQuestion.min ?? null,
+        max: fullQuestion.max ?? null,
+      });
+      // Set validators for number fields
+      this.minControl.setValidators([Validators.required]);
+      this.maxControl.setValidators([Validators.required]);
+      this.minControl.updateValueAndValidity();
+      this.maxControl.updateValueAndValidity();
+    }
   }
 
   protected onDelete(question: Record<string, unknown>): void {

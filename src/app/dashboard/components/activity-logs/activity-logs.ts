@@ -55,6 +55,14 @@ export class ActivityLogsComponent implements OnInit, OnDestroy {
   protected sortBy?: string;
   protected sortDirection?: 'asc' | 'desc';
 
+  protected get currentPageValue(): number {
+    return this.currentPage;
+  }
+
+  protected get currentLimitValue(): number {
+    return this.currentLimit;
+  }
+
   constructor(
     private notifications: NotificationService,
     private userLogService: UserLogService

@@ -88,6 +88,14 @@ export class AdminsComponent implements OnInit, OnDestroy {
   protected sortBy?: string;
   protected sortDirection?: 'asc' | 'desc';
 
+  protected get currentPageValue(): number {
+    return this.currentPage;
+  }
+
+  protected get currentLimitValue(): number {
+    return this.currentLimit;
+  }
+
   protected readonly statusOptions = ['Active', 'Pending'];
   protected readonly roleSuggestions = [
     'Global Admin',

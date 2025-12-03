@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, forwardRef, OnInit } from '@angular/core';
+import { Component, Input, forwardRef, OnInit, ChangeDetectorRef } from '@angular/core';
 import {
   AbstractControl,
   ControlValueAccessor,
@@ -63,7 +63,7 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
   onChange = (value: any) => {};
   onTouched = () => {};
 
-  constructor() {}
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     if (this.control && this.control instanceof FormControl) {
@@ -71,6 +71,7 @@ export class FormInputComponent implements ControlValueAccessor, OnInit {
         if (this.control instanceof FormControl) {
           this._invalid = this.control.invalid;
           this._touched = this.control.touched || this.control.dirty;
+          this.cdr.markForCheck();
         }
       });
       this._invalid = this.control.invalid;

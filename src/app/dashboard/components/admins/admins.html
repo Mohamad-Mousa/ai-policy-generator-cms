@@ -13,6 +13,7 @@
       [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
       loadingLabel="Loading administrators..." [functionKey]="functionKey" [excludedActions]="excludedActions"
       [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
+      [currentPageInput]="currentPageValue" [pageSizeInput]="currentLimitValue"
       (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
       (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (readAction)="onRead($event)"
       (updateAction)="onUpdate($event)" (deleteAction)="onDelete($event)"></app-table>

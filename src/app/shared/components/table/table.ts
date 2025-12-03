@@ -66,6 +66,8 @@ export class TableComponent implements OnDestroy, OnChanges {
   @Input() enableSelection = false;
   @Input() selectionKey = '_id';
   @Input() selectedRows: Array<string | number> = [];
+  @Input() currentPageInput?: number;
+  @Input() pageSizeInput?: number;
   @Output() pageChange = new EventEmitter<number>();
   @Output() limitChange = new EventEmitter<number>();
   @Output() searchChange = new EventEmitter<string>();
@@ -128,6 +130,16 @@ export class TableComponent implements OnDestroy, OnChanges {
 
     if (changes['selectedRows']) {
       this.selectedRowIds = new Set(this.selectedRows);
+    }
+
+    // Sync current page from parent when using server-side pagination
+    if (changes['currentPageInput'] && this.currentPageInput !== undefined) {
+      this.currentPage = this.currentPageInput;
+    }
+
+    // Sync page size from parent when using server-side pagination
+    if (changes['pageSizeInput'] && this.pageSizeInput !== undefined) {
+      this.pageSize = this.pageSizeInput;
     }
   }
 
@@ -222,12 +234,15 @@ export class TableComponent implements OnDestroy, OnChanges {
   }
 
   protected goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) {
+    if (page < 1 || page > this.totalPages) {
       return;
     }
 
-    this.currentPage = page;
-    this.pageChange.emit(page);
+    // Only emit if page actually changed (to avoid unnecessary events)
+    if (page !== this.currentPage) {
+      this.currentPage = page;
+      this.pageChange.emit(page);
+    }
   }
 
   protected onPageSizeChange(size: number): void {

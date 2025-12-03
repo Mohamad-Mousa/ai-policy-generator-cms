@@ -127,10 +127,14 @@ export interface UpdateDomainRequest {
 export interface Question {
   _id: string;
   question: string;
+  type: 'text' | 'radio' | 'checkbox' | 'number';
   domain: {
     _id: string;
     title: string;
   };
+  answers?: string[];
+  min?: number;
+  max?: number;
   isActive: boolean;
   isDeleted: boolean;
   createdAt: string;
@@ -145,20 +149,38 @@ export interface QuestionPaginatedResponse {
 
 export interface CreateQuestionRequest {
   question: string;
+  type: 'text' | 'radio' | 'checkbox' | 'number';
   domain: string;
+  answers?: string[];
+  min?: number;
+  max?: number;
   isActive?: boolean | string;
 }
 
 export interface UpdateQuestionRequest {
   _id: string;
   question?: string;
+  type?: 'text' | 'radio' | 'checkbox' | 'number';
   domain?: string;
+  answers?: string[];
+  min?: number;
+  max?: number;
   isActive?: boolean | string;
 }
 
 export interface AssessmentQuestion {
-  question: string;
-  answer?: string;
+  _id: string; // Assessment question ID
+  question: {
+    _id: string;
+    question: string; // Question text
+    domain: string;
+    type: 'text' | 'radio' | 'checkbox' | 'number';
+    isActive: boolean;
+    answers?: string[]; // For radio/checkbox types
+    min?: number; // For number type
+    max?: number; // For number type
+  };
+  answer?: string | string[] | number; // Answer value - type depends on question type
 }
 
 export interface Assessment {
@@ -169,6 +191,10 @@ export interface Assessment {
   domain: {
     _id: string;
     title: string;
+    description?: string;
+    icon?: string;
+    isActive?: boolean;
+    subDomains?: any[];
   };
   questions: AssessmentQuestion[];
   isActive: boolean;
@@ -176,6 +202,7 @@ export interface Assessment {
   createdAt: string;
   updatedAt?: string;
   __v?: number;
+  status?: string;
 }
 
 export interface AssessmentPaginatedResponse {
@@ -190,7 +217,7 @@ export interface CreateAssessmentRequest {
   fullName?: string;
   questions?: Array<{
     question: string;
-    answer?: string;
+    answer?: string | string[] | number;
   }>;
   status?: string;
   isActive?: boolean | string;
@@ -204,7 +231,7 @@ export interface UpdateAssessmentRequest {
   fullName?: string;
   questions?: Array<{
     question: string;
-    answer?: string;
+    answer?: string | string[] | number;
   }>;
   status?: string;
   isActive?: boolean | string;

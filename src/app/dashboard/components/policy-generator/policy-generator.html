@@ -70,6 +70,7 @@
         <app-table [columns]="assessmentTableColumns" [rows]="assessmentTableRows"
           [totalCount]="assessmentsTotalCount()" [enableFilters]="true" [enableSorting]="true"
           [enableGlobalSearch]="true" [enablePagination]="true" [enableSelection]="true" [selectionKey]="'_id'"
+          [selectedRows]="selectedAssessmentIdsForTable" [currentPageInput]="currentPage()" [pageSizeInput]="pageLimit()"
           [loading]="isLoadingAssessments()" emptyMessage="No assessments found" (pageChange)="onPageChange($event)"
           (limitChange)="onLimitChange($event)" (selectionChange)="onAssessmentSelectionChange($event)"></app-table>
         }

@@ -24,10 +24,10 @@
         <app-table [columns]="tableColumns" [rows]="tableRows" [totalCount]="totalCount()" [enableFilters]="true"
           [enableSorting]="true" [enableGlobalSearch]="true" [enablePagination]="true" [loading]="isLoading()"
           emptyMessage="No policies found. Create your first policy using the Policy Generator." [showActions]="true"
-          [functionKey]="functionKey" [excludedActions]="excludedActions" (pageChange)="onPageChange($event)"
-          (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
-          (filterChange)="onFilterChange($event)" (readAction)="onRowClick($event)"
-          (deleteAction)="onDeleteAction($event)"></app-table>
+          [functionKey]="functionKey" [excludedActions]="excludedActions" [currentPageInput]="currentPage()"
+          [pageSizeInput]="pageLimit()" (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"
+          (searchChange)="onSearchChange($event)" (filterChange)="onFilterChange($event)"
+          (readAction)="onRowClick($event)" (deleteAction)="onDeleteAction($event)"></app-table>
       </div>
     </div>
     } @else {

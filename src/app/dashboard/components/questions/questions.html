@@ -13,6 +13,7 @@
       [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
       loadingLabel="Loading questions..." [functionKey]="functionKey" [excludedActions]="excludedActions"
       [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
+      [currentPageInput]="currentPageValue" [pageSizeInput]="currentLimitValue"
       (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
       (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (readAction)="onRead($event)"
       (updateAction)="onUpdate($event)" (deleteAction)="onDelete($event)"></app-table>
@@ -25,9 +26,49 @@
       placeholder="Enter question text" [required]="true" [minlength]="3" [rows]="4">
     </app-form-input>
 
+    <app-form-input [control]="typeControl" formControlName="type" label="Question Type" type="select"
+      placeholder="Select question type" [required]="true" [options]="questionTypes">
+    </app-form-input>
+
     <app-form-input [control]="domainControl" formControlName="domain" label="Domain" type="select"
       placeholder="Select a domain" [required]="true" [options]="domainOptions">
     </app-form-input>
+
+    @if (showAnswersField) {
+    <div class="answers-field">
+      <span class="field-label">Answers <span class="text-danger">*</span></span>
+      <div class="answers-list" formArrayName="answers">
+        @for (answerControl of answersArray.controls; track answerControl) {
+        <div class="answer-item">
+          <app-form-input [control]="getAnswerControl($index)" [formControlName]="$index"
+            [label]="'Answer ' + ($index + 1)" type="text" placeholder="Enter answer option" [required]="true">
+          </app-form-input>
+          @if (answersArray.length > 1) {
+          <button type="button" class="btn-remove-answer" (click)="removeAnswer($index)"
+            [attr.aria-label]="'Remove answer ' + ($index + 1)">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+          }
+        </div>
+        }
+        <button type="button" class="btn-add-answer" (click)="addAnswer()">
+          <span class="material-symbols-rounded">add</span>
+          Add Answer
+        </button>
+      </div>
+    </div>
+    }
+
+    @if (showNumberFields) {
+    <div class="number-fields">
+      <app-form-input [control]="minControl" formControlName="min" label="Minimum Value" type="number"
+        placeholder="Enter minimum value" [required]="true">
+      </app-form-input>
+      <app-form-input [control]="maxControl" formControlName="max" label="Maximum Value" type="number"
+        placeholder="Enter maximum value" [required]="true">
+      </app-form-input>
+    </div>
+    }
 
     <div class="checkbox-field">
       <span class="field-label">Active Status</span>

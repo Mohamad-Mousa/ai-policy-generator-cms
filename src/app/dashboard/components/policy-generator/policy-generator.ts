@@ -57,6 +57,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected currentPage = signal(1);
   protected pageLimit = signal(10);
   protected selectedAssessments = signal<Array<Record<string, unknown>>>([]);
+  // Store selected assessment IDs that persist across page changes
+  private selectedAssessmentIds = new Set<string>();
 
   protected readonly assessmentTableColumns: TableColumn[] = [
     {
@@ -195,6 +197,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.assessmentsTotalCount.set(response.totalCount);
           this.isLoadingAssessments.set(false);
           this.showAssessmentsView.set(true);
+          
+          // Update selected assessments after loading new page
+          this.updateSelectedAssessments();
 
           if (response.data.length === 0 && this.currentPage() === 1) {
             this.notifications.info(
@@ -252,6 +257,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       timeline: '',
     };
     this.selectedDomainIds = [];
+    this.selectedAssessmentIds.clear();
     this.selectedAssessments.set([]);
     this.assessments.set([]);
     this.assessmentsTotalCount.set(0);
@@ -289,17 +295,71 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.currentPage.set(1);
     this.pageLimit.set(10);
     // Clear selections when going back
+    this.selectedAssessmentIds.clear();
     this.selectedAssessments.set([]);
   }
 
   protected onAssessmentSelectionChange(
     selectedRows: Array<Record<string, unknown>>
   ): void {
-    this.selectedAssessments.set(selectedRows);
+    // Update the persistent set of selected IDs
+    const currentPageIds = new Set(
+      this.assessments().map((a) => a._id)
+    );
+    
+    // Remove IDs that are no longer selected (from current page)
+    currentPageIds.forEach((id) => {
+      const isSelected = selectedRows.some(
+        (row) => row['_id'] === id
+      );
+      if (!isSelected) {
+        this.selectedAssessmentIds.delete(id);
+      }
+    });
+    
+    // Add newly selected IDs (from current page)
+    selectedRows.forEach((row) => {
+      const id = row['_id'] as string;
+      if (id) {
+        this.selectedAssessmentIds.add(id);
+      }
+    });
+    
+    // Update the selected assessments signal with all selected assessments
+    this.updateSelectedAssessments();
+  }
+
+  private updateSelectedAssessments(): void {
+    // Get all selected assessment IDs
+    const selectedIds = Array.from(this.selectedAssessmentIds);
+    
+    // We need to get the full assessment data for selected IDs
+    // For now, we'll store the IDs and fetch full data when needed
+    // Or we can maintain a map of all loaded assessments
+    const allSelectedRows: Array<Record<string, unknown>> = [];
+    
+    // Check current page assessments
+    this.assessments().forEach((assessment) => {
+      if (this.selectedAssessmentIds.has(assessment._id)) {
+        allSelectedRows.push({
+          _id: assessment._id,
+          title: assessment.title || '—',
+          description: assessment.description || '—',
+          fullName: assessment.fullName || '—',
+          domainTitle: assessment.domain?.title || '—',
+          questionsCount: assessment.questions?.length || 0,
+          createdAt: assessment.createdAt
+            ? new Date(assessment.createdAt).toLocaleDateString()
+            : '—',
+        });
+      }
+    });
+    
+    this.selectedAssessments.set(allSelectedRows);
   }
 
   protected generatePolicy(): void {
-    if (this.selectedAssessments().length === 0) {
+    if (this.selectedAssessmentIds.size === 0) {
       this.notifications.warning(
         'Please select at least one assessment to generate a policy.',
         'No Assessments Selected'
@@ -317,12 +377,10 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
 
     this.isGenerating.set(true);
 
-    // Prepare policy data
+    // Prepare policy data using persistent selected IDs
     const policyData: CreatePolicyRequest = {
       domains: this.selectedDomainIds,
-      assessments: this.selectedAssessments().map(
-        (row) => row['_id'] as string
-      ),
+      assessments: Array.from(this.selectedAssessmentIds),
       sector: this.policyContext.sector,
       organizationSize: this.policyContext.organizationSize,
       riskAppetite: this.policyContext.riskAppetite,
@@ -367,6 +425,13 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         ? new Date(assessment.createdAt).toLocaleDateString()
         : '—',
     }));
+  }
+
+  protected get selectedAssessmentIdsForTable(): string[] {
+    // Return IDs from current page that are selected
+    return this.assessments()
+      .filter((assessment) => this.selectedAssessmentIds.has(assessment._id))
+      .map((assessment) => assessment._id);
   }
 
   protected loadDomains(): void {

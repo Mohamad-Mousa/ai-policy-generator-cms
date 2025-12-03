@@ -32,10 +32,12 @@ interface AssessmentDomain {
 interface Question {
   id: string;
   text: string;
-  type: 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'file';
+  type: 'text' | 'radio' | 'checkbox' | 'number';
   required: boolean;
-  options?: string[];
-  answer?: any;
+  answers?: string[]; // For radio/checkbox types
+  min?: number; // For number type
+  max?: number; // For number type
+  answer?: any; // string for text, string for radio, string[] for checkbox, number for number
   evidenceFiles?: File[];
 }
 
@@ -109,9 +111,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'ti-1',
             text: 'What is your current cloud infrastructure setup?',
-            type: 'select',
+            type: 'radio',
             required: true,
-            options: [
+            answers: [
               'Fully cloud-based',
               'Hybrid cloud',
               'On-premise',
@@ -121,19 +123,19 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'ti-2',
             text: 'Describe your current AI/ML infrastructure capabilities',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'ti-3',
             text: 'What AI/ML tools and platforms are currently in use?',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'ti-4',
             text: 'Upload evidence documents related to infrastructure (optional)',
-            type: 'file',
+            type: 'text',
             required: false,
           },
         ],
@@ -147,26 +149,26 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'de-1',
             text: 'How would you rate your data quality?',
-            type: 'select',
+            type: 'radio',
             required: true,
-            options: ['Excellent', 'Good', 'Moderate', 'Poor'],
+            answers: ['Excellent', 'Good', 'Moderate', 'Poor'],
           },
           {
             id: 'de-2',
             text: 'Describe your data governance framework',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'de-3',
             text: 'What data sources are available for AI initiatives?',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'de-4',
             text: 'Upload data governance documentation (optional)',
-            type: 'file',
+            type: 'text',
             required: false,
           },
         ],
@@ -180,26 +182,26 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'hc-1',
             text: 'How many employees have AI/ML expertise?',
-            type: 'select',
+            type: 'radio',
             required: true,
-            options: ['0-5', '6-20', '21-50', '50+'],
+            answers: ['0-5', '6-20', '21-50', '50+'],
           },
           {
             id: 'hc-2',
             text: 'Describe your AI training and development programs',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'hc-3',
             text: 'What recruitment strategies are in place for AI talent?',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'hc-4',
             text: 'Upload training documentation or certifications (optional)',
-            type: 'file',
+            type: 'text',
             required: false,
           },
         ],
@@ -213,9 +215,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'gp-1',
             text: 'How well-aligned is your organization with current AI regulations?',
-            type: 'select',
+            type: 'radio',
             required: true,
-            options: [
+            answers: [
               'Fully aligned',
               'Mostly aligned',
               'Partially aligned',
@@ -225,19 +227,19 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'gp-2',
             text: 'Describe your compliance framework for AI governance',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'gp-3',
             text: 'What regulatory challenges do you face?',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'gp-4',
             text: 'Upload compliance documentation (optional)',
-            type: 'file',
+            type: 'text',
             required: false,
           },
         ],
@@ -251,9 +253,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'ai-1',
             text: "What is your organization's AI innovation strategy?",
-            type: 'select',
+            type: 'radio',
             required: true,
-            options: [
+            answers: [
               'Aggressive expansion',
               'Moderate growth',
               'Cautious exploration',
@@ -263,19 +265,19 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'ai-2',
             text: 'Describe your AI research and development initiatives',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'ai-3',
             text: 'What economic factors drive your AI investments?',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'ai-4',
             text: 'Upload innovation strategy documents (optional)',
-            type: 'file',
+            type: 'text',
             required: false,
           },
         ],
@@ -289,19 +291,19 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           {
             id: 'default-1',
             text: 'Describe the primary AI objectives for this domain.',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
           {
             id: 'default-2',
             text: 'List key stakeholders involved in AI initiatives for this domain.',
-            type: 'textarea',
+            type: 'text',
             required: false,
           },
           {
             id: 'default-3',
             text: 'What challenges limit AI adoption in this area?',
-            type: 'textarea',
+            type: 'text',
             required: true,
           },
         ],
@@ -391,8 +393,11 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
     return this.currentDomain.questions.every((q) => {
       if (q.required) {
-        if (q.type === 'file') {
-          return q.evidenceFiles && q.evidenceFiles.length > 0;
+        if (q.type === 'checkbox') {
+          return Array.isArray(q.answer) && q.answer.length > 0;
+        }
+        if (q.type === 'number') {
+          return q.answer !== undefined && q.answer !== null && q.answer !== '';
         }
         return q.answer !== undefined && q.answer !== null && q.answer !== '';
       }
@@ -441,12 +446,56 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected isAnswerSelected(selectedAnswers: any, answer: string): boolean {
+    if (!selectedAnswers) {
+      return false;
+    }
+    if (Array.isArray(selectedAnswers)) {
+      return selectedAnswers.includes(answer);
+    }
+    return selectedAnswers === answer;
+  }
+
+  protected onCheckboxChange(event: Event, question: Question, answer: string) {
+    const checkbox = event.target as HTMLInputElement;
+    if (!Array.isArray(question.answer)) {
+      question.answer = [];
+    }
+    const answerArray = question.answer as string[];
+    if (checkbox.checked) {
+      if (!answerArray.includes(answer)) {
+        answerArray.push(answer);
+      }
+    } else {
+      const index = answerArray.indexOf(answer);
+      if (index > -1) {
+        answerArray.splice(index, 1);
+      }
+    }
+    this.handleAnswerChange();
+  }
+
+  protected onNumberChange(question: Question, value: string) {
+    if (value === '' || value === null || value === undefined) {
+      question.answer = undefined;
+    } else {
+      const numValue = Number(value);
+      if (!isNaN(numValue)) {
+        question.answer = numValue;
+      }
+    }
+    this.handleAnswerChange();
+  }
+
   protected calculateProgress() {
     this.assessment.domains.forEach((domain) => {
       const answeredQuestions = domain.questions.filter((q) => {
         if (q.required) {
-          if (q.type === 'file') {
-            return q.evidenceFiles && q.evidenceFiles.length > 0;
+          if (q.type === 'checkbox') {
+            return Array.isArray(q.answer) && q.answer.length > 0;
+          }
+          if (q.type === 'number') {
+            return q.answer !== undefined && q.answer !== null && q.answer !== '';
           }
           return q.answer !== undefined && q.answer !== null && q.answer !== '';
         }
@@ -481,16 +530,36 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
     this.isSaving.set(true);
 
-    // Map questions to API format: { question: ObjectId, answer: string }
+    // Map questions to API format: { question: ObjectId, answer: type-specific }
+    // Only include questions with answers for draft saves
     const questions =
       this.currentDomain?.questions
-        .filter(
-          (q) => q.answer !== undefined && q.answer !== null && q.answer !== ''
-        )
-        .map((q) => ({
-          question: q.id,
-          answer: q.answer || '',
-        })) || [];
+        .filter((q) => {
+          if (q.type === 'checkbox') {
+            return Array.isArray(q.answer) && q.answer.length > 0;
+          }
+          if (q.type === 'number') {
+            return q.answer !== undefined && q.answer !== null && q.answer !== '';
+          }
+          return q.answer !== undefined && q.answer !== null && q.answer !== '';
+        })
+        .map((q) => {
+          let answer: string | string[] | number;
+          if (q.type === 'checkbox') {
+            // Send checkbox answers as array
+            answer = Array.isArray(q.answer) ? q.answer : [];
+          } else if (q.type === 'number') {
+            // Send number answers as number
+            answer = typeof q.answer === 'number' ? q.answer : Number(q.answer);
+          } else {
+            // Send text/radio answers as string
+            answer = String(q.answer || '');
+          }
+          return {
+            question: q.id,
+            answer: answer,
+          };
+        }) || [];
 
     if (this.assessment.id) {
       // Update existing assessment as draft
@@ -611,12 +680,26 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
     this.isSaving.set(true);
 
-    // Map all questions to API format: { question: ObjectId, answer: string }
+    // Map all questions to API format: { question: ObjectId, answer: type-specific }
+    // Include all questions when completing (required questions must have answers)
     const questions =
-      this.currentDomain?.questions.map((q) => ({
-        question: q.id,
-        answer: q.answer || '',
-      })) || [];
+      this.currentDomain?.questions.map((q) => {
+        let answer: string | string[] | number;
+        if (q.type === 'checkbox') {
+          // Send checkbox answers as array
+          answer = Array.isArray(q.answer) ? q.answer : [];
+        } else if (q.type === 'number') {
+          // Send number answers as number
+          answer = typeof q.answer === 'number' ? q.answer : (q.answer !== undefined && q.answer !== null && q.answer !== '' ? Number(q.answer) : '');
+        } else {
+          // Send text/radio answers as string
+          answer = q.answer !== undefined && q.answer !== null ? String(q.answer) : '';
+        }
+        return {
+          question: q.id,
+          answer: answer,
+        };
+      }) || [];
 
     if (this.assessment.id) {
       // Update existing assessment as completed
@@ -747,10 +830,42 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           if (apiAssessment.domain?._id) {
             this.assessment.domainId = apiAssessment.domain._id;
             this.assessment.domainTitle = apiAssessment.domain.title;
+
+            // Build questions from API response (questions now include full question objects)
+            if (apiAssessment.questions && apiAssessment.questions.length > 0) {
+              const assessmentQuestions: Question[] = apiAssessment.questions.map(
+                (aq) => ({
+                  id: aq.question._id,
+                  text: aq.question.question,
+                  type: aq.question.type || 'text',
+                  required: true,
+                  answers: aq.question.answers || undefined,
+                  min: aq.question.min,
+                  max: aq.question.max,
+                  answer: this.parseAnswer(aq.answer, aq.question.type),
+                  evidenceFiles: undefined,
+                })
+              );
+
+              // Build assessment domain with questions from API
+              const assessmentDomain: AssessmentDomain = {
+                id: apiAssessment.domain._id,
+                name: apiAssessment.domain.title,
+                description: apiAssessment.domain.description || '',
+                icon: apiAssessment.domain.icon || 'category',
+                completed: false,
+                progress: 0,
+                questions: assessmentQuestions,
+              };
+
+              this.assessment.domains = [assessmentDomain];
+              this.calculateProgress();
+            } else {
+              // If no questions in response, load them from question service
+              this.loadQuestionsForDomain(apiAssessment.domain._id);
+            }
           }
 
-          // Store answers and apply once questions are loaded
-          this.patchAnswersFromAssessment(apiAssessment.questions || []);
           this.isLoadingAssessment.set(false);
         },
         error: (error) => {
@@ -765,6 +880,35 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       });
   }
 
+  private parseAnswer(
+    answer: string | string[] | number | undefined,
+    questionType?: string
+  ): any {
+    if (answer === undefined || answer === null) {
+      return undefined;
+    }
+
+    if (questionType === 'checkbox') {
+      if (Array.isArray(answer)) {
+        return answer;
+      } else if (typeof answer === 'string' && answer) {
+        // If it's a comma-separated string, split it
+        return answer.split(',').map((a) => a.trim()).filter((a) => a);
+      }
+      return [];
+    } else if (questionType === 'number') {
+      if (typeof answer === 'number') {
+        return answer;
+      } else if (answer !== undefined && answer !== null && answer !== '') {
+        return Number(answer);
+      }
+      return undefined;
+    } else {
+      // Text and radio are strings
+      return answer ?? '';
+    }
+  }
+
   private patchAnswersFromAssessment(answers: ApiAssessmentQuestion[]): void {
     if (!this.assessment.domains || this.assessment.domains.length === 0) {
       // Questions not loaded yet; defer applying answers
@@ -773,16 +917,44 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
 
     const currentDomain = this.assessment.domains[0];
-    const answerMap = new Map<string, string | undefined>();
+    const answerMap = new Map<string, string | string[] | number | undefined>();
     answers.forEach((a) => {
-      if (a.question) {
-        answerMap.set(a.question, a.answer);
+      // Handle both old format (question as string ID) and new format (question as object)
+      const questionId = typeof a.question === 'string' 
+        ? a.question 
+        : a.question?._id;
+      if (questionId) {
+        answerMap.set(questionId, a.answer);
       }
     });
 
     currentDomain.questions.forEach((q) => {
       if (answerMap.has(q.id)) {
-        q.answer = answerMap.get(q.id) ?? '';
+        const answerValue = answerMap.get(q.id);
+        // Handle different answer types based on question type
+        if (q.type === 'checkbox') {
+          // Backend sends checkbox as array, but API might return as string
+          if (Array.isArray(answerValue)) {
+            q.answer = answerValue;
+          } else if (typeof answerValue === 'string' && answerValue) {
+            // If it's a comma-separated string, split it
+            q.answer = answerValue.split(',').map(a => a.trim()).filter(a => a);
+          } else {
+            q.answer = [];
+          }
+        } else if (q.type === 'number') {
+          // Backend sends number as number
+          if (typeof answerValue === 'number') {
+            q.answer = answerValue;
+          } else if (answerValue !== undefined && answerValue !== null && answerValue !== '') {
+            q.answer = Number(answerValue);
+          } else {
+            q.answer = undefined;
+          }
+        } else {
+          // Text and radio are strings
+          q.answer = answerValue ?? '';
+        }
       }
     });
 
@@ -811,8 +983,11 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             (dbQuestion) => ({
               id: dbQuestion._id,
               text: dbQuestion.question,
-              type: 'textarea' as const,
+              type: dbQuestion.type || 'text',
               required: true,
+              answers: dbQuestion.answers || undefined,
+              min: dbQuestion.min,
+              max: dbQuestion.max,
               answer: undefined,
               evidenceFiles: undefined,
             })

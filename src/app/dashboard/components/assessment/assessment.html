@@ -91,8 +91,70 @@
             <span class="text-danger">*</span>
             }
           </label>
-          <textarea class="form-control" rows="4" placeholder="Enter your answer here..." [(ngModel)]="question.answer"
-            (ngModelChange)="handleAnswerChange()"></textarea>
+
+          @switch (question.type) {
+            @case ('text') {
+              <textarea class="form-control" rows="4" placeholder="Enter your answer here..."
+                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()"></textarea>
+            }
+            @case ('radio') {
+              @if (question.answers && question.answers.length > 0) {
+                <div class="radio-options">
+                  @for (answer of question.answers; track answer) {
+                    <div class="form-check mb-2" [class.checked]="question.answer === answer">
+                      <input class="form-check-input" type="radio" [name]="'radio-' + question.id" [id]="'radio-' + question.id + '-' + $index"
+                        [value]="answer" [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+                      <label class="form-check-label" [for]="'radio-' + question.id + '-' + $index">
+                        {{ answer }}
+                      </label>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <input type="text" class="form-control" placeholder="Enter your answer here..."
+                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+              }
+            }
+            @case ('checkbox') {
+              @if (question.answers && question.answers.length > 0) {
+                <div class="checkbox-options">
+                  @for (answer of question.answers; track answer) {
+                    <div class="form-check mb-2" [class.checked]="isAnswerSelected(question.answer, answer)">
+                      <input class="form-check-input" type="checkbox" [id]="'checkbox-' + question.id + '-' + $index"
+                        [value]="answer" [checked]="isAnswerSelected(question.answer, answer)"
+                        (change)="onCheckboxChange($event, question, answer)" />
+                      <label class="form-check-label" [for]="'checkbox-' + question.id + '-' + $index">
+                        {{ answer }}
+                      </label>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <input type="text" class="form-control" placeholder="Enter your answer here..."
+                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+              }
+            }
+            @case ('number') {
+              <input type="number" class="form-control" placeholder="Enter a number"
+                [min]="question.min" [max]="question.max"
+                [value]="question.answer" (input)="onNumberChange(question, $any($event.target).value)" />
+              @if (question.min !== undefined || question.max !== undefined) {
+                <small class="form-text text-muted">
+                  @if (question.min !== undefined && question.max !== undefined) {
+                    Range: {{ question.min }} - {{ question.max }}
+                  } @else if (question.min !== undefined) {
+                    Minimum: {{ question.min }}
+                  } @else if (question.max !== undefined) {
+                    Maximum: {{ question.max }}
+                  }
+                </small>
+              }
+            }
+            @default {
+              <textarea class="form-control" rows="4" placeholder="Enter your answer here..."
+                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()"></textarea>
+            }
+          }
         </div>
         }
       </div>

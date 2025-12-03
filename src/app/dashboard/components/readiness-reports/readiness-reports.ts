@@ -7,6 +7,10 @@ import {
   DialogButton,
   DialogComponent,
 } from '@shared/components/dialog/dialog';
+import {
+  SidebarComponent,
+  SidebarField,
+} from '@shared/components/sidebar/sidebar';
 import { Assessment as ApiAssessment, Domain } from '@shared/interfaces';
 import { AssessmentService } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
@@ -56,7 +60,7 @@ interface OverallReadiness {
 @Component({
   selector: 'app-readiness-reports',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, DialogComponent, LoaderComponent],
+  imports: [CommonModule, ButtonComponent, DialogComponent, LoaderComponent, SidebarComponent],
   templateUrl: './readiness-reports.html',
   styleUrl: './readiness-reports.scss',
 })
@@ -136,6 +140,9 @@ export class ReadinessReportsComponent implements OnInit {
   protected readonly isLoadingAssessments = signal(false);
   protected isDeleteDialogOpen = false;
   protected assessmentToDelete: Assessment | null = null;
+  protected isSidebarOpen = false;
+  protected sidebarAssessment: ApiAssessment | null = null;
+  protected isLoadingSidebarAssessment = signal(false);
 
   constructor(
     private router: Router,
@@ -199,13 +206,149 @@ export class ReadinessReportsComponent implements OnInit {
     this.router.navigate(['/dashboard/ai-readiness-assessment']);
   }
 
-  protected viewAssessment(assessment: Assessment) {
+  protected viewAssessment(assessment: Assessment, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isLoadingSidebarAssessment.set(true);
+    this.isSidebarOpen = true;
+    
+    // Load full assessment data
+    this.assessmentService.findOne(assessment.id).subscribe({
+      next: (fullAssessment) => {
+        this.sidebarAssessment = fullAssessment;
+        this.isLoadingSidebarAssessment.set(false);
+      },
+      error: (error) => {
+        console.error('Failed to load assessment details', error);
+        this.notifications.danger(
+          error.error?.message || 'Unable to load assessment details. Please try again.',
+          'Load failed'
+        );
+        this.isLoadingSidebarAssessment.set(false);
+        this.isSidebarOpen = false;
+      },
+    });
+  }
+
+  protected editAssessment(assessment: Assessment, event: Event) {
+    event.stopPropagation();
     this.router.navigate(['/dashboard/assessment'], {
       state: {
         domain: this.selectedDomainFromState,
         assessmentId: assessment.id,
       },
     });
+  }
+
+  protected closeSidebar(): void {
+    this.isSidebarOpen = false;
+    this.sidebarAssessment = null;
+  }
+
+  protected get sidebarFields(): SidebarField[] {
+    if (!this.sidebarAssessment) return [];
+    const fields: SidebarField[] = [
+      {
+        label: 'Title',
+        key: 'title',
+        type: 'text',
+      },
+      {
+        label: 'Description',
+        key: 'description',
+        type: 'text',
+      },
+      {
+        label: 'Full Name',
+        key: 'fullName',
+        type: 'text',
+      },
+      {
+        label: 'Domain',
+        key: 'domain',
+        type: 'text',
+        format: () => this.sidebarAssessment?.domain?.title || '—',
+      },
+      {
+        label: 'Status',
+        key: 'status',
+        type: 'badge',
+        badgeClassKey: 'statusClass',
+        format: () => {
+          const status = (this.sidebarAssessment as any)?.status || 'draft';
+          return status.charAt(0).toUpperCase() + status.slice(1);
+        },
+      },
+    ];
+
+    // Add questions and answers
+    if (this.sidebarAssessment.questions && this.sidebarAssessment.questions.length > 0) {
+      fields.push({
+        label: 'Questions & Answers',
+        key: 'questions',
+        type: 'text',
+        format: () => {
+          // This will be handled in the template with custom rendering
+          return `${this.sidebarAssessment?.questions?.length || 0} question(s)`;
+        },
+      });
+    }
+
+    fields.push(
+      {
+        label: 'Created At',
+        key: 'createdAt',
+        type: 'date',
+      },
+      {
+        label: 'Updated At',
+        key: 'updatedAt',
+        type: 'date',
+      }
+    );
+
+    return fields;
+  }
+
+  protected get sidebarData(): Record<string, unknown> {
+    if (!this.sidebarAssessment) return {};
+    return {
+      ...this.sidebarAssessment,
+      statusClass: ((this.sidebarAssessment as any)?.status || 'draft') === 'completed' ? 'success' : 'warning',
+      status: ((this.sidebarAssessment as any)?.status || 'draft').charAt(0).toUpperCase() + ((this.sidebarAssessment as any)?.status || 'draft').slice(1),
+    };
+  }
+
+  protected getQuestionText(questionIdOrTextOrObject: string | { _id: string; question: string }): string {
+    // Handle new format where question is an object
+    if (typeof questionIdOrTextOrObject === 'object' && questionIdOrTextOrObject !== null) {
+      return questionIdOrTextOrObject.question || 'Question';
+    }
+    
+    // Handle old format where question is a string (ID or text)
+    if (typeof questionIdOrTextOrObject === 'string') {
+      // Check if it's an ObjectId (24 hex characters)
+      if (questionIdOrTextOrObject.length === 24 && /^[0-9a-fA-F]{24}$/.test(questionIdOrTextOrObject)) {
+        // It's an ID, but we don't have the question text (for backward compatibility fallback)
+        return `Question (${questionIdOrTextOrObject.substring(0, 8)}...)`;
+      }
+      // It's already the question text
+      return questionIdOrTextOrObject;
+    }
+    
+    return 'Question';
+  }
+
+  protected isArray(value: any): value is any[] {
+    return Array.isArray(value);
+  }
+
+  protected getAnswerArray(answer: string | number | string[] | undefined): string[] {
+    if (Array.isArray(answer)) {
+      return answer;
+    }
+    return [];
   }
 
   protected deleteAssessment(assessment: Assessment, event: Event) {
@@ -356,9 +499,19 @@ export class ReadinessReportsComponent implements OnInit {
   private mapAssessment(api: ApiAssessment): Assessment {
     // Calculate progress based on answered questions
     const totalQuestions = api.questions?.length || 0;
-    const answeredQuestions = api.questions?.filter(
-      (q) => q.answer && q.answer.trim() !== ''
-    ).length || 0;
+    const answeredQuestions = api.questions?.filter((q) => {
+      if (!q.answer) return false;
+      if (Array.isArray(q.answer)) {
+        return q.answer.length > 0;
+      }
+      if (typeof q.answer === 'number') {
+        return q.answer !== undefined && q.answer !== null;
+      }
+      if (typeof q.answer === 'string') {
+        return q.answer.trim() !== '';
+      }
+      return false;
+    }).length || 0;
     const overallProgress =
       totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
 

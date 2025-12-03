@@ -21,6 +21,8 @@
       [serverSideFilters]="true"
       [sortBy]="sortBy"
       [sortDirection]="sortDirection"
+      [currentPageInput]="currentPageValue"
+      [pageSizeInput]="currentLimitValue"
       (pageChange)="onPageChange($event)"
       (limitChange)="onLimitChange($event)"
       (searchChange)="onSearchChange($event)"

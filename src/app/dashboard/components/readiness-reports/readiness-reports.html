@@ -230,18 +230,28 @@
               <div class="row g-3">
                 @for (assessment of drafts(); track assessment.id) {
                   <div class="col-12 col-md-6 col-lg-4">
-                    <div class="card border-0 shadow-sm assessment-card h-100" (click)="viewAssessment(assessment)">
+                    <div class="card border-0 shadow-sm assessment-card h-100" (click)="viewAssessment(assessment, $event)">
                       <div class="card-body">
                         <div class="d-flex align-items-start justify-content-between mb-2">
                           <h6 class="mb-0 flex-grow-1">{{ assessment.name }}</h6>
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-link text-danger p-0"
-                            (click)="deleteAssessment(assessment, $event)"
-                            title="Delete assessment"
-                          >
-                            <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
-                          </button>
+                          <div class="d-flex gap-1">
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-link text-primary p-0"
+                              (click)="editAssessment(assessment, $event)"
+                              title="Edit assessment"
+                            >
+                              <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-link text-danger p-0"
+                              (click)="deleteAssessment(assessment, $event)"
+                              title="Delete assessment"
+                            >
+                              <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                            </button>
+                          </div>
                         </div>
                         @if (assessment.description) {
                           <p class="text-muted small mb-2">{{ assessment.description }}</p>
@@ -286,18 +296,28 @@
               <div class="row g-3">
                 @for (assessment of completed(); track assessment.id) {
                   <div class="col-12 col-md-6 col-lg-4">
-                    <div class="card border-0 shadow-sm assessment-card h-100" (click)="viewAssessment(assessment)">
+                    <div class="card border-0 shadow-sm assessment-card h-100" (click)="viewAssessment(assessment, $event)">
                       <div class="card-body">
                         <div class="d-flex align-items-start justify-content-between mb-2">
                           <h6 class="mb-0 flex-grow-1">{{ assessment.name }}</h6>
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-link text-danger p-0"
-                            (click)="deleteAssessment(assessment, $event)"
-                            title="Delete assessment"
-                          >
-                            <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
-                          </button>
+                          <div class="d-flex gap-1">
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-link text-primary p-0"
+                              (click)="editAssessment(assessment, $event)"
+                              title="Edit assessment"
+                            >
+                              <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-link text-danger p-0"
+                              (click)="deleteAssessment(assessment, $event)"
+                              title="Delete assessment"
+                            >
+                              <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
+                            </button>
+                          </div>
                         </div>
                         @if (assessment.description) {
                           <p class="text-muted small mb-2">{{ assessment.description }}</p>
@@ -343,5 +363,40 @@
     [buttons]="deleteDialogButtons"
     (closed)="closeDeleteDialog()"
   ></app-dialog>
+
+  <app-sidebar [open]="isSidebarOpen" title="Assessment Details" [fields]="sidebarFields" [data]="sidebarData"
+    (closed)="closeSidebar()">
+    @if (isLoadingSidebarAssessment()) {
+    <div class="d-flex flex-column align-items-center justify-content-center py-4">
+      <app-loader size="md" variant="inline" label="Loading assessment details..."></app-loader>
+    </div>
+    } @else if (sidebarAssessment && sidebarAssessment.questions && sidebarAssessment.questions.length > 0) {
+    <div class="questions-section mt-4 pt-4 border-top">
+      <h6 class="mb-3 fw-semibold">Questions & Answers</h6>
+      <div class="questions-list">
+        @for (qa of sidebarAssessment.questions; track qa._id) {
+        <div class="question-item mb-3 pb-3 border-bottom">
+          <div class="question-header mb-2">
+            <strong class="text-primary d-block mb-1">{{ getQuestionText(qa.question) }}</strong>
+          </div>
+          <div class="answer-display">
+            @if (isArray(qa.answer)) {
+              <div class="answer-list">
+                @for (answer of getAnswerArray(qa.answer); track answer) {
+                  <span class="badge bg-primary-subtle text-primary-emphasis me-1 mb-1">{{ answer }}</span>
+                }
+              </div>
+            } @else if (typeof qa.answer === 'number') {
+              <span class="text-muted">{{ qa.answer }}</span>
+            } @else {
+              <span class="text-muted">{{ qa.answer || 'No answer provided' }}</span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </app-sidebar>
 </div>
 
