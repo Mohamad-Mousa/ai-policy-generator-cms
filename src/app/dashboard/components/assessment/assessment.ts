@@ -92,7 +92,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   protected currentDomainIndex = 0;
   protected currentQuestionIndex = 0;
-  protected readonly isSaving = signal(false);
+  protected readonly isSavingDraft = signal(false);
+  protected readonly isCompleting = signal(false);
   protected readonly isLoadingAssessment = signal(false);
   protected readonly isLoadingQuestions = signal(false);
   protected selectedDomain?: Domain;
@@ -552,7 +553,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isSaving.set(true);
+    this.isSavingDraft.set(true);
 
     // Map questions to API format: { question: string, questionRef: string, answer: type-specific }
     // Only include questions with answers for draft saves
@@ -614,7 +615,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
-            this.isSaving.set(false);
+            this.isSavingDraft.set(false);
             this.assessment.id = response._id;
             this.notifications.success(
               'Progress saved successfully as draft.',
@@ -623,7 +624,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.hasUnsavedChanges = false;
           },
           error: (error) => {
-            this.isSaving.set(false);
+            this.isSavingDraft.set(false);
             console.error('Failed to save assessment', error);
             this.notifications.danger(
               error.error?.message ||
@@ -650,7 +651,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
-            this.isSaving.set(false);
+            this.isSavingDraft.set(false);
             this.assessment.id = response._id;
             this.notifications.success(
               'Progress saved successfully as draft.',
@@ -659,7 +660,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.hasUnsavedChanges = false;
           },
           error: (error) => {
-            this.isSaving.set(false);
+            this.isSavingDraft.set(false);
             console.error('Failed to create assessment', error);
             this.notifications.danger(
               error.error?.message ||
@@ -719,7 +720,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isSaving.set(true);
+    this.isCompleting.set(true);
 
     // Map all questions to API format: { question: string, questionRef: string, answer: type-specific }
     // Include all questions when completing (required questions must have answers)
@@ -759,7 +760,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
-            this.isSaving.set(false);
+            this.isCompleting.set(false);
             this.notifications.success(
               'Assessment completed successfully!',
               'Assessment completed'
@@ -772,7 +773,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             });
           },
           error: (error) => {
-            this.isSaving.set(false);
+            this.isCompleting.set(false);
             console.error('Failed to complete assessment', error);
             this.notifications.danger(
               error.error?.message ||
@@ -795,7 +796,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
-            this.isSaving.set(false);
+            this.isCompleting.set(false);
             this.assessment.id = response._id;
             this.notifications.success(
               'Assessment completed successfully!',
@@ -809,7 +810,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             });
           },
           error: (error) => {
-            this.isSaving.set(false);
+            this.isCompleting.set(false);
             console.error('Failed to complete assessment', error);
             this.notifications.danger(
               error.error?.message ||

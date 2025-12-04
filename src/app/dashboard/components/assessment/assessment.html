@@ -17,7 +17,7 @@
             size="sm"
             variant="outline"
             icon="save"
-            [loading]="isSaving()"
+            [loading]="isSavingDraft()"
             (click)="saveAssessment()"
           ></app-button>
           <app-button
@@ -25,7 +25,8 @@
             size="sm"
             variant="primary"
             icon="check_circle"
-            [disabled]="!canCompleteAssessment"
+            [loading]="isCompleting()"
+            [disabled]="!canCompleteAssessment || isSavingDraft()"
             (click)="completeAssessment()"
           ></app-button>
           } @else {
