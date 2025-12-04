@@ -169,18 +169,18 @@ export interface UpdateQuestionRequest {
 }
 
 export interface AssessmentQuestion {
-  _id: string; // Assessment question ID
-  question: {
-    _id: string;
-    question: string; // Question text
-    domain: string;
-    type: 'text' | 'radio' | 'checkbox' | 'number';
-    isActive: boolean;
-    answers?: string[]; // For radio/checkbox types
-    min?: number; // For number type
-    max?: number; // For number type
-  };
-  answer?: string | string[] | number; // Answer value - type depends on question type
+  /**
+   * Question text stored directly on the assessment
+   */
+  question: string;
+  /**
+   * Reference to the original question document (ObjectId as string)
+   */
+  questionRef: string;
+  /**
+   * Answer value - type depends on how the question was answered
+   */
+  answer?: string | string[] | number;
 }
 
 export interface Assessment {
@@ -217,6 +217,7 @@ export interface CreateAssessmentRequest {
   fullName?: string;
   questions?: Array<{
     question: string;
+    questionRef: string;
     answer?: string | string[] | number;
   }>;
   status?: string;
@@ -231,6 +232,7 @@ export interface UpdateAssessmentRequest {
   fullName?: string;
   questions?: Array<{
     question: string;
+    questionRef: string;
     answer?: string | string[] | number;
   }>;
   status?: string;

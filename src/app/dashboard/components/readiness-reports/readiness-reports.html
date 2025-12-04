@@ -303,14 +303,6 @@
                           <div class="d-flex gap-1">
                             <button
                               type="button"
-                              class="btn btn-sm btn-link text-primary p-0"
-                              (click)="editAssessment(assessment, $event)"
-                              title="Edit assessment"
-                            >
-                              <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
-                            </button>
-                            <button
-                              type="button"
                               class="btn btn-sm btn-link text-danger p-0"
                               (click)="deleteAssessment(assessment, $event)"
                               title="Delete assessment"
@@ -374,7 +366,7 @@
     <div class="questions-section mt-4 pt-4 border-top">
       <h6 class="mb-3 fw-semibold">Questions & Answers</h6>
       <div class="questions-list">
-        @for (qa of sidebarAssessment.questions; track qa._id) {
+        @for (qa of sidebarAssessment.questions; track qa.questionRef ?? qa.question) {
         <div class="question-item mb-3 pb-3 border-bottom">
           <div class="question-header mb-2">
             <strong class="text-primary d-block mb-1">{{ getQuestionText(qa.question) }}</strong>

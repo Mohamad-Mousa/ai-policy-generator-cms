@@ -233,6 +233,15 @@ export class ReadinessReportsComponent implements OnInit {
 
   protected editAssessment(assessment: Assessment, event: Event) {
     event.stopPropagation();
+
+    // Do not allow editing of completed assessments
+    if ((assessment.status || '').toLowerCase() === 'completed') {
+      this.notifications.info(
+        'Completed assessments cannot be edited. You can only view them.',
+        'Assessment locked'
+      );
+      return;
+    }
     this.router.navigate(['/dashboard/assessment'], {
       state: {
         domain: this.selectedDomainFromState,

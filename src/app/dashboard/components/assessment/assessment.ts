@@ -9,6 +9,7 @@ import {
   Question as DbQuestion,
   Assessment as ApiAssessment,
   AssessmentQuestion as ApiAssessmentQuestion,
+  UpdateAssessmentRequest,
 } from '@shared/interfaces';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import {
@@ -405,6 +406,21 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected get canCompleteAssessment(): boolean {
+    // All required top-level fields must be present
+    if (
+      !this.assessment.domainId ||
+      !this.assessment.name ||
+      !this.assessment.description ||
+      !this.assessment.fullName
+    ) {
+      return false;
+    }
+
+    // And all required questions in the current domain must be answered
+    return this.canCompleteDomain;
+  }
+
   protected previousQuestion() {
     if (this.hasPreviousQuestion) {
       this.currentQuestionIndex--;
@@ -528,9 +544,17 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.assessment.isCompleted) {
+      this.notifications.info(
+        'This assessment has already been completed and cannot be edited.',
+        'Assessment locked'
+      );
+      return;
+    }
+
     this.isSaving.set(true);
 
-    // Map questions to API format: { question: ObjectId, answer: type-specific }
+    // Map questions to API format: { question: string, questionRef: string, answer: type-specific }
     // Only include questions with answers for draft saves
     const questions =
       this.currentDomain?.questions
@@ -556,27 +580,37 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             answer = String(q.answer || '');
           }
           return {
-            question: q.id,
+            // Store both question text and reference id on the assessment
+            question: q.text,
+            questionRef: q.id,
             answer: answer,
           };
         }) || [];
 
     if (this.assessment.id) {
       // Update existing assessment as draft
+      const updatePayload: UpdateAssessmentRequest = {
+        _id: this.assessment.id,
+        title: this.assessment.name,
+        ...(this.assessment.description && {
+          description: this.assessment.description,
+        }),
+        ...(this.assessment.fullName && {
+          fullName: this.assessment.fullName,
+        }),
+        ...(this.assessment.domainId && { domain: this.assessment.domainId }),
+        status: 'draft',
+      };
+
+      // Important: only send questions when there are answered questions.
+      // This prevents overwriting existing answers with an empty array when
+      // saving a draft without making any changes.
+      if (questions.length > 0) {
+        updatePayload.questions = questions;
+      }
+
       this.assessmentService
-        .update({
-          _id: this.assessment.id,
-          title: this.assessment.name,
-          ...(this.assessment.description && {
-            description: this.assessment.description,
-          }),
-          ...(this.assessment.fullName && {
-            fullName: this.assessment.fullName,
-          }),
-          ...(this.assessment.domainId && { domain: this.assessment.domainId }),
-          questions: questions,
-          status: 'draft',
-        })
+        .update(updatePayload)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (response) => {
@@ -638,6 +672,13 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   }
 
   protected completeAssessment() {
+    if (this.assessment.isCompleted) {
+      this.notifications.info(
+        'This assessment has already been completed and cannot be edited.',
+        'Assessment locked'
+      );
+      return;
+    }
     if (!this.assessment.domainId) {
       this.notifications.danger(
         'Domain is required to complete assessment.',
@@ -680,7 +721,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
     this.isSaving.set(true);
 
-    // Map all questions to API format: { question: ObjectId, answer: type-specific }
+    // Map all questions to API format: { question: string, questionRef: string, answer: type-specific }
     // Include all questions when completing (required questions must have answers)
     const questions =
       this.currentDomain?.questions.map((q) => {
@@ -696,7 +737,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           answer = q.answer !== undefined && q.answer !== null ? String(q.answer) : '';
         }
         return {
-          question: q.id,
+          // Store both question text and reference id on the assessment
+          question: q.text,
+          questionRef: q.id,
           answer: answer,
         };
       }) || [];
@@ -826,44 +869,20 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           this.assessment.name = apiAssessment.title;
           this.assessment.description = apiAssessment.description || '';
           this.assessment.fullName = apiAssessment.fullName || '';
+          this.assessment.isCompleted =
+            (apiAssessment as any).status === 'completed';
 
           if (apiAssessment.domain?._id) {
             this.assessment.domainId = apiAssessment.domain._id;
             this.assessment.domainTitle = apiAssessment.domain.title;
 
-            // Build questions from API response (questions now include full question objects)
+            // Save answers so they can be patched once questions are loaded
             if (apiAssessment.questions && apiAssessment.questions.length > 0) {
-              const assessmentQuestions: Question[] = apiAssessment.questions.map(
-                (aq) => ({
-                  id: aq.question._id,
-                  text: aq.question.question,
-                  type: aq.question.type || 'text',
-                  required: true,
-                  answers: aq.question.answers || undefined,
-                  min: aq.question.min,
-                  max: aq.question.max,
-                  answer: this.parseAnswer(aq.answer, aq.question.type),
-                  evidenceFiles: undefined,
-                })
-              );
-
-              // Build assessment domain with questions from API
-              const assessmentDomain: AssessmentDomain = {
-                id: apiAssessment.domain._id,
-                name: apiAssessment.domain.title,
-                description: apiAssessment.domain.description || '',
-                icon: apiAssessment.domain.icon || 'category',
-                completed: false,
-                progress: 0,
-                questions: assessmentQuestions,
-              };
-
-              this.assessment.domains = [assessmentDomain];
-              this.calculateProgress();
-            } else {
-              // If no questions in response, load them from question service
-              this.loadQuestionsForDomain(apiAssessment.domain._id);
+              this.pendingAnswers = apiAssessment.questions;
             }
+
+            // Always load questions for the domain; answers will be patched after load
+            this.loadQuestionsForDomain(apiAssessment.domain._id);
           }
 
           this.isLoadingAssessment.set(false);
@@ -917,20 +936,24 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
 
     const currentDomain = this.assessment.domains[0];
-    const answerMap = new Map<string, string | string[] | number | undefined>();
+    const answerMapByRef = new Map<string, string | string[] | number | undefined>();
+    const answerMapByText = new Map<string, string | string[] | number | undefined>();
+
     answers.forEach((a) => {
-      // Handle both old format (question as string ID) and new format (question as object)
-      const questionId = typeof a.question === 'string' 
-        ? a.question 
-        : a.question?._id;
-      if (questionId) {
-        answerMap.set(questionId, a.answer);
+      // Prefer matching by questionRef when available, fall back to question text
+      if ((a as any).questionRef) {
+        answerMapByRef.set((a as any).questionRef as string, a.answer);
+      }
+      if (a.question) {
+        answerMapByText.set(a.question, a.answer);
       }
     });
 
     currentDomain.questions.forEach((q) => {
-      if (answerMap.has(q.id)) {
-        const answerValue = answerMap.get(q.id);
+      const answerValue =
+        answerMapByRef.get(q.id) ?? answerMapByText.get(q.text);
+
+      if (answerValue !== undefined) {
         // Handle different answer types based on question type
         if (q.type === 'checkbox') {
           // Backend sends checkbox as array, but API might return as string

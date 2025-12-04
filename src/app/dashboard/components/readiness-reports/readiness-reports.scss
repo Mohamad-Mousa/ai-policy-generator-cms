@@ -61,6 +61,13 @@
   }
 }
 
+// Visually disabled edit icon for completed assessments
+.edit-disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
 .questions-section {
   .question-item {
     &:last-child {

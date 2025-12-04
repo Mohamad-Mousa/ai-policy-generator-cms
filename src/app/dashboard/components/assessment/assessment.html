@@ -11,10 +11,28 @@
           <h2 class="h4 mb-0">{{ assessment.id ? 'Edit' : 'New' }} AI Readiness Assessment</h2>
         </div>
         <div class="d-flex gap-2">
-          <app-button label="Save as Draft" size="sm" variant="outline" icon="save" [loading]="isSaving()"
-            (click)="saveAssessment()"></app-button>
-          <app-button label="Complete Assessment" size="sm" variant="primary" icon="check_circle"
-            [disabled]="assessment.overallProgress < 100" (click)="completeAssessment()"></app-button>
+          @if (!assessment.isCompleted) {
+          <app-button
+            label="Save as Draft"
+            size="sm"
+            variant="outline"
+            icon="save"
+            [loading]="isSaving()"
+            (click)="saveAssessment()"
+          ></app-button>
+          <app-button
+            label="Complete Assessment"
+            size="sm"
+            variant="primary"
+            icon="check_circle"
+            [disabled]="!canCompleteAssessment"
+            (click)="completeAssessment()"
+          ></app-button>
+          } @else {
+          <span class="badge bg-success-subtle text-success-emphasis">
+            Assessment completed - editing disabled
+          </span>
+          }
         </div>
       </div>
 
@@ -33,17 +51,17 @@
         <div class="col-md-6">
           <label class="form-label">Assessment Name <span class="text-danger">*</span></label>
           <input type="text" class="form-control" placeholder="e.g., Q1 2024 AI Readiness Assessment"
-            [(ngModel)]="assessment.name" (ngModelChange)="markAsDirty()" />
+            [(ngModel)]="assessment.name" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>
         <div class="col-md-6">
           <label class="form-label">Full Name <span class="text-danger">*</span></label>
           <input type="text" class="form-control" placeholder="Full name of the person being assessed"
-            [(ngModel)]="assessment.fullName" (ngModelChange)="markAsDirty()" />
+            [(ngModel)]="assessment.fullName" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>
         <div class="col-md-12">
           <label class="form-label">Description</label>
           <input type="text" class="form-control" placeholder="Brief description of this assessment"
-            [(ngModel)]="assessment.description" (ngModelChange)="markAsDirty()" />
+            [(ngModel)]="assessment.description" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>
       </div>
 
@@ -95,7 +113,7 @@
           @switch (question.type) {
             @case ('text') {
               <textarea class="form-control" rows="4" placeholder="Enter your answer here..."
-                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()"></textarea>
+                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" [readonly]="!!assessment.isCompleted"></textarea>
             }
             @case ('radio') {
               @if (question.answers && question.answers.length > 0) {
@@ -103,7 +121,7 @@
                   @for (answer of question.answers; track answer) {
                     <div class="form-check mb-2" [class.checked]="question.answer === answer">
                       <input class="form-check-input" type="radio" [name]="'radio-' + question.id" [id]="'radio-' + question.id + '-' + $index"
-                        [value]="answer" [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+                        [value]="answer" [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" [disabled]="!!assessment.isCompleted" />
                       <label class="form-check-label" [for]="'radio-' + question.id + '-' + $index">
                         {{ answer }}
                       </label>
@@ -111,8 +129,8 @@
                   }
                 </div>
               } @else {
-                <input type="text" class="form-control" placeholder="Enter your answer here..."
-                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+                        <input type="text" class="form-control" placeholder="Enter your answer here..."
+                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" [readonly]="!!assessment.isCompleted" />
               }
             }
             @case ('checkbox') {
@@ -122,7 +140,7 @@
                     <div class="form-check mb-2" [class.checked]="isAnswerSelected(question.answer, answer)">
                       <input class="form-check-input" type="checkbox" [id]="'checkbox-' + question.id + '-' + $index"
                         [value]="answer" [checked]="isAnswerSelected(question.answer, answer)"
-                        (change)="onCheckboxChange($event, question, answer)" />
+                        (change)="onCheckboxChange($event, question, answer)" [disabled]="!!assessment.isCompleted" />
                       <label class="form-check-label" [for]="'checkbox-' + question.id + '-' + $index">
                         {{ answer }}
                       </label>
@@ -131,13 +149,13 @@
                 </div>
               } @else {
                 <input type="text" class="form-control" placeholder="Enter your answer here..."
-                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" />
+                  [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" [readonly]="!!assessment.isCompleted" />
               }
             }
             @case ('number') {
               <input type="number" class="form-control" placeholder="Enter a number"
                 [min]="question.min" [max]="question.max"
-                [value]="question.answer" (input)="onNumberChange(question, $any($event.target).value)" />
+                [value]="question.answer" (input)="onNumberChange(question, $any($event.target).value)" [readonly]="!!assessment.isCompleted" />
               @if (question.min !== undefined || question.max !== undefined) {
                 <small class="form-text text-muted">
                   @if (question.min !== undefined && question.max !== undefined) {
@@ -152,7 +170,7 @@
             }
             @default {
               <textarea class="form-control" rows="4" placeholder="Enter your answer here..."
-                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()"></textarea>
+                [(ngModel)]="question.answer" (ngModelChange)="handleAnswerChange()" [readonly]="!!assessment.isCompleted"></textarea>
             }
           }
         </div>
