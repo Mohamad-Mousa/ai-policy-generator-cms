@@ -7,8 +7,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { ApiResponse } from '@shared/interfaces';
-import { Admin, AdminPaginatedResponse } from '@shared/interfaces/admin';
+import { ApiResponse, Admin, AdminPaginatedResponse } from '@shared/interfaces';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
