@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
 import { DialogComponent } from '@shared/components/dialog/dialog';
@@ -94,11 +94,22 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
 
   constructor(
     private policyService: PolicyService,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     this.loadPolicies();
+    
+    // Check for policyId query parameter to load specific policy
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const policyId = params['policyId'];
+        if (policyId) {
+          this.loadPolicyDetails(policyId);
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -207,7 +218,12 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected loadPolicyDetails(policyId: string): void {
+    this.viewMode = 'detail';
     this.isLoadingPolicy.set(true);
+    this.selectedPolicy.set(null);
+    this.expandedAssessmentIndex.set(0);
+    this.assessmentPage.set(1);
+    this.assessmentLimit.set(10);
 
     this.policyService
       .findOne(policyId, this.assessmentPage(), this.assessmentLimit())

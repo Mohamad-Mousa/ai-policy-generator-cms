@@ -1,14 +1,17 @@
 import { Component, OnDestroy, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
+import { DialogComponent } from '@shared/components/dialog/dialog';
 import { Domain, Assessment } from '@shared/interfaces';
 import {
   DomainService,
   AssessmentService,
   PolicyService,
   CreatePolicyRequest,
+  Policy,
 } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
@@ -33,7 +36,13 @@ interface PolicySection {
 @Component({
   selector: 'app-policy-generator',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonComponent, TableComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ButtonComponent,
+    TableComponent,
+    DialogComponent,
+  ],
   templateUrl: './policy-generator.html',
   styleUrl: './policy-generator.scss',
 })
@@ -102,6 +111,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected isGenerating = signal(false);
   protected isGenerated = signal(false);
   protected showPreview = signal(false);
+  protected showAnalysisTypeDialog = signal(false);
+  protected selectedAnalysisType: 'quick' | 'detailed' | null = null;
+  protected generatedPolicy = signal<Policy | null>(null);
 
   protected readonly sectorOptions = [
     'Government',
@@ -147,7 +159,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     private domainService: DomainService,
     private assessmentService: AssessmentService,
     private policyService: PolicyService,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -197,7 +210,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.assessmentsTotalCount.set(response.totalCount);
           this.isLoadingAssessments.set(false);
           this.showAssessmentsView.set(true);
-          
+
           // Update selected assessments after loading new page
           this.updateSelectedAssessments();
 
@@ -267,6 +280,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.isGenerated.set(false);
     this.showPreview.set(false);
     this.isGenerating.set(false);
+    this.generatedPolicy.set(null);
     // Reset pagination
     this.currentPage.set(1);
     this.pageLimit.set(10);
@@ -303,20 +317,16 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     selectedRows: Array<Record<string, unknown>>
   ): void {
     // Update the persistent set of selected IDs
-    const currentPageIds = new Set(
-      this.assessments().map((a) => a._id)
-    );
-    
+    const currentPageIds = new Set(this.assessments().map((a) => a._id));
+
     // Remove IDs that are no longer selected (from current page)
     currentPageIds.forEach((id) => {
-      const isSelected = selectedRows.some(
-        (row) => row['_id'] === id
-      );
+      const isSelected = selectedRows.some((row) => row['_id'] === id);
       if (!isSelected) {
         this.selectedAssessmentIds.delete(id);
       }
     });
-    
+
     // Add newly selected IDs (from current page)
     selectedRows.forEach((row) => {
       const id = row['_id'] as string;
@@ -324,7 +334,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         this.selectedAssessmentIds.add(id);
       }
     });
-    
+
     // Update the selected assessments signal with all selected assessments
     this.updateSelectedAssessments();
   }
@@ -332,12 +342,12 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   private updateSelectedAssessments(): void {
     // Get all selected assessment IDs
     const selectedIds = Array.from(this.selectedAssessmentIds);
-    
+
     // We need to get the full assessment data for selected IDs
     // For now, we'll store the IDs and fetch full data when needed
     // Or we can maintain a map of all loaded assessments
     const allSelectedRows: Array<Record<string, unknown>> = [];
-    
+
     // Check current page assessments
     this.assessments().forEach((assessment) => {
       if (this.selectedAssessmentIds.has(assessment._id)) {
@@ -354,7 +364,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         });
       }
     });
-    
+
     this.selectedAssessments.set(allSelectedRows);
   }
 
@@ -375,6 +385,38 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Open dialog to select analysis type
+    this.selectedAnalysisType = null;
+    this.showAnalysisTypeDialog.set(true);
+  }
+
+  protected closeAnalysisTypeDialog(): void {
+    this.showAnalysisTypeDialog.set(false);
+    this.selectedAnalysisType = null;
+  }
+
+  protected selectAnalysisType(type: 'quick' | 'detailed'): void {
+    this.selectedAnalysisType = type;
+  }
+
+  protected confirmAnalysisTypeAndGenerate(): void {
+    if (!this.selectedAnalysisType) {
+      this.notifications.warning(
+        'Please select an analysis type.',
+        'Selection Required'
+      );
+      return;
+    }
+
+    // Store the selected analysis type before closing the dialog
+    const selectedType = this.selectedAnalysisType;
+    this.closeAnalysisTypeDialog();
+    this.createPolicyWithAnalysisType(selectedType);
+  }
+
+  private createPolicyWithAnalysisType(
+    analysisType: 'quick' | 'detailed'
+  ): void {
     this.isGenerating.set(true);
 
     // Prepare policy data using persistent selected IDs
@@ -385,6 +427,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       organizationSize: this.policyContext.organizationSize,
       riskAppetite: this.policyContext.riskAppetite,
       implementationTimeline: this.policyContext.timeline,
+      analysisType: analysisType,
     };
 
     this.policyService
@@ -393,13 +436,16 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (policy) => {
           this.isGenerating.set(false);
+
           this.notifications.success(
             'Policy generated successfully!',
             'Success'
           );
-          console.log('Policy created:', policy);
-          // Reset form and return to selection page
-          this.resetForm();
+
+          // Navigate to policy library details page
+          this.router.navigate(['/dashboard/policy-library'], {
+            queryParams: { policyId: policy._id },
+          });
         },
         error: (error) => {
           this.isGenerating.set(false);

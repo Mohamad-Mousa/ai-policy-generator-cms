@@ -70,9 +70,10 @@
         <app-table [columns]="assessmentTableColumns" [rows]="assessmentTableRows"
           [totalCount]="assessmentsTotalCount()" [enableFilters]="true" [enableSorting]="true"
           [enableGlobalSearch]="true" [enablePagination]="true" [enableSelection]="true" [selectionKey]="'_id'"
-          [selectedRows]="selectedAssessmentIdsForTable" [currentPageInput]="currentPage()" [pageSizeInput]="pageLimit()"
-          [loading]="isLoadingAssessments()" emptyMessage="No assessments found" (pageChange)="onPageChange($event)"
-          (limitChange)="onLimitChange($event)" (selectionChange)="onAssessmentSelectionChange($event)"></app-table>
+          [selectedRows]="selectedAssessmentIdsForTable" [currentPageInput]="currentPage()"
+          [pageSizeInput]="pageLimit()" [loading]="isLoadingAssessments()" emptyMessage="No assessments found"
+          (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"
+          (selectionChange)="onAssessmentSelectionChange($event)"></app-table>
         }
       </div>
     </div>
@@ -248,3 +249,87 @@
     }
   </div>
 </div>
+
+<!-- Analysis Type Selection Dialog -->
+<app-dialog [open]="showAnalysisTypeDialog()" title="Select Analysis Type"
+  description="Choose the type of analysis you want to perform for policy generation." width="500px"
+  (closed)="closeAnalysisTypeDialog()">
+  <div dialog-body>
+    <div class="d-flex flex-column gap-3">
+      <div class="form-check p-3 border rounded" [class.border-primary]="selectedAnalysisType === 'quick'"
+        [class.bg-light]="selectedAnalysisType === 'quick'" style="cursor: pointer;"
+        (click)="selectAnalysisType('quick')">
+        <input class="form-check-input" type="radio" name="analysisType" id="analysisTypeQuick" value="quick"
+          [checked]="selectedAnalysisType === 'quick'" (change)="selectAnalysisType('quick')">
+        <label class="form-check-label w-100" for="analysisTypeQuick" style="cursor: pointer;">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <strong class="d-block mb-1">Quick Analysis</strong>
+              <small class="text-muted">Faster generation with essential policy elements and basic
+                recommendations.</small>
+            </div>
+            <span class="material-symbols-rounded text-primary ms-2">bolt</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="form-check p-3 border rounded" [class.border-primary]="selectedAnalysisType === 'detailed'"
+        [class.bg-light]="selectedAnalysisType === 'detailed'" style="cursor: pointer;"
+        (click)="selectAnalysisType('detailed')">
+        <input class="form-check-input" type="radio" name="analysisType" id="analysisTypeDetailed" value="detailed"
+          [checked]="selectedAnalysisType === 'detailed'" (change)="selectAnalysisType('detailed')">
+        <label class="form-check-label w-100" for="analysisTypeDetailed" style="cursor: pointer;">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <strong class="d-block mb-1">Detailed Analysis</strong>
+              <small class="text-muted">Comprehensive analysis with in-depth policy sections, extensive rationale, and
+                detailed references.</small>
+            </div>
+            <span class="material-symbols-rounded text-primary ms-2">insights</span>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <!-- <app-button label="Cancel" variant="outline" (clicked)="closeAnalysisTypeDialog()"></app-button> -->
+    <app-button label="Generate Policy" variant="primary" icon="auto_awesome"
+      [disabled]="!selectedAnalysisType || isGenerating()" [loading]="isGenerating()"
+      (clicked)="confirmAnalysisTypeAndGenerate()"></app-button>
+  </div>
+</app-dialog>
+
+<!-- Full Screen Loading Overlay -->
+@if (isGenerating()) {
+<div class="policy-generation-overlay">
+  <div class="policy-generation-content">
+    <div class="spinner-container">
+      <div class="spinner-ring">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+      </div>
+    </div>
+    <div class="loading-text">
+      <h3 class="mb-3">Generating Your Policy</h3>
+      <p class="mb-2">Your policy is being generated and analyzed by AI</p>
+      <p class="text-muted small">This may take a few moments...</p>
+    </div>
+    <div class="loading-steps">
+      <div class="step-item">
+        <span class="material-symbols-rounded">auto_awesome</span>
+        <span>Analyzing assessments</span>
+      </div>
+      <div class="step-item">
+        <span class="material-symbols-rounded">description</span>
+        <span>Generating policy sections</span>
+      </div>
+      <div class="step-item">
+        <span class="material-symbols-rounded">insights</span>
+        <span>Creating recommendations</span>
+      </div>
+    </div>
+  </div>
+</div>
+}

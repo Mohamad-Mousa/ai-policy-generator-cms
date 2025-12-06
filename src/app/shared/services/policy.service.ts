@@ -9,6 +9,62 @@ import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '@shared/interfaces';
 
+export interface PolicyAnalysis {
+  overallReadiness: {
+    score: number;
+    level: string;
+    summary: string;
+    confidenceLevel: string;
+  };
+  domainAssessments: Array<{
+    domainId: string;
+    domainTitle: string;
+    readinessScore: number;
+    strengths: Array<{
+      finding: string;
+      evidence: string;
+      _id: string;
+    }>;
+    weaknesses: Array<{
+      finding: string;
+      impact: string;
+      evidence: string;
+      _id: string;
+    }>;
+    recommendations: Array<{
+      priority: string;
+      action: string;
+      timeline: string;
+      resourcesNeeded: string;
+      expectedImpact: string;
+      _id: string;
+    }>;
+    priorityLevel: string;
+    detailedAnalysis: string;
+    _id: string;
+  }>;
+  crossCuttingThemes: Array<{
+    theme: string;
+    description: string;
+    affectedDomains: string[];
+    _id: string;
+  }>;
+  keyFindings: string[];
+  riskFactors: Array<{
+    risk: string;
+    severity: string;
+    mitigationStrategy: string;
+    _id: string;
+  }>;
+  nextSteps: Array<{
+    step: string;
+    priority: string;
+    owner: string;
+    timeline: string;
+    _id: string;
+  }>;
+}
+
 export interface Policy {
   _id: string;
   domains: Array<{
@@ -55,6 +111,19 @@ export interface Policy {
   organizationSize: string;
   riskAppetite: string;
   implementationTimeline: string;
+  analysisType?: 'quick' | 'detailed';
+  analysis?: PolicyAnalysis;
+  analysisMetadata?: {
+    totalDomains: number;
+    totalAssessments: number;
+    totalQuestions: number;
+    model: string;
+    tokensUsed: number;
+    tokensInput: number;
+    thinkingUsed: boolean;
+    analysisStrategy: string;
+    analyzedAt: string;
+  };
   createdAt: string;
   updatedAt?: string;
   __v?: number;
@@ -72,6 +141,7 @@ export interface CreatePolicyRequest {
   organizationSize: string;
   riskAppetite: string;
   implementationTimeline: string;
+  analysisType?: 'quick' | 'detailed';
 }
 
 @Injectable({ providedIn: 'root' })
