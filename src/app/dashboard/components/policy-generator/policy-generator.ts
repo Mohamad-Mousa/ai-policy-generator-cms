@@ -442,8 +442,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
             'Success'
           );
 
-          // Navigate to policy library details page
-          this.router.navigate(['/dashboard/policy-library'], {
+          // Navigate to policy library tab with details
+          this.router.navigate(['/dashboard/policy-generator'], {
             queryParams: { policyId: policy._id },
           });
         },

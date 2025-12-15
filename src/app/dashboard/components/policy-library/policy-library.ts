@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
 import { DialogComponent } from '@shared/components/dialog/dialog';
@@ -17,7 +17,6 @@ import { takeUntil } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     ButtonComponent,
     TableComponent,
     DialogComponent,
@@ -100,7 +99,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadPolicies();
-    
+
     // Check for policyId query parameter to load specific policy
     this.route.queryParams
       .pipe(takeUntil(this.destroy$))

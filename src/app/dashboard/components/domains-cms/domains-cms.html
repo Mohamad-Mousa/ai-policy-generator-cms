@@ -1,0 +1,63 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body domains-cms">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Catalogue</p>
+        <h2 class="h4 mb-0">Domains & Questions</h2>
+        <p class="text-muted mb-0 small">
+          Manage assessment domains and their question bank from a single view.
+        </p>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs section-tabs mb-3" role="tablist">
+      @if (canViewDomains()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'domains'"
+          (click)="setActiveTab('domains')"
+        >
+          <span class="material-symbols-rounded me-1">category</span>
+          <span>Domains</span>
+        </button>
+      </li>
+      }
+
+      @if (canViewQuestions()) {
+        <li class="nav-item" role="presentation">
+          <button
+            class="nav-link"
+            type="button"
+            role="tab"
+            [class.active]="activeTab === 'questions'"
+            (click)="setActiveTab('questions')"
+          >
+            <span class="material-symbols-rounded me-1">quiz</span>
+            <span>Questions</span>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="tab-content section-tab-content">
+      @if (activeTab === 'domains' && canViewDomains()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-domains-section></app-domains-section>
+      </div>
+      } @else if (activeTab === 'questions' && canViewQuestions()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-questions-section></app-questions-section>
+      </div>
+      } @else {
+      <div class="text-muted small py-4">
+        You don’t have access to domains or questions.
+      </div>
+      }
+    </div>
+  </div>
+</div>
+
+

@@ -1,0 +1,101 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body admin-cms">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Administration</p>
+        <h2 class="h4 mb-0">Admin Console</h2>
+        <p class="text-muted mb-0 small">
+          Manage administrators, roles, audit activity, and global workspace settings from a single place.
+        </p>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs admin-tabs mb-3" role="tablist">
+      @if (canViewAdmins()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'admins'"
+          (click)="setActiveTab('admins')"
+        >
+          <span class="material-symbols-rounded me-1">groups</span>
+          <span>Admins</span>
+        </button>
+      </li>
+      }
+
+      @if (canViewAdminTypes()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'adminTypes'"
+          (click)="setActiveTab('adminTypes')"
+        >
+          <span class="material-symbols-rounded me-1">badge</span>
+          <span>Admin Types</span>
+        </button>
+      </li>
+      }
+
+      @if (canViewActivityLogs()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'activityLogs'"
+          (click)="setActiveTab('activityLogs')"
+        >
+          <span class="material-symbols-rounded me-1">history</span>
+          <span>Activity Logs</span>
+        </button>
+      </li>
+      }
+
+      @if (canViewSettings()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'settings'"
+          (click)="setActiveTab('settings')"
+        >
+          <span class="material-symbols-rounded me-1">settings</span>
+          <span>Settings</span>
+        </button>
+      </li>
+      }
+    </ul>
+
+    <div class="tab-content admin-tab-content">
+      @if (activeTab === 'admins' && canViewAdmins()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-admins-section></app-admins-section>
+      </div>
+      } @else if (activeTab === 'adminTypes' && canViewAdminTypes()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-admin-types-section></app-admin-types-section>
+      </div>
+      } @else if (activeTab === 'activityLogs' && canViewActivityLogs()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-activity-logs-section></app-activity-logs-section>
+      </div>
+      } @else if (activeTab === 'settings' && canViewSettings()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-settings-section></app-settings-section>
+      </div>
+      } @else {
+      <div class="text-muted small py-4">
+        You don’t have access to any admin sections.
+      </div>
+      }
+    </div>
+  </div>
+</div>
+
+

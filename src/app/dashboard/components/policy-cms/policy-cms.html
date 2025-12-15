@@ -1,0 +1,63 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body policy-cms">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+      <div>
+        <p class="text-uppercase text-muted fw-semibold small mb-1">Policies</p>
+        <h2 class="h4 mb-0">AI Policies</h2>
+        <p class="text-muted mb-0 small">
+          Generate new AI policies from readiness assessments and manage your existing policy library.
+        </p>
+      </div>
+    </div>
+
+    <ul class="nav nav-tabs policy-tabs mb-3" role="tablist">
+      @if (canViewGenerator()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'generator'"
+          (click)="setActiveTab('generator')"
+        >
+          <span class="material-symbols-rounded me-1">auto_awesome</span>
+          <span>Policy Generator</span>
+        </button>
+      </li>
+      }
+
+      @if (canViewLibrary()) {
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          type="button"
+          role="tab"
+          [class.active]="activeTab === 'library'"
+          (click)="setActiveTab('library')"
+        >
+          <span class="material-symbols-rounded me-1">folder_special</span>
+          <span>Policy Library</span>
+        </button>
+      </li>
+      }
+    </ul>
+
+    <div class="tab-content policy-tab-content">
+      @if (activeTab === 'generator' && canViewGenerator()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-policy-generator></app-policy-generator>
+      </div>
+      } @else if (activeTab === 'library' && canViewLibrary()) {
+      <div class="tab-pane fade show active" role="tabpanel">
+        <app-policy-library></app-policy-library>
+      </div>
+      } @else {
+      <div class="text-muted small py-4">
+        You don’t have access to policy generation or the policy library.
+      </div>
+      }
+    </div>
+  </div>
+</div>
+
+

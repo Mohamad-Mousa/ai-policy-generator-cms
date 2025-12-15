@@ -25,6 +25,14 @@ export const routes: Routes = [
           ).then((m) => m.DashboardRedirectComponent),
       },
       {
+        path: 'admin',
+        loadComponent: () =>
+          import('./dashboard/components/admin-cms/admin-cms').then(
+            (m) => m.AdminCmsComponent
+          ),
+        canActivate: [privilegeGuard('admins', PrivilegeAccess.R)],
+      },
+      {
         path: 'admins',
         loadComponent: () =>
           import('./dashboard/components/admins/admins').then(
@@ -43,8 +51,8 @@ export const routes: Routes = [
       {
         path: 'domains',
         loadComponent: () =>
-          import('./dashboard/components/domains/domains').then(
-            (m) => m.DomainsComponent
+          import('./dashboard/components/domains-cms/domains-cms').then(
+            (m) => m.DomainsCmsComponent
           ),
         canActivate: [privilegeGuard('domains', PrivilegeAccess.R)],
       },
@@ -96,16 +104,18 @@ export const routes: Routes = [
       {
         path: 'policy-generator',
         loadComponent: () =>
-          import('./dashboard/components/policy-generator/policy-generator').then(
-            (m) => m.PolicyGeneratorComponent
+          import('./dashboard/components/policy-cms/policy-cms').then(
+            (m) => m.PolicyCmsComponent
           ),
+        canActivate: [privilegeGuard('policies', PrivilegeAccess.R)],
       },
       {
         path: 'policy-library',
         loadComponent: () =>
-          import('./dashboard/components/policy-library/policy-library').then(
-            (m) => m.PolicyLibraryComponent
+          import('./dashboard/components/policy-cms/policy-cms').then(
+            (m) => m.PolicyCmsComponent
           ),
+        canActivate: [privilegeGuard('policies', PrivilegeAccess.R)],
       },
       {
         path: 'profile',
