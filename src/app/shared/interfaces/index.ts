@@ -31,6 +31,16 @@ export type { Credentials } from './credentials';
 export type { ApiResponse } from './ApiResponse';
 export type { Country, CountryListResponse } from './country';
 export type {
+  IntergovernmentalOrganisation,
+  IntergovernmentalOrganisationListResponse,
+} from './intergovernmental-organisation';
+export type {
+  InitiativeTypeOption,
+  InitiativeTypeOptionListResponse,
+} from './initiative-type-option';
+export type { AiPrinciple, AiPrincipleListResponse } from './ai-principle';
+export type { AiTag, AiTagListResponse } from './ai-tag';
+export type {
   Initiative,
   InitiativePaginatedResponse,
   GaiinCountry,

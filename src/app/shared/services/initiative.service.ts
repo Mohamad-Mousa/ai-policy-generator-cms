@@ -17,6 +17,11 @@ export interface InitiativeFindManyParams {
   status?: string;
   category?: string;
   gaiinCountryId?: string;
+  startYear?: number | string;
+  intergovernmentalOrganisationId?: number | string;
+  initiativeTypeId?: number | string;
+  aiPrincipleId?: number | string;
+  aiTagId?: number | string;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
 }
@@ -38,6 +43,11 @@ export class InitiativeService {
       status = '',
       category = '',
       gaiinCountryId = '',
+      startYear,
+      intergovernmentalOrganisationId,
+      initiativeTypeId,
+      aiPrincipleId,
+      aiTagId,
       sortBy = 'createdAt',
       sortDirection = 'desc',
     } = params;
@@ -59,6 +69,32 @@ export class InitiativeService {
     }
     if (gaiinCountryId && gaiinCountryId.trim()) {
       httpParams = httpParams.set('gaiinCountryId', gaiinCountryId.trim());
+    }
+    if (startYear != null && startYear !== '') {
+      const year = typeof startYear === 'string' ? startYear.trim() : String(startYear);
+      if (year) {
+        httpParams = httpParams.set('startYear', year);
+      }
+    }
+    if (intergovernmentalOrganisationId != null && intergovernmentalOrganisationId !== '') {
+      const id = typeof intergovernmentalOrganisationId === 'string'
+        ? intergovernmentalOrganisationId.trim()
+        : String(intergovernmentalOrganisationId);
+      if (id) {
+        httpParams = httpParams.set('intergovernmentalOrganisationId', id);
+      }
+    }
+    if (initiativeTypeId != null && initiativeTypeId !== '') {
+      const id = typeof initiativeTypeId === 'string' ? initiativeTypeId.trim() : String(initiativeTypeId);
+      if (id) httpParams = httpParams.set('initiativeTypeId', id);
+    }
+    if (aiPrincipleId != null && aiPrincipleId !== '') {
+      const id = typeof aiPrincipleId === 'string' ? aiPrincipleId.trim() : String(aiPrincipleId);
+      if (id) httpParams = httpParams.set('aiPrincipleId', id);
+    }
+    if (aiTagId != null && aiTagId !== '') {
+      const id = typeof aiTagId === 'string' ? aiTagId.trim() : String(aiTagId);
+      if (id) httpParams = httpParams.set('aiTagId', id);
     }
 
     return this.http

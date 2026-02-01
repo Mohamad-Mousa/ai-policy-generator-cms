@@ -62,11 +62,34 @@
   }
 }
 
+.initiatives-table-card {
+  display: block;
+}
+
+.initiatives-table-card-body {
+  display: block;
+}
+
+.initiatives-table-header {
+  flex-shrink: 0;
+}
+
+// Table grows to full height of data (all rows visible); page scrolls if needed.
 .initiatives-table-scroll-wrapper {
-  max-height: 60vh;
-  overflow-y: auto;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  position: relative;
+  z-index: 0;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+
+  // Let table wrapper and table use natural height so all rows are visible
+  ::ng-deep .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
+  }
 }
 
 .policy-preview {

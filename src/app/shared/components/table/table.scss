@@ -4,6 +4,8 @@
   background-color: #fff;
   position: relative;
   padding: 1rem;
+  // Allow parent to constrain height (e.g. initiatives scroll wrapper)
+  min-height: 0;
 }
 
 .table-wrapper.is-loading {
@@ -17,7 +19,7 @@
 
 .table-responsive {
   overflow: visible;
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 
 table {
@@ -41,8 +43,13 @@ thead th {
   letter-spacing: 0.04em;
   color: #475569;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
-  background-color: rgba(226, 232, 240, 0.4);
+  background-color: #e2e8f0;
   vertical-align: middle;
+  // Stick when table is inside a scroll container (e.g. .table-responsive)
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
 }
 
 tbody td {
@@ -113,7 +120,7 @@ tbody tr:last-child td {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 0.25rem;
+  margin-bottom: 1rem;
 }
 
 .filter-control {

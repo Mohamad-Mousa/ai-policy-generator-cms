@@ -12,10 +12,21 @@ import {
   PolicyService,
   CountryService,
   InitiativeService,
+  IntergovernmentalOrganisationService,
+  InitiativeTypeService,
+  AiPrincipleService,
+  AiTagService,
   CreatePolicyRequest,
   Policy,
 } from '@shared/services';
-import { Country, Initiative } from '@shared/interfaces';
+import {
+  Country,
+  Initiative,
+  IntergovernmentalOrganisation,
+  InitiativeTypeOption,
+  AiPrinciple,
+  AiTag,
+} from '@shared/interfaces';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
 import { Subject } from 'rxjs';
@@ -73,21 +84,125 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected initiativesTotalCount = signal(0);
   protected initiativesPage = signal(1);
   protected initiativesPageLimit = signal(10);
+  protected initiativesSearchTerm = signal('');
+  protected initiativesStartYear = signal<string>('');
+  protected initiativesCategory = signal<string>('');
+  protected initiativesIntergovernmentalOrgId = signal<string>('');
+  protected initiativesIntergovernmentalOrgs = signal<IntergovernmentalOrganisation[]>([]);
+  protected initiativesInitiativeTypeId = signal<string>('');
+  protected initiativesInitiativeTypes = signal<InitiativeTypeOption[]>([]);
+  protected initiativesAiPrincipleId = signal<string>('');
+  protected initiativesAiPrinciples = signal<AiPrinciple[]>([]);
+  protected initiativesAiTagId = signal<string>('');
+  protected initiativesAiTags = signal<AiTag[]>([]);
   protected isLoadingInitiatives = signal(false);
   private selectedInitiativeIds = new Set<string>();
   protected selectedInitiatives = signal<Array<Record<string, unknown>>>([]);
   /** Total count of selected initiatives across all pages (for header display) */
   protected selectedInitiativeTotalCount = signal(0);
 
-  protected readonly initiativeTableColumns: TableColumn[] = [
-    { label: 'Name', key: 'englishName', sortable: true, filterable: true },
-    { label: 'Description', key: 'description', sortable: true, filterable: true },
-    { label: 'Category', key: 'category', sortable: true, filterable: true },
-    { label: 'Status', key: 'status', sortable: true, filterable: true },
-    { label: 'Type', key: 'initiativeTypeName', sortable: true, filterable: true },
-    { label: 'Responsible Organisation', key: 'responsibleOrganisation', sortable: true, filterable: true },
-    { label: 'Created At', key: 'createdAt', sortable: true },
+  protected get initiativeYearFilterOptions(): Array<{ label: string; value: string }> {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: currentYear - 2010 + 3 }, (_, i) => {
+      const y = 2010 + i;
+      return { label: String(y), value: String(y) };
+    });
+  }
+
+  protected get initiativeOrganisationFilterOptions(): Array<{ label: string; value: string }> {
+    return this.initiativesIntergovernmentalOrgs().map((org) => ({
+      label: org.label,
+      value: String(org.value),
+    }));
+  }
+
+  protected get initiativeTypeFilterOptions(): Array<{ label: string; value: string }> {
+    return this.initiativesInitiativeTypes().map((t) => ({
+      label: t.label,
+      value: String(t.value),
+    }));
+  }
+
+  protected get aiPrincipleFilterOptions(): Array<{ label: string; value: string }> {
+    return this.initiativesAiPrinciples().map((p) => ({
+      label: p.label,
+      value: String(p.value),
+    }));
+  }
+
+  protected get aiTagFilterOptions(): Array<{ label: string; value: string }> {
+    return this.initiativesAiTags().map((t) => ({
+      label: t.label,
+      value: String(t.value),
+    }));
+  }
+
+  protected readonly initiativeCategoryFilterOptions: Array<{ label: string; value: string }> = [
+    { label: 'National – Strategy', value: 'National – Strategy' },
+    { label: 'National – AI governance bodies or mechanisms', value: 'National – AI governance bodies or mechanisms' },
+    { label: 'AI Policy Frameworks and Programmes (intergovernmental or supranational)', value: 'AI Policy Frameworks and Programmes (intergovernmental or supranational)' },
+    { label: 'AI Governance Bodies and Mechanisms (intergovernmental or supranational)', value: 'AI Governance Bodies and Mechanisms (intergovernmental or supranational)' },
+    { label: 'Regulations, guidelines and standards', value: 'Regulations, guidelines and standards' },
+    { label: 'AI policy initiatives, programmes and projects', value: 'AI policy initiatives, programmes and projects' },
   ];
+
+  protected get initiativeTableColumns(): TableColumn[] {
+    return [
+      { label: 'Name', key: 'englishName', sortable: true, filterable: true },
+      { label: 'Description', key: 'description', sortable: true, filterable: true },
+      {
+        label: 'Category',
+        key: 'category',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.initiativeCategoryFilterOptions,
+      },
+      { label: 'Status', key: 'status', sortable: true, filterable: true },
+      {
+        label: 'Type',
+        key: 'initiativeTypeId',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.initiativeTypeFilterOptions,
+      },
+      {
+        label: 'AI Principle',
+        key: 'aiPrincipleId',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.aiPrincipleFilterOptions,
+      },
+      {
+        label: 'AI Tag',
+        key: 'aiTagId',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.aiTagFilterOptions,
+      },
+      {
+        label: 'International Organisation',
+        key: 'intergovernmentalOrganisationId',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.initiativeOrganisationFilterOptions,
+      },
+      { label: 'Responsible Organisation', key: 'responsibleOrganisation', sortable: true, filterable: true },
+      {
+        label: 'Start Year',
+        key: 'startYear',
+        sortable: true,
+        filterable: true,
+        filterType: 'select',
+        filterOptions: this.initiativeYearFilterOptions,
+      },
+      { label: 'Created At', key: 'createdAt', sortable: true },
+    ];
+  }
 
   protected policyContext: PolicyContext = {
     sector: '',
@@ -208,6 +323,10 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     private policyService: PolicyService,
     private countryService: CountryService,
     private initiativeService: InitiativeService,
+    private intergovernmentalOrganisationService: IntergovernmentalOrganisationService,
+    private initiativeTypeService: InitiativeTypeService,
+    private aiPrincipleService: AiPrincipleService,
+    private aiTagService: AiTagService,
     private notifications: NotificationService,
     private router: Router
   ) {}
@@ -586,10 +705,61 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.initiatives.set([]);
     this.initiativesTotalCount.set(0);
     this.initiativesPage.set(1);
+    this.initiativesSearchTerm.set('');
+    this.initiativesStartYear.set('');
+    this.initiativesCategory.set('');
+    this.initiativesIntergovernmentalOrgId.set('');
+    this.initiativesInitiativeTypeId.set('');
+    this.initiativesAiPrincipleId.set('');
+    this.initiativesAiTagId.set('');
     this.selectedInitiativeIds.clear();
     this.selectedInitiatives.set([]);
     this.selectedInitiativeTotalCount.set(0);
     this.resetForm();
+  }
+
+  protected loadIntergovernmentalOrganisations(): void {
+    this.intergovernmentalOrganisationService
+      .findMany(1, 100)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.initiativesIntergovernmentalOrgs.set(response.data);
+        },
+        error: (error) => {
+          console.error('Failed to load international organisations', error);
+        },
+      });
+  }
+
+  protected loadInitiativeTypes(): void {
+    this.initiativeTypeService
+      .findMany(1, 100)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => this.initiativesInitiativeTypes.set(response.data),
+        error: (error) => console.error('Failed to load initiative types', error),
+      });
+  }
+
+  protected loadAiPrinciples(): void {
+    this.aiPrincipleService
+      .findMany(1, 100)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => this.initiativesAiPrinciples.set(response.data),
+        error: (error) => console.error('Failed to load AI principles', error),
+      });
+  }
+
+  protected loadAiTags(): void {
+    this.aiTagService
+      .findMany(1, 100)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => this.initiativesAiTags.set(response.data),
+        error: (error) => console.error('Failed to load AI tags', error),
+      });
   }
 
   protected loadInitiatives(): void {
@@ -603,10 +773,15 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       .findMany({
         page: this.initiativesPage(),
         limit: this.initiativesPageLimit(),
-        term: undefined,
+        term: this.initiativesSearchTerm().trim() || undefined,
         status: '',
-        category: '',
+        category: this.initiativesCategory().trim() || undefined,
         gaiinCountryId: countryValue,
+        startYear: this.initiativesStartYear().trim() || undefined,
+        intergovernmentalOrganisationId: this.initiativesIntergovernmentalOrgId().trim() || undefined,
+        initiativeTypeId: this.initiativesInitiativeTypeId().trim() || undefined,
+        aiPrincipleId: this.initiativesAiPrincipleId().trim() || undefined,
+        aiTagId: this.initiativesAiTagId().trim() || undefined,
         sortBy: 'createdAt',
         sortDirection: 'desc',
       })
@@ -644,6 +819,29 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.loadInitiatives();
   }
 
+  protected onInitiativesSearchChange(term: string): void {
+    this.initiativesSearchTerm.set(term ?? '');
+    this.initiativesPage.set(1);
+    this.loadInitiatives();
+  }
+
+  protected onInitiativesFilterChange(filters: Record<string, string>): void {
+    const startYear = filters['startYear'] ?? '';
+    const category = filters['category'] ?? '';
+    const intergovernmentalOrganisationId = filters['intergovernmentalOrganisationId'] ?? '';
+    const initiativeTypeId = filters['initiativeTypeId'] ?? '';
+    const aiPrincipleId = filters['aiPrincipleId'] ?? '';
+    const aiTagId = filters['aiTagId'] ?? '';
+    this.initiativesStartYear.set(startYear);
+    this.initiativesCategory.set(category);
+    this.initiativesIntergovernmentalOrgId.set(intergovernmentalOrganisationId);
+    this.initiativesInitiativeTypeId.set(initiativeTypeId);
+    this.initiativesAiPrincipleId.set(aiPrincipleId);
+    this.initiativesAiTagId.set(aiTagId);
+    this.initiativesPage.set(1);
+    this.loadInitiatives();
+  }
+
   protected onInitiativeSelectionChange(
     selectedRows: Array<Record<string, unknown>>
   ): void {
@@ -671,11 +869,15 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         allSelectedRows.push({
           _id: initiative._id,
           englishName: initiative.englishName ?? '—',
-          description: initiative.description ?? '—',
+          description: this.truncateDescription(initiative.description),
           category: initiative.category ?? '—',
           status: initiative.status ?? '—',
-          initiativeTypeName: initiative.initiativeType?.name ?? '—',
+          initiativeTypeId: initiative.initiativeType?.name ?? '—',
+          aiPrincipleId: initiative.principles?.map((p) => p.name).join(', ') ?? '—',
+          aiTagId: this.formatTagsForDisplay(initiative.tags),
+          intergovernmentalOrganisationId: initiative.intergovernmentalOrganisation ?? '—',
           responsibleOrganisation: initiative.responsibleOrganisation ?? '—',
+          startYear: initiative.startYear != null ? String(initiative.startYear) : '—',
           createdAt: initiative.createdAt
             ? new Date(initiative.createdAt).toLocaleDateString()
             : '—',
@@ -685,15 +887,34 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.selectedInitiatives.set(allSelectedRows);
   }
 
+  private truncateDescription(description: string | undefined, maxLength = 50): string {
+    if (description == null || description === '') return '—';
+    const trimmed = description.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.slice(0, maxLength) + '...';
+  }
+
+  private formatTagsForDisplay(tags: unknown): string {
+    if (!Array.isArray(tags) || tags.length === 0) return '—';
+    const names = tags.map((t) =>
+      t != null && typeof t === 'object' && 'name' in t ? String((t as { name: unknown }).name) : String(t)
+    );
+    return names.filter(Boolean).join(', ') || '—';
+  }
+
   protected get initiativeTableRows(): Array<Record<string, unknown>> {
     return this.initiatives().map((initiative) => ({
       _id: initiative._id,
       englishName: initiative.englishName ?? '—',
-      description: initiative.description ?? '—',
+      description: this.truncateDescription(initiative.description),
       category: initiative.category ?? '—',
       status: initiative.status ?? '—',
-      initiativeTypeName: initiative.initiativeType?.name ?? '—',
+      initiativeTypeId: initiative.initiativeType?.name ?? '—',
+      aiPrincipleId: initiative.principles?.map((p) => p.name).join(', ') ?? '—',
+      aiTagId: this.formatTagsForDisplay(initiative.tags),
+      intergovernmentalOrganisationId: initiative.intergovernmentalOrganisation ?? '—',
       responsibleOrganisation: initiative.responsibleOrganisation ?? '—',
+      startYear: initiative.startYear != null ? String(initiative.startYear) : '—',
       createdAt: initiative.createdAt
         ? new Date(initiative.createdAt).toLocaleDateString()
         : '—',
@@ -844,6 +1065,13 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       this.countryPickerOpen.set(true);
       this.initiatives.set([]);
       this.initiativesTotalCount.set(0);
+      this.initiativesSearchTerm.set('');
+      this.initiativesStartYear.set('');
+      this.initiativesCategory.set('');
+      this.initiativesIntergovernmentalOrgId.set('');
+      this.initiativesInitiativeTypeId.set('');
+      this.initiativesAiPrincipleId.set('');
+      this.initiativesAiTagId.set('');
       this.selectedInitiativeIds.clear();
       this.selectedInitiatives.set([]);
       return;
@@ -854,9 +1082,20 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       this.selectedCountryId = countryId;
       this.countryPickerOpen.set(false);
       this.initiativesPage.set(1);
+      this.initiativesSearchTerm.set('');
+      this.initiativesStartYear.set('');
+      this.initiativesCategory.set('');
+      this.initiativesIntergovernmentalOrgId.set('');
+      this.initiativesInitiativeTypeId.set('');
+      this.initiativesAiPrincipleId.set('');
+      this.initiativesAiTagId.set('');
       this.selectedInitiativeIds.clear();
       this.selectedInitiatives.set([]);
       this.selectedInitiativeTotalCount.set(0);
+      this.loadIntergovernmentalOrganisations();
+      this.loadInitiativeTypes();
+      this.loadAiPrinciples();
+      this.loadAiTags();
       this.loadInitiatives();
     }
   }
