@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -26,6 +26,9 @@ import { takeUntil } from 'rxjs/operators';
 })
 export class PolicyLibraryComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+
+  /** 'assessments' = Assessments Policy Library, 'initiatives' = Initiative Policy Library */
+  @Input() libraryType: 'assessments' | 'initiatives' = 'assessments';
 
   protected policies = signal<Policy[]>([]);
   protected isLoading = signal(false);
@@ -120,6 +123,9 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
 
     const filters: Record<string, string> = {};
+    if (this.libraryType === 'initiatives') {
+      filters['source'] = 'initiative';
+    }
 
     this.policyService
       .findMany(
@@ -128,7 +134,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
         this.searchTerm() || undefined,
         undefined,
         undefined,
-        filters
+        Object.keys(filters).length > 0 ? filters : undefined
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -399,4 +405,10 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected readonly Math = Math;
+
+  protected get libraryEmptyMessage(): string {
+    return this.libraryType === 'initiatives'
+      ? 'No initiative-based policies found. Generate a policy from the Policy Generator using verified policies.'
+      : 'No policies found. Create your first policy using the Policy Generator.';
+  }
 }

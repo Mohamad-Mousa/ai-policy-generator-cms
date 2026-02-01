@@ -18,13 +18,15 @@ import { PolicyLibraryComponent } from '../policy-library/policy-library';
   styleUrl: './policy-cms.scss',
 })
 export class PolicyCmsComponent implements OnInit {
-  protected activeTab: 'generator' | 'library' = 'generator';
+  protected activeTab: 'generator' | 'library' | 'initiativeLibrary' = 'generator';
 
   constructor(private router: Router, private authService: AuthService) {}
 
   ngOnInit(): void {
     const url = this.router.url;
-    if (url.includes('policy-library') && this.canViewLibrary()) {
+    if (url.includes('initiative-library') && this.canViewLibrary()) {
+      this.activeTab = 'initiativeLibrary';
+    } else if (url.includes('policy-library') && this.canViewLibrary()) {
       this.activeTab = 'library';
     } else if (this.canViewGenerator()) {
       this.activeTab = 'generator';
@@ -33,7 +35,9 @@ export class PolicyCmsComponent implements OnInit {
     }
   }
 
-  protected setActiveTab(tab: 'generator' | 'library'): void {
+  protected setActiveTab(
+    tab: 'generator' | 'library' | 'initiativeLibrary'
+  ): void {
     this.activeTab = tab;
   }
 

@@ -1,0 +1,12 @@
+.initiative-overview {
+  :deep(p) {
+    margin-bottom: 0.75rem;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  :deep(ul),
+  :deep(ol) {
+    padding-left: 1.25rem;
+  }
+}

@@ -1,0 +1,144 @@
+<div class="card border-0 shadow-sm h-100">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
+        (click)="goBack()">
+        <span class="material-symbols-rounded me-2">arrow_back</span>
+        <span>Back to Policy Generator</span>
+      </button>
+    </div>
+
+    @if (isLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="text-muted">Loading initiative details...</p>
+    </div>
+    } @else if (errorMessage()) {
+    <div class="alert alert-danger" role="alert">
+      <strong>Error:</strong> {{ errorMessage() }}
+    </div>
+    } @else if (initiative(); as init) {
+    <div class="initiative-detail">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h2 class="h4 mb-3">{{ getTitle(init) }}</h2>
+          @if (init.description) {
+          <p class="text-muted mb-4">{{ init.description }}</p>
+          }
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            @if (init.category) {
+            <span class="badge bg-primary">{{ init.category }}</span>
+            }
+            @if (init.status) {
+            <span class="badge bg-secondary">{{ init.status }}</span>
+            }
+            @if (init.initiativeType?.name) {
+            <span class="badge bg-info text-dark">{{ init.initiativeType?.name }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        @if (init.gaiinCountry) {
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="mb-3 d-flex align-items-center">
+                <span class="material-symbols-rounded me-2">public</span>
+                Country
+              </h6>
+              <p class="mb-0">{{ init.gaiinCountry.name }}</p>
+              @if (init.gaiinCountry.region) {
+              <p class="text-muted small mb-0 mt-1">Region: {{ init.gaiinCountry.region }}</p>
+              }
+            </div>
+          </div>
+        </div>
+        }
+        @if (init.responsibleOrganisation) {
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="mb-2 d-flex align-items-center">
+                <span class="material-symbols-rounded me-2">business</span>
+                Responsible Organisation
+              </h6>
+              <p class="mb-0">{{ init.responsibleOrganisation }}</p>
+            </div>
+          </div>
+        </div>
+        }
+        @if (init.startYear != null || init.endYear != null) {
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="mb-2 d-flex align-items-center">
+                <span class="material-symbols-rounded me-2">calendar_today</span>
+                Timeline
+              </h6>
+              <p class="mb-0">
+                @if (init.startYear != null && init.endYear != null) {
+                {{ init.startYear }} – {{ init.endYear }}
+                } @else if (init.startYear != null) {
+                From {{ init.startYear }}
+                } @else {
+                Until {{ init.endYear }}
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+
+      @if (safeOverview()) {
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body">
+          <h6 class="mb-3">Overview</h6>
+          <div class="initiative-overview" [innerHTML]="safeOverview()"></div>
+        </div>
+      </div>
+      }
+
+      @if (init.principles && init.principles.length > 0) {
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-body">
+          <h6 class="mb-3">Principles</h6>
+          <ul class="list-group list-group-flush">
+            @for (principle of init.principles; track principle.id) {
+            <li class="list-group-item px-0">
+              <strong>{{ principle.name }}</strong>
+              @if (principle.type) {
+              <span class="text-muted small ms-2">({{ principle.type }})</span>
+              }
+            </li>
+            }
+          </ul>
+        </div>
+      </div>
+      }
+
+      @if (init.website) {
+      <div class="mt-4">
+        <a [href]="init.website" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">
+          <span class="material-symbols-rounded me-2" style="font-size: 1.2rem;">link</span>
+          Visit Website
+        </a>
+      </div>
+      }
+
+      <div class="text-muted small mt-4">
+        @if (init.createdAt) {
+        <span>Created: {{ init.createdAt | date: 'medium' }}</span>
+        }
+        @if (init.updatedAt) {
+        <span class="ms-3">Updated: {{ init.updatedAt | date: 'medium' }}</span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+</div>

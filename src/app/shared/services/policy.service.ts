@@ -144,6 +144,12 @@ export interface CreatePolicyRequest {
   analysisType?: 'quick' | 'detailed';
 }
 
+export interface CreatePolicyFromInitiativesRequest {
+  initiativeIds: string[];
+  countryValue: number;
+  analysisType: 'quick' | 'detailed';
+}
+
 @Injectable({ providedIn: 'root' })
 export class PolicyService {
   API_URL = environment.ApiUrl;
@@ -269,6 +275,38 @@ export class PolicyService {
             throw new Error(String(res.message || 'Create failed'));
           }
           return policyData as unknown as Policy;
+        }),
+        catchError((err: HttpErrorResponse) => {
+          return throwError(() => err);
+        })
+      );
+  }
+
+  /**
+   * Create a policy from selected initiatives (verified policies flow)
+   * @param request - Initiative IDs, country value, and analysis type
+   * @returns Observable with created policy data
+   */
+  createFromInitiatives(
+    request: CreatePolicyFromInitiativesRequest
+  ): Observable<Policy> {
+    return this.http
+      .post<ApiResponse<Policy>>(
+        `${this.API_URL}/admin/policy/from-initiatives`,
+        request
+      )
+      .pipe(
+        map((res) => {
+          if (res.error === false && res.results === null) {
+            return request as unknown as Policy;
+          }
+          if (res.results) {
+            return res.results;
+          }
+          if (res.error === true) {
+            throw new Error(String(res.message || 'Create failed'));
+          }
+          return request as unknown as Policy;
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);

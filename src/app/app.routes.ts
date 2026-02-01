@@ -118,6 +118,14 @@ export const routes: Routes = [
         canActivate: [privilegeGuard('policies', PrivilegeAccess.R)],
       },
       {
+        path: 'initiative/:id',
+        loadComponent: () =>
+          import('./dashboard/components/initiative-detail/initiative-detail').then(
+            (m) => m.InitiativeDetailComponent
+          ),
+        canActivate: [privilegeGuard('policies', PrivilegeAccess.R)],
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./dashboard/components/profile/profile').then(

@@ -3,7 +3,7 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
       <div>
         <p class="text-uppercase text-muted fw-semibold small mb-1">Repository</p>
-        <h2 class="h4 mb-0">Policy Library</h2>
+        <h2 class="h4 mb-0">{{ libraryType === 'initiatives' ? 'Initiative Policy Library' : 'Assessments Policy Library' }}</h2>
       </div>
     </div>
 
@@ -13,12 +13,12 @@
       <div class="card-body">
         <div class="mb-3">
           <h5 class="mb-1">Policies</h5>
-          <p class="text-muted small mb-0">Manage and view all generated policies</p>
+          <p class="text-muted small mb-0">{{ libraryType === 'initiatives' ? 'Manage and view policies generated from verified initiatives.' : 'Manage and view all generated policies' }}</p>
         </div>
 
         <app-table [columns]="tableColumns" [rows]="tableRows" [totalCount]="totalCount()" [enableFilters]="true"
           [enableSorting]="true" [enableGlobalSearch]="true" [enablePagination]="true" [loading]="isLoading()"
-          emptyMessage="No policies found. Create your first policy using the Policy Generator." [showActions]="true"
+          [emptyMessage]="libraryEmptyMessage" [showActions]="true"
           [functionKey]="functionKey" [excludedActions]="excludedActions" [currentPageInput]="currentPage()"
           [pageSizeInput]="pageLimit()" (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"
           (searchChange)="onSearchChange($event)" (filterChange)="onFilterChange($event)"

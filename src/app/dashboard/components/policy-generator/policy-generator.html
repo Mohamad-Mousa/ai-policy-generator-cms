@@ -5,7 +5,7 @@
         <p class="text-uppercase text-muted fw-semibold small mb-1">Generation</p>
         <h2 class="h4 mb-0">AI Policy Generator</h2>
       </div>
-      @if (isGenerated()) {
+      @if (!showSourceSelection() && policySource() === 'assessments' && isGenerated()) {
       <div class="d-flex gap-2">
         <app-button label="Save Policy" size="sm" variant="primary" icon="save" [functionKey]="functionKey"
           [privilegeAccess]="writePrivilege" (click)="savePolicy()"></app-button>
@@ -17,10 +17,176 @@
       }
     </div>
 
+    <!-- Source selection (default screen) -->
+    @if (showSourceSelection()) {
+    <div class="source-selection mb-4">
+      <p class="text-muted mb-4">Choose how you want to create your policy:</p>
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="card border h-100 cursor-pointer hover-shadow" style="cursor: pointer;"
+            (click)="selectSource('assessments')">
+            <div class="card-body d-flex flex-column">
+              <span class="material-symbols-rounded text-primary mb-2" style="font-size: 2.5rem;">assessment</span>
+              <h5 class="card-title">From my assessments</h5>
+              <p class="card-text text-muted small flex-grow-1">
+                Create a policy using your completed readiness assessments. The system will use your assessment
+                results to generate a customized policy draft with citations and recommendations.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card border h-100 cursor-pointer hover-shadow" style="cursor: pointer;"
+            (click)="selectSource('verified')">
+            <div class="card-body d-flex flex-column">
+              <span class="material-symbols-rounded text-primary mb-2" style="font-size: 2.5rem;">verified</span>
+              <h5 class="card-title">From verified policies</h5>
+              <p class="card-text text-muted small flex-grow-1">
+                Generate a policy based on verified international policies. Select a country to generate a
+                policy tailored to that jurisdiction.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    } @else if (policySource() === 'verified') {
+    <!-- Verified policies flow: country selection -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
+        (click)="goBackToSourceSelection()">
+        <span class="material-symbols-rounded me-2">arrow_back</span>
+        <span>Back to source selection</span>
+      </button>
+    </div>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Select country</h5>
+        <p class="text-muted small mb-4">
+          Choose the country for which you want to generate a policy based on verified international policies.
+        </p>
+        @if (selectedCountryId && selectedCountry() && !countryPickerOpen()) {
+        <!-- Selected country: click to change -->
+        <div class="mb-4">
+          <label class="form-label pe-2">Selected country</label>
+          <button type="button" class="country-selected-chip" (click)="openCountryPicker()">
+            <span class="material-symbols-rounded me-2" style="font-size: 1.25rem;">public</span>
+            <span>{{ selectedCountry()!.label }}</span>
+            <span class="material-symbols-rounded ms-2" style="font-size: 1.1rem;">edit</span>
+          </button>
+          <p class="text-muted small mt-2 mb-0">Click to choose a different country</p>
+        </div>
+        <!-- Policies (initiatives) for selected country -->
+        <div class="card border-0 shadow-sm mt-3">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+              <div>
+                <h5 class="mb-1">Policies for {{ selectedCountry()!.label }}</h5>
+                <p class="text-muted small mb-0">
+                  Select one or more policies (initiatives) to use
+                  @if (selectedInitiativeTotalCount() > 0) {
+                  <span class="ms-2">
+                    · <strong>{{ selectedInitiativeTotalCount() }}</strong> selected
+                  </span>
+                  }
+                </p>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                @if (selectedInitiativeTotalCount() > 0) {
+                <span class="badge bg-success">
+                  {{ selectedInitiativeTotalCount() }} selected
+                </span>
+                }
+                <span class="badge bg-primary">
+                  {{ initiatives().length }} policy{{ initiatives().length !== 1 ? 'ies' : '' }}
+                </span>
+                <app-button [label]="isGenerating() ? 'Generating...' : 'Generate Policy'" size="md" variant="primary"
+                  icon="auto_awesome" [disabled]="selectedInitiativeTotalCount() === 0 || isGenerating()"
+                  [functionKey]="functionKey" [privilegeAccess]="writePrivilege"
+                  (click)="generatePolicyFromInitiatives()"></app-button>
+              </div>
+            </div>
+            @if (initiatives().length === 0 && !isLoadingInitiatives()) {
+            <div class="alert alert-info mb-0" role="alert">
+              No policies found for this country. Try a different search or country.
+            </div>
+            } @else {
+            <div class="initiatives-table-scroll-wrapper">
+            <app-table [columns]="initiativeTableColumns" [rows]="initiativeTableRows"
+              [totalCount]="initiativesTotalCount()" [enableFilters]="true" [enableSorting]="true"
+              [enableGlobalSearch]="true" [enablePagination]="true" [enableSelection]="true" [selectionKey]="'_id'"
+              [selectedRows]="selectedInitiativeIdsForTable" [currentPageInput]="initiativesPage()"
+              [pageSizeInput]="initiativesPageLimit()" [pageSizeOptions]="[10, 20, 25, 50, 100]"
+              [loading]="isLoadingInitiatives()" emptyMessage="No policies found" [showActions]="true"
+              [excludedActions]="['canWrite', 'canEdit', 'canDelete']" [functionKey]="functionKey"
+              (pageChange)="onInitiativesPageChange($event)" (limitChange)="onInitiativesLimitChange($event)"
+              (selectionChange)="onInitiativeSelectionChange($event)" (readAction)="onInitiativeView($event)"></app-table>
+            </div>
+            }
+          </div>
+        </div>
+        } @else {
+        <!-- Search and country list -->
+        <div class="mb-3">
+          <label class="form-label">Search countries</label>
+          <div class="input-group">
+            <span class="input-group-text">
+              <span class="material-symbols-rounded" style="font-size: 1.25rem;">search</span>
+            </span>
+            <input type="text" class="form-control" placeholder="Type to search..." [ngModel]="countrySearchTerm"
+              (ngModelChange)="onCountrySearchInput($event)" />
+          </div>
+        </div>
+        @if (isLoadingCountries()) {
+        <div class="text-muted py-4 text-center">Loading countries...</div>
+        } @else {
+        <div class="country-list-wrapper" (scroll)="onCountryListScroll($event)">
+          @for (country of countries(); track country._id) {
+          <button type="button" class="country-list-item" [class.selected]="selectedCountryId === country._id"
+            (click)="selectCountry(country._id)">
+            <span class="material-symbols-rounded me-2" style="font-size: 1.1rem;">
+              {{ selectedCountryId === country._id ? 'check_circle' : 'radio_button_unchecked' }}
+            </span>
+            <span>{{ country.label }}</span>
+          </button>
+          }
+          @if (isLoadingMoreCountries()) {
+          <div class="text-center py-3 text-muted small">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Loading more...
+          </div>
+          }
+          @if (hasMoreCountries() && !isLoadingMoreCountries() && countries().length > 0) {
+          <div class="text-center py-2 text-muted small">Scroll for more</div>
+          }
+        </div>
+        @if (countries().length === 0 && !isLoadingCountries()) {
+        <div class="alert alert-info mt-3 mb-0" role="alert">
+          No countries found. Try a different search or try again later.
+        </div>
+        } @else if (countries().length > 0) {
+        <p class="text-muted small mt-2 mb-0">
+          Showing {{ countries().length }} of {{ countriesTotalCount() }} countries
+        </p>
+        }
+        }
+        }
+      </div>
+    </div>
+    } @else if (policySource() === 'assessments') {
+    <!-- Assessments flow (current flow) -->
     <div class="alert alert-info mb-4" role="alert">
       <strong>How it works:</strong> Provide your context and readiness assessment results.
       The system will retrieve relevant international AI policies and generate a customized policy draft
       with citations, rationale, and references tailored to your needs.
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
+        (click)="goBackToSourceSelection()">
+        <span class="material-symbols-rounded me-2">arrow_back</span>
+        <span>Back to source selection</span>
+      </button>
     </div>
 
     @if (showAssessmentsView()) {
@@ -246,6 +412,7 @@
         <strong>Note:</strong> This is a generated draft. Review and customize as needed before finalizing.
       </div>
     </div>
+    }
     }
   </div>
 </div>
