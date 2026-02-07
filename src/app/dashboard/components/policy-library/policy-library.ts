@@ -5,11 +5,11 @@ import { ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
 import { DialogComponent } from '@shared/components/dialog/dialog';
-import { PolicyService, Policy } from '@shared/services';
+import { PolicyService, PolicyCreatedService, Policy } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, filter, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-policy-library',
@@ -96,6 +96,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
 
   constructor(
     private policyService: PolicyService,
+    private policyCreatedService: PolicyCreatedService,
     private notifications: NotificationService,
     private route: ActivatedRoute
   ) {}
@@ -103,14 +104,20 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPolicies();
 
-    // Check for policyId query parameter to load specific policy
-    this.route.queryParams
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((params) => {
-        const policyId = params['policyId'];
-        if (policyId) {
-          this.loadPolicyDetails(policyId);
-        }
+    const expectedTab =
+      this.libraryType === 'initiatives' ? 'initiativeLibrary' : 'library';
+
+    // Show created policy on success: subscribe for policyId, then call findOne (no policyId in URL)
+    this.policyCreatedService
+      .getCreatedPolicy$()
+      .pipe(
+        filter((payload): payload is NonNullable<typeof payload> => payload != null && payload.tab === expectedTab),
+        take(1),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((payload) => {
+        this.policyCreatedService.clearCreatedPolicy();
+        this.loadPolicyDetails(payload.policyId);
       });
   }
 

@@ -6,6 +6,7 @@ export { DomainService } from './domain.service';
 export { QuestionService } from './question.service';
 export { AssessmentService } from './assessment.service';
 export { PolicyService } from './policy.service';
+export { PolicyCreatedService } from './policy-created.service';
 export { CountryService } from './country.service';
 export { InitiativeService } from './initiative.service';
 export { IntergovernmentalOrganisationService } from './intergovernmental-organisation.service';

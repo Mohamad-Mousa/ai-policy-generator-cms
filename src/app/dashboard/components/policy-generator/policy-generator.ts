@@ -10,6 +10,7 @@ import {
   DomainService,
   AssessmentService,
   PolicyService,
+  PolicyCreatedService,
   CountryService,
   InitiativeService,
   IntergovernmentalOrganisationService,
@@ -321,6 +322,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     private domainService: DomainService,
     private assessmentService: AssessmentService,
     private policyService: PolicyService,
+    private policyCreatedService: PolicyCreatedService,
     private countryService: CountryService,
     private initiativeService: InitiativeService,
     private intergovernmentalOrganisationService: IntergovernmentalOrganisationService,
@@ -644,10 +646,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
             'Success'
           );
 
-          // Navigate to policy library tab with details
-          this.router.navigate(['/dashboard/policy-generator'], {
-            queryParams: { policyId: policy._id },
-          });
+          // Pass created policy id via service; library will call findOne. Navigate by URL (no query params).
+          this.policyCreatedService.setCreatedPolicy(policy._id, 'library');
+          this.router.navigateByUrl('/dashboard/policy-library');
         },
         error: (error) => {
           this.isGenerating.set(false);
@@ -961,9 +962,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
             'Policy generated successfully!',
             'Success'
           );
-          this.router.navigate(['/dashboard/policy-generator'], {
-            queryParams: { policyId: policy._id },
-          });
+          // Pass created policy id via service; library will call findOne. Navigate by URL (no query params).
+          this.policyCreatedService.setCreatedPolicy(policy._id, 'initiativeLibrary');
+          this.router.navigateByUrl('/dashboard/initiative-library');
         },
         error: (error) => {
           this.isGenerating.set(false);
