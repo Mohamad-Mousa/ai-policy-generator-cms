@@ -35,12 +35,18 @@
 }
 
 .login-card .brand-logo {
-  font-weight: 600;
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #4c1d95;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
+  line-height: 0;
+  display: flex;
+  justify-content: center;
+
+  img {
+    display: block;
+    width: 180px;
+    height: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
 }
 
 .login-card header p {
