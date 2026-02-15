@@ -60,6 +60,7 @@
           </div>
 
           <div class="row g-3 mb-4">
+            @if (policy.sector) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="material-symbols-rounded text-muted" style="font-size: 18px;">business</span>
@@ -67,6 +68,8 @@
               </div>
               <p class="mb-0 ms-5">{{ policy.sector }}</p>
             </div>
+            }
+            @if (policy.organizationSize) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="material-symbols-rounded text-muted" style="font-size: 18px;">groups</span>
@@ -74,6 +77,8 @@
               </div>
               <p class="mb-0 ms-5">{{ policy.organizationSize }}</p>
             </div>
+            }
+            @if (policy.riskAppetite) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="material-symbols-rounded text-muted" style="font-size: 18px;">trending_up</span>
@@ -81,6 +86,8 @@
               </div>
               <p class="mb-0 ms-5">{{ policy.riskAppetite }}</p>
             </div>
+            }
+            @if (policy.implementationTimeline) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="material-symbols-rounded text-muted" style="font-size: 18px;">schedule</span>
@@ -88,6 +95,8 @@
               </div>
               <p class="mb-0 ms-5">{{ policy.implementationTimeline }}</p>
             </div>
+            }
+            @if (policy.createdAt) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="material-symbols-rounded text-muted" style="font-size: 18px;">event</span>
@@ -95,6 +104,7 @@
               </div>
               <p class="mb-0 ms-5">{{ policy.createdAt | date: 'medium' }}</p>
             </div>
+            }
             @if (policy.updatedAt) {
             <div class="col-md-6">
               <div class="d-flex align-items-center gap-2 mb-1">
@@ -602,13 +612,6 @@
               </div>
             </div>
             }
-          </div>
-          } @else if (!isLoadingPolicy()) {
-          <div class="mb-4">
-            <h6 class="mb-3">Assessments</h6>
-            <div class="alert alert-info mb-0" role="alert">
-              No assessments found for this policy.
-            </div>
           </div>
           }
         </div>

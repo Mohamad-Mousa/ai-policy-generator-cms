@@ -52,53 +52,34 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   protected readonly functionKey = 'policies';
   protected readonly deletePrivilege = PrivilegeAccess.D;
 
-  protected readonly tableColumns: TableColumn[] = [
-    {
-      label: 'Sector',
-      key: 'sector',
-      sortable: true,
-      filterable: false,
-    },
-    {
-      label: 'Organization Size',
-      key: 'organizationSize',
-      sortable: true,
-      filterable: true,
-    },
-    {
-      label: 'Risk Appetite',
-      key: 'riskAppetite',
-      sortable: true,
-      filterable: true,
-    },
-    {
-      label: 'Implementation Timeline',
-      key: 'implementationTimeline',
-      sortable: true,
-      filterable: true,
-    },
-    {
-      label: 'Domains',
-      key: 'domainsCount',
-      sortable: false,
-    },
-    {
-      label: 'Assessments',
-      key: 'assessmentsCount',
-      sortable: false,
-    },
-    {
-      label: 'Created At',
-      key: 'createdAt',
-      sortable: true,
-    },
+  /** Columns for Assessments Policy Library (source = assessments) */
+  protected readonly assessmentTableColumns: TableColumn[] = [
+    { label: 'Sector', key: 'sector', sortable: true, filterable: false },
+    { label: 'Organization Size', key: 'organizationSize', sortable: true, filterable: true },
+    { label: 'Risk Appetite', key: 'riskAppetite', sortable: true, filterable: true },
+    { label: 'Implementation Timeline', key: 'implementationTimeline', sortable: true, filterable: true },
+    { label: 'Domains', key: 'domainsCount', sortable: false },
+    { label: 'Assessments', key: 'assessmentsCount', sortable: false },
+    { label: 'Created At', key: 'createdAt', sortable: true },
   ];
+
+  /** Columns for Initiative Policy Library (source = initiative): initiatives, analysis type, readiness, created */
+  protected readonly initiativeTableColumns: TableColumn[] = [
+    { label: 'Initiatives', key: 'initiativesSummary', sortable: false },
+    { label: 'Analysis Type', key: 'analysisType', sortable: true, filterable: true },
+    { label: 'Readiness Score', key: 'readinessScore', sortable: true },
+    { label: 'Created At', key: 'createdAt', sortable: true },
+  ];
+
+  protected get tableColumns(): TableColumn[] {
+    return this.libraryType === 'initiatives' ? this.initiativeTableColumns : this.assessmentTableColumns;
+  }
 
   constructor(
     private policyService: PolicyService,
     private policyCreatedService: PolicyCreatedService,
     private notifications: NotificationService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
@@ -111,9 +92,12 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     this.policyCreatedService
       .getCreatedPolicy$()
       .pipe(
-        filter((payload): payload is NonNullable<typeof payload> => payload != null && payload.tab === expectedTab),
+        filter(
+          (payload): payload is NonNullable<typeof payload> =>
+            payload != null && payload.tab === expectedTab,
+        ),
         take(1),
-        takeUntil(this.destroy$)
+        takeUntil(this.destroy$),
       )
       .subscribe((payload) => {
         this.policyCreatedService.clearCreatedPolicy();
@@ -132,6 +116,8 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     const filters: Record<string, string> = {};
     if (this.libraryType === 'initiatives') {
       filters['source'] = 'initiative';
+    } else if (this.libraryType === 'assessments') {
+      filters['source'] = 'assessment';
     }
 
     this.policyService
@@ -141,7 +127,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
         this.searchTerm() || undefined,
         undefined,
         undefined,
-        Object.keys(filters).length > 0 ? filters : undefined
+        Object.keys(filters).length > 0 ? filters : undefined,
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -156,7 +142,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load policies. Please try again later.',
-            'Policy fetch failed'
+            'Policy fetch failed',
           );
         },
       });
@@ -185,6 +171,12 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected get tableRows(): Array<Record<string, unknown>> {
+    return this.libraryType === 'initiatives'
+      ? this.initiativeTableRows()
+      : this.assessmentTableRows();
+  }
+
+  private assessmentTableRows(): Array<Record<string, unknown>> {
     return this.policies().map((policy) => ({
       _id: policy._id,
       sector: policy.sector || '—',
@@ -216,6 +208,38 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
         : '—',
       policy: policy,
     }));
+  }
+
+  private initiativeTableRows(): Array<Record<string, unknown>> {
+    return this.policies().map((policy) => {
+      const initiatives = policy.initiatives ?? [];
+      const count = initiatives.length;
+      const names = initiatives
+        .slice(0, 3)
+        .map((i) => i.englishName || i.originalName || '—')
+        .filter(Boolean);
+      const summary =
+        count === 0
+          ? '—'
+          : count <= 3
+            ? names.join(', ')
+            : `${names.join(', ')} +${count - 3} more`;
+      const readinessScore =
+        policy.analysis?.overallReadiness?.score != null
+          ? String(policy.analysis.overallReadiness.score)
+          : '—';
+      return {
+        _id: policy._id,
+        initiativesSummary: summary,
+        initiativesCount: count,
+        analysisType: policy.analysisType === 'detailed' ? 'Detailed' : policy.analysisType === 'quick' ? 'Quick' : '—',
+        readinessScore,
+        createdAt: policy.createdAt
+          ? new Date(policy.createdAt).toLocaleDateString()
+          : '—',
+        policy: policy,
+      };
+    });
   }
 
   protected selectPolicy(policy: Policy) {
@@ -251,7 +275,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load policy details. Please try again later.',
-            'Policy fetch failed'
+            'Policy fetch failed',
           );
           this.backToList();
         },
@@ -304,7 +328,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to delete policy. Please try again later.',
-            'Delete failed'
+            'Delete failed',
           );
         },
       });

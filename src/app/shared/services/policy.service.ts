@@ -65,8 +65,21 @@ export interface PolicyAnalysis {
   }>;
 }
 
+export interface PolicyInitiative {
+  _id: string;
+  englishName?: string;
+  originalName?: string;
+  category?: string;
+  description?: string;
+  overview?: string;
+  status?: string;
+  slug?: string;
+  [key: string]: unknown;
+}
+
 export interface Policy {
   _id: string;
+  source?: 'assessments' | 'initiative';
   domains: Array<{
     _id: string;
     title: string;
@@ -107,10 +120,11 @@ export interface Policy {
         page: number;
         limit: number;
       };
-  sector: string;
-  organizationSize: string;
-  riskAppetite: string;
-  implementationTimeline: string;
+  sector?: string;
+  organizationSize?: string;
+  riskAppetite?: string;
+  implementationTimeline?: string;
+  initiatives?: PolicyInitiative[];
   analysisType?: 'quick' | 'detailed';
   analysis?: PolicyAnalysis;
   analysisMetadata?: {
@@ -145,8 +159,8 @@ export interface CreatePolicyRequest {
 }
 
 export interface CreatePolicyFromInitiativesRequest {
-  initiativeIds: string[];
-  countryValue: number;
+  source: 'initiative';
+  initiatives: string[];
   analysisType: 'quick' | 'detailed';
 }
 
@@ -283,8 +297,9 @@ export class PolicyService {
   }
 
   /**
-   * Create a policy from selected initiatives (verified policies flow)
-   * @param request - Initiative IDs, country value, and analysis type
+   * Create a policy from selected initiatives (Create from initiatives).
+   * POST /admin/policy with body: { source, initiatives, analysisType }
+   * @param request - source: 'initiative', initiative IDs, and analysis type
    * @returns Observable with created policy data
    */
   createFromInitiatives(
@@ -292,7 +307,7 @@ export class PolicyService {
   ): Observable<Policy> {
     return this.http
       .post<ApiResponse<Policy>>(
-        `${this.API_URL}/admin/policy/from-initiatives`,
+        `${this.API_URL}/admin/policy`,
         request
       )
       .pipe(

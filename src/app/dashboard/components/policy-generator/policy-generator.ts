@@ -938,18 +938,10 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   private createPolicyFromInitiativesWithAnalysisType(
     analysisType: 'quick' | 'detailed'
   ): void {
-    const country = this.selectedCountry();
-    if (!country) {
-      this.notifications.danger(
-        'Country selection is missing.',
-        'Error'
-      );
-      return;
-    }
     this.isGenerating.set(true);
     const request = {
-      initiativeIds: Array.from(this.selectedInitiativeIds),
-      countryValue: country.value,
+      source: 'initiative' as const,
+      initiatives: Array.from(this.selectedInitiativeIds),
       analysisType,
     };
     this.policyService
