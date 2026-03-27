@@ -7,7 +7,7 @@ import { PrivilegeAccess } from '@shared/enums';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Domain } from '@shared/interfaces';
-import { DomainService, AssessmentService } from '@shared/services';
+import { AuthService, DomainService, AssessmentService } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 
 interface DomainCard {
@@ -37,11 +37,13 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   protected readonly functionKey = 'questions';
+  protected readonly domainsFunctionKey = 'domains';
   protected readonly writePrivilege = PrivilegeAccess.W;
   protected readonly readPrivilege = PrivilegeAccess.R;
 
   constructor(
     private router: Router,
+    private authService: AuthService,
     private domainService: DomainService,
     private assessmentService: AssessmentService,
     private notifications: NotificationService
@@ -54,6 +56,17 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  protected hasDomainsAccess(): boolean {
+    return this.authService.hasPrivilege(
+      this.domainsFunctionKey,
+      PrivilegeAccess.R
+    );
+  }
+
+  protected goToDomains() {
+    this.router.navigate(['/dashboard/domains']);
   }
 
   protected selectDomain(domain: DomainCard) {

@@ -34,24 +34,11 @@ export class Sidebar {
       icon: 'assessment',
     },
     {
-      label: 'Readiness Reports',
-      description: 'View per-domain scores, gap analysis, and recommendations',
-      path: 'readiness-reports',
-      icon: 'analytics',
-    },
-    {
       label: 'Policy Generator',
       description:
         'Generate customized AI policies based on readiness findings',
       path: 'policy-generator',
       icon: 'auto_awesome',
-    },
-    {
-      label: 'Domains',
-      description: 'Manage domains and questions',
-      path: 'domains',
-      icon: 'category',
-      functionKey: 'domains',
     },
     {
       label: 'Admin',
