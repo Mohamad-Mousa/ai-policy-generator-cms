@@ -1,0 +1,14 @@
+.public-assessment-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.public-assessment-inner {
+  max-width: 800px;
+}
+
+.question-block:last-child {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}

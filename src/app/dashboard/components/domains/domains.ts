@@ -27,9 +27,11 @@ import {
   Domain,
   CreateDomainRequest,
   UpdateDomainRequest,
+  domainScoreOrZero,
 } from '../../../shared/interfaces';
 import { PrivilegeAccess } from '../../../shared/enums';
 import { FormInputComponent } from '../../../shared/components/form-input/form-input';
+import { publicAssessmentShareUrl } from '../../../shared/utils/public-assessment-share-url';
 
 @Component({
   selector: 'app-domains-section',
@@ -66,11 +68,29 @@ export class DomainsComponent implements OnInit, OnDestroy {
       sortable: true,
     },
     {
+      label: 'Predefined assessment title',
+      key: 'predefinedAssessmentTitle',
+      filterable: true,
+      sortable: true,
+    },
+    {
       label: 'Subdomains',
       key: 'subDomains',
       type: 'tags',
       filterable: false,
       sortable: false,
+    },
+    {
+      label: 'Score avg (1–5)',
+      key: 'scoreAvg',
+      filterable: false,
+      sortable: true,
+    },
+    {
+      label: 'Score %',
+      key: 'scorePercentage',
+      filterable: false,
+      sortable: true,
     },
     {
       label: 'Status',
@@ -129,6 +149,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
   protected subdomainContextDomain?: Domain;
 
   protected readonly subdomainRowActions: TableAdditionalAction[] = [
+    { id: 'share-public-assessment', label: 'Share public link', icon: 'link' },
     { id: 'subdomains', label: 'Subdomain', icon: 'account_tree' },
   ];
 
@@ -141,8 +162,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
     this.domainForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(2)]],
       description: ['', [Validators.required, Validators.minLength(3)]],
+      predefinedAssessmentTitle: [''],
       icon: [''],
-      subDomains: this.fb.nonNullable.control<string[]>([]),
       isActive: [true],
     });
   }
@@ -228,11 +249,15 @@ export class DomainsComponent implements OnInit, OnDestroy {
       statusClass: domain.isActive ? 'success' : 'warning',
       isActive: domain.isActive ? 'Active' : 'Inactive',
       icon: domain.icon || '',
+      predefinedAssessmentTitle:
+        domain.predefinedAssessmentTitle?.trim() || '—',
       subDomains: this.subDomainTitles(domain.subDomains),
+      scoreAvg: domainScoreOrZero(domain.scoreAvg),
+      scorePercentage: domainScoreOrZero(domain.scorePercentage),
     };
   }
 
-  /** Titles for tags column / forms; API returns `subDomains` as `{ _id, title, ... }[]`. */
+  /** Titles for tags column / sidebar; API returns `subDomains` as `{ _id, title, ... }[]`. */
   private subDomainTitles(
     subDomains: Domain['subDomains'] | undefined
   ): string[] {
@@ -325,8 +350,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
     return this.domainForm.get('description') as FormControl;
   }
 
-  protected get subDomainsControl(): FormControl<string[]> {
-    return this.domainForm.get('subDomains') as FormControl<string[]>;
+  protected get predefinedAssessmentTitleControl(): FormControl {
+    return this.domainForm.get('predefinedAssessmentTitle') as FormControl;
   }
 
   protected get iconControl(): FormControl {
@@ -378,8 +403,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
     this.domainForm.reset({
       title: '',
       description: '',
+      predefinedAssessmentTitle: '',
       icon: '',
-      subDomains: [],
       isActive: true,
     });
   }
@@ -393,11 +418,11 @@ export class DomainsComponent implements OnInit, OnDestroy {
     this.dialogLoading.set(true);
     this.tableLoading.set(true);
     const formValue = this.domainForm.value;
-    const sanitizedSubDomains = Array.isArray(formValue.subDomains)
-      ? (formValue.subDomains as Array<string | null | undefined>)
-          .map((subDomain) => subDomain?.trim())
-          .filter((subDomain): subDomain is string => !!subDomain)
-      : [];
+
+    const predefinedTitle = (
+      formValue.predefinedAssessmentTitle as string | null | undefined
+    )
+      ?.trim();
 
     const domainData: CreateDomainRequest | UpdateDomainRequest = {
       title: formValue.title,
@@ -407,11 +432,15 @@ export class DomainsComponent implements OnInit, OnDestroy {
       ...(formValue.isActive !== undefined && {
         isActive: formValue.isActive ? 'true' : 'false',
       }),
-      subDomains: sanitizedSubDomains,
     };
 
     if (this.isEditMode && this.selectedDomain?._id) {
       (domainData as UpdateDomainRequest)._id = this.selectedDomain._id;
+      (domainData as UpdateDomainRequest).predefinedAssessmentTitle =
+        predefinedTitle ?? '';
+    } else if (predefinedTitle) {
+      (domainData as CreateDomainRequest).predefinedAssessmentTitle =
+        predefinedTitle;
     }
 
     const operation = this.isEditMode
@@ -465,6 +494,15 @@ export class DomainsComponent implements OnInit, OnDestroy {
     id: string;
     row: Record<string, unknown>;
   }): void {
+    if (event.id === 'share-public-assessment') {
+      const domainId = event.row['_id'] as string;
+      if (!domainId) {
+        this.notifications.danger('Missing domain id', 'Cannot build link');
+        return;
+      }
+      void this.copyPublicAssessmentShareLink(domainId);
+      return;
+    }
     if (event.id !== 'subdomains') {
       return;
     }
@@ -484,6 +522,22 @@ export class DomainsComponent implements OnInit, OnDestroy {
   protected onSubdomainManagerClosed(): void {
     this.isSubdomainManagerOpen = false;
     this.subdomainContextDomain = undefined;
+  }
+
+  private async copyPublicAssessmentShareLink(domainId: string): Promise<void> {
+    const url = publicAssessmentShareUrl(domainId);
+    try {
+      await navigator.clipboard.writeText(url);
+      this.notifications.success(
+        'Respondents can open this link without signing in.',
+        'Public link copied'
+      );
+    } catch {
+      this.notifications.warning(
+        url,
+        'Copy blocked — copy the link from this message'
+      );
+    }
   }
 
   protected onRead(domain: Record<string, unknown>): void {
@@ -521,6 +575,13 @@ export class DomainsComponent implements OnInit, OnDestroy {
         type: 'text',
       },
       {
+        label: 'Predefined assessment title',
+        key: 'predefinedAssessmentTitle',
+        type: 'text',
+        format: (value) =>
+          typeof value === 'string' && value.trim() ? value.trim() : '—',
+      },
+      {
         label: 'Status',
         key: 'isActive',
         type: 'badge',
@@ -537,6 +598,20 @@ export class DomainsComponent implements OnInit, OnDestroy {
         key: 'subDomains',
         type: 'text',
         format: (value) => this.formatSubDomainList(value),
+      },
+      {
+        label: 'Score avg (1–5)',
+        key: 'scoreAvg',
+        type: 'text',
+        format: () =>
+          String(domainScoreOrZero(this.sidebarDomain?.scoreAvg)),
+      },
+      {
+        label: 'Score %',
+        key: 'scorePercentage',
+        type: 'text',
+        format: () =>
+          String(domainScoreOrZero(this.sidebarDomain?.scorePercentage)),
       },
       {
         label: 'Created At',
@@ -559,6 +634,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
       isActive: this.sidebarDomain.isActive ? 'Active' : 'Inactive',
       icon: this.sidebarDomain.icon || '',
       subDomains: this.sidebarDomain.subDomains ?? [],
+      scoreAvg: domainScoreOrZero(this.sidebarDomain.scoreAvg),
+      scorePercentage: domainScoreOrZero(this.sidebarDomain.scorePercentage),
     };
   }
 
@@ -580,8 +657,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
     this.domainForm.patchValue({
       title: fullDomain.title,
       description: fullDomain.description,
+      predefinedAssessmentTitle: fullDomain.predefinedAssessmentTitle ?? '',
       icon: fullDomain.icon || '',
-      subDomains: this.subDomainTitles(fullDomain.subDomains),
       isActive: fullDomain.isActive,
     });
   }

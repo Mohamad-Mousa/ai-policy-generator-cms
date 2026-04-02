@@ -79,6 +79,8 @@ export interface PolicyInitiative {
 
 export interface Policy {
   _id: string;
+  /** Resolved country (required on API list/detail). */
+  country?: string | { _id: string; label?: string; value?: number };
   source?: 'assessments' | 'initiative';
   domains: Array<{
     _id: string;
@@ -149,19 +151,16 @@ export interface PolicyPaginatedResponse {
 }
 
 export interface CreatePolicyRequest {
+  country: string;
   domains: string[];
   assessments: string[];
+  /** Optional Initiative ObjectIds for governance context. */
+  initiatives?: string[];
   sector: string;
   organizationSize: string;
   riskAppetite: string;
   implementationTimeline: string;
   analysisType?: 'quick' | 'detailed';
-}
-
-export interface CreatePolicyFromInitiativesRequest {
-  source: 'initiative';
-  initiatives: string[];
-  analysisType: 'quick' | 'detailed';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -186,7 +185,7 @@ export class PolicyService {
     search?: string,
     sortBy?: string,
     sortDirection?: 'asc' | 'desc',
-    filters?: Record<string, string>
+    filters?: Record<string, string>,
   ): Observable<PolicyPaginatedResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -214,10 +213,9 @@ export class PolicyService {
     }
 
     return this.http
-      .get<ApiResponse<PolicyPaginatedResponse>>(
-        `${this.API_URL}/admin/policy`,
-        { params }
-      )
+      .get<
+        ApiResponse<PolicyPaginatedResponse>
+      >(`${this.API_URL}/admin/policy`, { params })
       .pipe(
         map((res) => {
           if (!res.results || !res.results.data) {
@@ -227,7 +225,7 @@ export class PolicyService {
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
-        })
+        }),
       );
   }
 
@@ -241,7 +239,7 @@ export class PolicyService {
   findOne(
     id: string,
     assessmentPage: number = 1,
-    assessmentLimit: number = 10
+    assessmentLimit: number = 10,
   ): Observable<Policy> {
     let params = new HttpParams();
     if (assessmentPage) {
@@ -252,10 +250,9 @@ export class PolicyService {
     }
 
     return this.http
-      .get<ApiResponse<{ policy: Policy }>>(
-        `${this.API_URL}/admin/policy/${id}`,
-        { params }
-      )
+      .get<
+        ApiResponse<{ policy: Policy }>
+      >(`${this.API_URL}/admin/policy/${id}`, { params })
       .pipe(
         map((res) => {
           if (!res.results || !res.results.policy) {
@@ -265,7 +262,7 @@ export class PolicyService {
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
-        })
+        }),
       );
   }
 
@@ -292,40 +289,7 @@ export class PolicyService {
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
-        })
-      );
-  }
-
-  /**
-   * Create a policy from selected initiatives (Create from initiatives).
-   * POST /admin/policy with body: { source, initiatives, analysisType }
-   * @param request - source: 'initiative', initiative IDs, and analysis type
-   * @returns Observable with created policy data
-   */
-  createFromInitiatives(
-    request: CreatePolicyFromInitiativesRequest
-  ): Observable<Policy> {
-    return this.http
-      .post<ApiResponse<Policy>>(
-        `${this.API_URL}/admin/policy`,
-        request
-      )
-      .pipe(
-        map((res) => {
-          if (res.error === false && res.results === null) {
-            return request as unknown as Policy;
-          }
-          if (res.results) {
-            return res.results;
-          }
-          if (res.error === true) {
-            throw new Error(String(res.message || 'Create failed'));
-          }
-          return request as unknown as Policy;
         }),
-        catchError((err: HttpErrorResponse) => {
-          return throwError(() => err);
-        })
       );
   }
 
@@ -338,9 +302,9 @@ export class PolicyService {
     const idsParam = Array.isArray(ids) ? ids.join(',') : ids;
 
     return this.http
-      .delete<ApiResponse<any>>(
-        `${this.API_URL}/admin/policy/delete/${idsParam}`
-      )
+      .delete<
+        ApiResponse<any>
+      >(`${this.API_URL}/admin/policy/delete/${idsParam}`)
       .pipe(
         map((res) => {
           if (res.error === false && res.results === null) {
@@ -364,7 +328,7 @@ export class PolicyService {
         }),
         catchError((err: HttpErrorResponse) => {
           return throwError(() => err);
-        })
+        }),
       );
   }
 }

@@ -10,6 +10,11 @@
         <app-button label="Domains" size="sm" variant="outline" icon="category"
           (click)="goToDomains()"></app-button>
         }
+        @if (hasPolicyGeneratorAccess()) {
+        <app-button label="Policy Generator" size="sm" variant="outline" icon="auto_awesome"
+          [functionKey]="policiesFunctionKey" [privilegeAccess]="policiesWritePrivilege"
+          (click)="goToPolicyGenerator()"></app-button>
+        }
         <app-button label="View Assessments" size="sm" variant="outline" icon="visibility"
           [disabled]="!selectedDomain()" [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
           (click)="viewAssessments()"></app-button>
@@ -49,9 +54,29 @@
         <div class="card-body">
           <div class="d-flex align-items-start gap-3 mb-3">
             <span class="material-symbols-rounded domain-icon">{{ domain.icon }}</span>
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 min-w-0">
               <h5 class="mb-1">{{ domain.title }}</h5>
               <p class="text-muted small mb-0">{{ domain.description }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary domain-share-link d-inline-flex align-items-center gap-1 flex-shrink-0"
+              title="Copy public assessment link (policygeneratorai.com)"
+              (click)="copyPublicShareLink($event, domain)"
+            >
+              <span class="material-symbols-rounded" style="font-size: 1.125rem">link</span>
+              <span>Share link</span>
+            </button>
+          </div>
+
+          <div class="domain-scores">
+            <div class="domain-score-pill">
+              <span class="domain-score-label">Score avg (1–5)</span>
+              <span class="domain-score-value">{{ domain.scoreAvg }}</span>
+            </div>
+            <div class="domain-score-pill">
+              <span class="domain-score-label">Score %</span>
+              <span class="domain-score-value">{{ domain.scorePercentage }}</span>
             </div>
           </div>
 

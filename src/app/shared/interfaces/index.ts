@@ -15,6 +15,7 @@ export type {
   CreateDomainRequest,
   UpdateDomainRequest,
 } from './domain';
+export { domainScoreOrZero } from './domain';
 export type {
   Subdomain,
   SubdomainDomainRef,

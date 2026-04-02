@@ -1,6 +1,29 @@
 :host {
   display: block;
   height: 100%;
+  min-width: 0;
+}
+
+.policy-library-root {
+  min-width: 0;
+
+  > .card-body {
+    min-width: 0;
+  }
+}
+
+.policy-library-list-card {
+  min-width: 0;
+
+  .card-body {
+    min-width: 0;
+  }
+}
+
+.policy-initiative-card {
+  .initiative-title-wrap {
+    min-width: 0;
+  }
 }
 
 .policy-card {

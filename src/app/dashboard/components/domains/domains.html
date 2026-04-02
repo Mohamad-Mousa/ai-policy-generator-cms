@@ -36,8 +36,10 @@
       placeholder="Enter domain description" [required]="true" [minlength]="3">
     </app-form-input>
 
-    <app-form-input [control]="subDomainsControl" formControlName="subDomains" label="Subdomains" type="tags"
-      placeholder="Type a subdomain and press Enter" hint="Each subdomain will show as a tag.">
+    <app-form-input [control]="predefinedAssessmentTitleControl" formControlName="predefinedAssessmentTitle"
+      label="Predefined assessment title" type="text"
+      placeholder="e.g. Q1 2026 AI readiness — optional default for new assessments"
+      hint="Suggested title when users start an assessment in this domain. Leave empty for none.">
     </app-form-input>
 
     <app-form-input [control]="iconControl" formControlName="icon" label="Icon" type="text"

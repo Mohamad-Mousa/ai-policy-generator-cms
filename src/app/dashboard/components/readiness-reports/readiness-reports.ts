@@ -11,9 +11,14 @@ import {
   SidebarComponent,
   SidebarField,
 } from '@shared/components/sidebar/sidebar';
-import { Assessment as ApiAssessment, Domain } from '@shared/interfaces';
-import { AssessmentService } from '@shared/services';
+import {
+  Assessment as ApiAssessment,
+  Domain,
+  domainScoreOrZero,
+} from '@shared/interfaces';
+import { AssessmentService, AuthService } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
+import { PrivilegeAccess } from '@shared/enums';
 
 interface AssessmentDomain {
   id: string;
@@ -37,6 +42,8 @@ interface Assessment {
   status?: string;
   isActive?: boolean;
   overallProgress?: number;
+  scoreAvg: number;
+  scorePercentage: number;
 }
 
 interface DomainScore {
@@ -144,10 +151,14 @@ export class ReadinessReportsComponent implements OnInit {
   protected sidebarAssessment: ApiAssessment | null = null;
   protected isLoadingSidebarAssessment = signal(false);
 
+  protected readonly policiesFunctionKey = 'policies';
+  protected readonly policiesWritePrivilege = PrivilegeAccess.W;
+
   constructor(
     private router: Router,
     private assessmentService: AssessmentService,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -204,6 +215,19 @@ export class ReadinessReportsComponent implements OnInit {
 
   protected backToAIReadiness() {
     this.router.navigate(['/dashboard/ai-readiness-assessment']);
+  }
+
+  protected hasPolicyGeneratorAccess(): boolean {
+    return this.authService.hasPrivilege(
+      this.policiesFunctionKey,
+      PrivilegeAccess.W
+    );
+  }
+
+  protected goToPolicyGenerator(): void {
+    this.router.navigate(['/dashboard/policy-generator'], {
+      state: { policyGeneratorReset: true },
+    });
   }
 
   protected viewAssessment(assessment: Assessment, event?: Event) {
@@ -280,6 +304,16 @@ export class ReadinessReportsComponent implements OnInit {
         format: () => this.sidebarAssessment?.domain?.title || '—',
       },
       {
+        label: 'Score avg (1–5)',
+        key: 'scoreAvg',
+        type: 'text',
+      },
+      {
+        label: 'Score %',
+        key: 'scorePercentage',
+        type: 'text',
+      },
+      {
         label: 'Status',
         key: 'status',
         type: 'badge',
@@ -322,10 +356,16 @@ export class ReadinessReportsComponent implements OnInit {
 
   protected get sidebarData(): Record<string, unknown> {
     if (!this.sidebarAssessment) return {};
+    const a = this.sidebarAssessment;
+    const rawStatus = (a as { status?: string }).status || 'draft';
     return {
-      ...this.sidebarAssessment,
-      statusClass: ((this.sidebarAssessment as any)?.status || 'draft') === 'completed' ? 'success' : 'warning',
-      status: ((this.sidebarAssessment as any)?.status || 'draft').charAt(0).toUpperCase() + ((this.sidebarAssessment as any)?.status || 'draft').slice(1),
+      ...a,
+      statusClass:
+        rawStatus === 'completed' ? 'success' : 'warning',
+      status:
+        rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1),
+      scoreAvg: domainScoreOrZero(a.scoreAvg),
+      scorePercentage: domainScoreOrZero(a.scorePercentage),
     };
   }
 
@@ -536,6 +576,8 @@ export class ReadinessReportsComponent implements OnInit {
       status: (api as any).status,
       isActive: api.isActive,
       overallProgress: overallProgress,
+      scoreAvg: domainScoreOrZero(api.scoreAvg),
+      scorePercentage: domainScoreOrZero(api.scorePercentage),
     };
   }
 }

@@ -11,6 +11,20 @@ export const routes: Routes = [
     canActivate: [loginGuard],
   },
   {
+    path: 'public/assessment/:domainId',
+    loadComponent: () =>
+      import('./public/public-assessment/public-assessment').then(
+        (m) => m.PublicAssessmentComponent,
+      ),
+  },
+  {
+    path: 'public/Assessment/:domainId',
+    loadComponent: () =>
+      import('./public/public-assessment/public-assessment').then(
+        (m) => m.PublicAssessmentComponent,
+      ),
+  },
+  {
     path: 'dashboard',
     loadComponent: () =>
       import('./dashboard/dashboard').then((m) => m.Dashboard),
@@ -127,11 +141,8 @@ export const routes: Routes = [
       },
       {
         path: 'initiative-library',
-        loadComponent: () =>
-          import('./dashboard/components/policy-cms/policy-cms').then(
-            (m) => m.PolicyCmsComponent
-          ),
-        canActivate: [privilegeGuard('policies', PrivilegeAccess.R)],
+        redirectTo: 'policy-library',
+        pathMatch: 'full',
       },
       {
         path: 'initiative/:id',

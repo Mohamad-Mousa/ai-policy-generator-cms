@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
 }
 
 .policy-tabs {
@@ -34,6 +35,7 @@
 
 .policy-tab-content {
   margin-top: 0.5rem;
+  min-width: 0;
 }
 
 @media (max-width: 991.98px) {

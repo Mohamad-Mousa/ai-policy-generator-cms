@@ -29,6 +29,10 @@ export interface Assessment {
     subDomains?: any[];
   };
   questions: AssessmentQuestion[];
+  /** Mean score (1–5) for this assessment when computed by the API. */
+  scoreAvg?: number | null;
+  /** Score percentage for this assessment when computed by the API. */
+  scorePercentage?: number | null;
   isActive: boolean;
   isDeleted: boolean;
   createdAt: string;

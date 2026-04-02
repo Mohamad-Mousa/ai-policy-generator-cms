@@ -1,4 +1,13 @@
-import { Component, OnDestroy, OnInit, signal, computed } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  signal,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -48,8 +57,6 @@ interface PolicySection {
   references: string[];
 }
 
-export type PolicySource = 'assessments' | 'verified' | null;
-
 @Component({
   selector: 'app-policy-generator',
   standalone: true,
@@ -66,12 +73,34 @@ export type PolicySource = 'assessments' | 'verified' | null;
 export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  /** Source selection: null = show selection screen, 'assessments' = my assessments flow, 'verified' = verified policies flow */
-  protected policySource = signal<PolicySource>(null);
+  @ViewChild('initiativeFilterDropdownRoot')
+  private initiativeFilterDropdownRoot?: ElementRef<HTMLElement>;
+
+  /** Optional governance initiatives (sent as initiatives[] on create). */
+  protected includeInitiatives = signal(false);
+  /**
+   * Optional filter for the initiative list only (API `gaiinCountryId`).
+   * Independent of the policy country field.
+   */
+  protected initiativesFilterCountryListId: string | null = null;
+  protected initiativesFilterGaiinCountryId: string | null = null;
   protected countries = signal<Country[]>([]);
   protected countriesTotalCount = signal(0);
   protected countriesPage = signal(1);
   protected readonly countriesPageSize = 50;
+  /** Initiative country filter: custom dropdown with search + scroll pagination. */
+  protected initiativeCountryDropdownOpen = signal(false);
+  protected initiativeDropdownCountries = signal<Country[]>([]);
+  protected initiativeDropdownTotalCount = signal(0);
+  protected initiativeDropdownPage = signal(1);
+  protected readonly initiativeDropdownPageSize = 50;
+  protected isLoadingInitiativeDropdownCountries = signal(false);
+  protected isLoadingMoreInitiativeDropdownCountries = signal(false);
+  protected initiativeDropdownSearchInput = signal('');
+  private initiativeDropdownSearchSubject = new Subject<string>();
+  private initiativeDropdownApiSearchTerm = '';
+  /** Label for trigger when a country is selected (may not be in the current loaded page). */
+  protected initiativeFilterSelectedCountryLabel = signal<string | null>(null);
   protected isLoadingCountries = signal(false);
   protected isLoadingMoreCountries = signal(false);
   protected selectedCountryId: string | null = null;
@@ -80,7 +109,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected countrySearchTerm = '';
   private countrySearchSubject = new Subject<string>();
 
-  /** Initiatives (policies) for selected country in verified flow */
+  /** Initiatives for optional inclusion (filtered by selected country). */
   protected initiatives = signal<Initiative[]>([]);
   protected initiativesTotalCount = signal(0);
   protected initiativesPage = signal(1);
@@ -89,7 +118,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected initiativesStartYear = signal<string>('');
   protected initiativesCategory = signal<string>('');
   protected initiativesIntergovernmentalOrgId = signal<string>('');
-  protected initiativesIntergovernmentalOrgs = signal<IntergovernmentalOrganisation[]>([]);
+  protected initiativesIntergovernmentalOrgs = signal<
+    IntergovernmentalOrganisation[]
+  >([]);
   protected initiativesInitiativeTypeId = signal<string>('');
   protected initiativesInitiativeTypes = signal<InitiativeTypeOption[]>([]);
   protected initiativesAiPrincipleId = signal<string>('');
@@ -102,7 +133,10 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   /** Total count of selected initiatives across all pages (for header display) */
   protected selectedInitiativeTotalCount = signal(0);
 
-  protected get initiativeYearFilterOptions(): Array<{ label: string; value: string }> {
+  protected get initiativeYearFilterOptions(): Array<{
+    label: string;
+    value: string;
+  }> {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: currentYear - 2010 + 3 }, (_, i) => {
       const y = 2010 + i;
@@ -110,47 +144,83 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected get initiativeOrganisationFilterOptions(): Array<{ label: string; value: string }> {
+  protected get initiativeOrganisationFilterOptions(): Array<{
+    label: string;
+    value: string;
+  }> {
     return this.initiativesIntergovernmentalOrgs().map((org) => ({
       label: org.label,
       value: String(org.value),
     }));
   }
 
-  protected get initiativeTypeFilterOptions(): Array<{ label: string; value: string }> {
+  protected get initiativeTypeFilterOptions(): Array<{
+    label: string;
+    value: string;
+  }> {
     return this.initiativesInitiativeTypes().map((t) => ({
       label: t.label,
       value: String(t.value),
     }));
   }
 
-  protected get aiPrincipleFilterOptions(): Array<{ label: string; value: string }> {
+  protected get aiPrincipleFilterOptions(): Array<{
+    label: string;
+    value: string;
+  }> {
     return this.initiativesAiPrinciples().map((p) => ({
-      label: p.label,
+      label: this.truncateChars(p.label, 72),
       value: String(p.value),
     }));
   }
 
   protected get aiTagFilterOptions(): Array<{ label: string; value: string }> {
     return this.initiativesAiTags().map((t) => ({
-      label: t.label,
+      label: this.truncateChars(t.label, 72),
       value: String(t.value),
     }));
   }
 
-  protected readonly initiativeCategoryFilterOptions: Array<{ label: string; value: string }> = [
+  protected readonly initiativeCategoryFilterOptions: Array<{
+    label: string;
+    value: string;
+  }> = [
     { label: 'National – Strategy', value: 'National – Strategy' },
-    { label: 'National – AI governance bodies or mechanisms', value: 'National – AI governance bodies or mechanisms' },
-    { label: 'AI Policy Frameworks and Programmes (intergovernmental or supranational)', value: 'AI Policy Frameworks and Programmes (intergovernmental or supranational)' },
-    { label: 'AI Governance Bodies and Mechanisms (intergovernmental or supranational)', value: 'AI Governance Bodies and Mechanisms (intergovernmental or supranational)' },
-    { label: 'Regulations, guidelines and standards', value: 'Regulations, guidelines and standards' },
-    { label: 'AI policy initiatives, programmes and projects', value: 'AI policy initiatives, programmes and projects' },
+    {
+      label: 'National – AI governance bodies or mechanisms',
+      value: 'National – AI governance bodies or mechanisms',
+    },
+    {
+      label:
+        'AI Policy Frameworks and Programmes (intergovernmental or supranational)',
+      value:
+        'AI Policy Frameworks and Programmes (intergovernmental or supranational)',
+    },
+    {
+      label:
+        'AI Governance Bodies and Mechanisms (intergovernmental or supranational)',
+      value:
+        'AI Governance Bodies and Mechanisms (intergovernmental or supranational)',
+    },
+    {
+      label: 'Regulations, guidelines and standards',
+      value: 'Regulations, guidelines and standards',
+    },
+    {
+      label: 'AI policy initiatives, programmes and projects',
+      value: 'AI policy initiatives, programmes and projects',
+    },
   ];
 
   protected get initiativeTableColumns(): TableColumn[] {
     return [
       { label: 'Name', key: 'englishName', sortable: true, filterable: true },
-      { label: 'Description', key: 'description', sortable: true, filterable: true },
+      {
+        label: 'Description',
+        key: 'description',
+        sortable: true,
+        filterable: true,
+      },
       {
         label: 'Category',
         key: 'category',
@@ -192,7 +262,12 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         filterType: 'select',
         filterOptions: this.initiativeOrganisationFilterOptions,
       },
-      { label: 'Responsible Organisation', key: 'responsibleOrganisation', sortable: true, filterable: true },
+      {
+        label: 'Responsible Organisation',
+        key: 'responsibleOrganisation',
+        sortable: true,
+        filterable: true,
+      },
       {
         label: 'Start Year',
         key: 'startYear',
@@ -271,9 +346,6 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected showAnalysisTypeDialog = signal(false);
   protected selectedAnalysisType: 'quick' | 'detailed' | null = null;
   protected generatedPolicy = signal<Policy | null>(null);
-  /** Which flow opened the analysis type dialog: assessments vs initiatives (different APIs) */
-  private generationSource: 'assessments' | 'verified' | null = null;
-
   protected readonly sectorOptions = [
     'Government',
     'Healthcare',
@@ -306,12 +378,18 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
 
   protected readonly selectedDomains = computed(() =>
     this.domains().filter((domain) =>
-      this.selectedDomainIds.includes(domain._id)
-    )
+      this.selectedDomainIds.includes(domain._id),
+    ),
   );
 
   protected readonly hasMoreCountries = computed(
-    () => this.countries().length < this.countriesTotalCount()
+    () => this.countries().length < this.countriesTotalCount(),
+  );
+
+  protected readonly hasMoreInitiativeDropdownCountries = computed(
+    () =>
+      this.initiativeDropdownCountries().length <
+      this.initiativeDropdownTotalCount(),
   );
 
   protected readonly functionKey = 'policies';
@@ -330,27 +408,50 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     private aiPrincipleService: AiPrincipleService,
     private aiTagService: AiTagService,
     private notifications: NotificationService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
-    // Domains and countries load when user selects the corresponding source
+    this.loadDomains();
+    this.loadCountries(undefined);
     this.countrySearchSubject
-      .pipe(
-        debounceTime(400),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe((term) => {
         this.countrySearchTerm = term;
         this.countriesPage.set(1);
         this.loadCountries(term);
       });
+
+    this.initiativeDropdownSearchSubject
+      .pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => {
+        this.initiativeDropdownApiSearchTerm = term;
+        this.initiativeDropdownPage.set(1);
+        if (this.initiativeCountryDropdownOpen()) {
+          this.loadInitiativeDropdownCountries(term?.trim() || undefined);
+        }
+      });
+
+    const st = (history.state ?? {}) as { policyGeneratorReset?: boolean };
+    if (st.policyGeneratorReset) {
+      this.applyPolicyGeneratorReset();
+    }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: MouseEvent): void {
+    if (!this.initiativeCountryDropdownOpen()) {
+      return;
+    }
+    const root = this.initiativeFilterDropdownRoot?.nativeElement;
+    if (root && !root.contains(ev.target as Node)) {
+      this.closeInitiativeCountryDropdown();
+    }
   }
 
   protected selectAssessments() {
@@ -382,7 +483,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         {
           domain: domainIds,
           status: 'completed',
-        }
+        },
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -398,7 +499,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           if (response.data.length === 0 && this.currentPage() === 1) {
             this.notifications.info(
               'No completed assessments found for the selected domains.',
-              'No Assessments'
+              'No Assessments',
             );
           }
         },
@@ -408,7 +509,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load assessments. Please try again later.',
-            'Assessment fetch failed'
+            'Assessment fetch failed',
           );
         },
       });
@@ -426,13 +527,19 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   }
 
   protected isFormValid(): boolean {
-    return !!(
+    const base = !!(
+      this.selectedCountryId &&
       this.selectedDomainIds.length > 0 &&
       this.policyContext.sector &&
       this.policyContext.organizationSize &&
       this.policyContext.riskAppetite &&
       this.policyContext.timeline
     );
+    if (!base) return false;
+    if (this.includeInitiatives()) {
+      return this.selectedInitiativeIds.size > 0;
+    }
+    return true;
   }
 
   savePolicy() {
@@ -450,6 +557,26 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       riskAppetite: '',
       timeline: '',
     };
+    this.selectedCountryId = null;
+    this.selectedCountry.set(null);
+    this.countryPickerOpen.set(true);
+    this.includeInitiatives.set(false);
+    this.initiativeCountryDropdownOpen.set(false);
+    this.initiativeDropdownCountries.set([]);
+    this.initiativeDropdownTotalCount.set(0);
+    this.initiativeDropdownPage.set(1);
+    this.isLoadingInitiativeDropdownCountries.set(false);
+    this.isLoadingMoreInitiativeDropdownCountries.set(false);
+    this.initiativeDropdownSearchInput.set('');
+    this.initiativeDropdownApiSearchTerm = '';
+    this.initiativeFilterSelectedCountryLabel.set(null);
+    this.initiativesFilterCountryListId = null;
+    this.initiativesFilterGaiinCountryId = null;
+    this.selectedInitiativeIds.clear();
+    this.selectedInitiatives.set([]);
+    this.selectedInitiativeTotalCount.set(0);
+    this.initiatives.set([]);
+    this.initiativesTotalCount.set(0);
     this.selectedDomainIds = [];
     this.selectedAssessmentIds.clear();
     this.selectedAssessments.set([]);
@@ -462,9 +589,16 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.showPreview.set(false);
     this.isGenerating.set(false);
     this.generatedPolicy.set(null);
-    // Reset pagination
     this.currentPage.set(1);
     this.pageLimit.set(10);
+  }
+
+  /** Full reset when opening the generator with navigation state (e.g. from assessment flows). */
+  private applyPolicyGeneratorReset(): void {
+    this.resetForm();
+    this.loadDomains();
+    this.countriesPage.set(1);
+    this.loadCountries(this.countrySearchTerm?.trim() || undefined);
   }
 
   protected toggleDomainSelection(domainId: string): void {
@@ -495,7 +629,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   }
 
   protected onAssessmentSelectionChange(
-    selectedRows: Array<Record<string, unknown>>
+    selectedRows: Array<Record<string, unknown>>,
   ): void {
     // Update the persistent set of selected IDs
     const currentPageIds = new Set(this.assessments().map((a) => a._id));
@@ -553,37 +687,29 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     if (this.selectedAssessmentIds.size === 0) {
       this.notifications.warning(
         'Please select at least one assessment to generate a policy.',
-        'No Assessments Selected'
+        'No Assessments Selected',
+      );
+      return;
+    }
+
+    if (!this.selectedCountryId) {
+      this.notifications.warning(
+        'Please select a country before generating a policy.',
+        'Country required',
       );
       return;
     }
 
     if (!this.isFormValid()) {
       this.notifications.warning(
-        'Please fill in all required fields.',
-        'Form Incomplete'
+        this.includeInitiatives()
+          ? 'Fill all required fields and select at least one initiative.'
+          : 'Please fill in all required fields.',
+        'Form Incomplete',
       );
       return;
     }
 
-    this.generationSource = 'assessments';
-    this.selectedAnalysisType = null;
-    this.showAnalysisTypeDialog.set(true);
-  }
-
-  protected generatePolicyFromInitiatives(): void {
-    if (this.selectedInitiativeIds.size === 0) {
-      this.notifications.warning(
-        'Please select at least one initiative to generate a policy.',
-        'No Initiatives Selected'
-      );
-      return;
-    }
-    const country = this.selectedCountry();
-    if (!country) {
-      return;
-    }
-    this.generationSource = 'verified';
     this.selectedAnalysisType = null;
     this.showAnalysisTypeDialog.set(true);
   }
@@ -591,7 +717,6 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected closeAnalysisTypeDialog(): void {
     this.showAnalysisTypeDialog.set(false);
     this.selectedAnalysisType = null;
-    this.generationSource = null;
   }
 
   protected selectAnalysisType(type: 'quick' | 'detailed'): void {
@@ -602,29 +727,24 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     if (!this.selectedAnalysisType) {
       this.notifications.warning(
         'Please select an analysis type.',
-        'Selection Required'
+        'Selection Required',
       );
       return;
     }
 
     const selectedType = this.selectedAnalysisType;
-    const source = this.generationSource;
     this.closeAnalysisTypeDialog();
-
-    if (source === 'verified') {
-      this.createPolicyFromInitiativesWithAnalysisType(selectedType);
-    } else {
-      this.createPolicyWithAnalysisType(selectedType);
-    }
+    this.createPolicyWithAnalysisType(selectedType);
   }
 
   private createPolicyWithAnalysisType(
-    analysisType: 'quick' | 'detailed'
+    analysisType: 'quick' | 'detailed',
   ): void {
     this.isGenerating.set(true);
 
     // Prepare policy data using persistent selected IDs
     const policyData: CreatePolicyRequest = {
+      country: this.selectedCountryId!,
       domains: this.selectedDomainIds,
       assessments: Array.from(this.selectedAssessmentIds),
       sector: this.policyContext.sector,
@@ -633,6 +753,9 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       implementationTimeline: this.policyContext.timeline,
       analysisType: analysisType,
     };
+    if (this.includeInitiatives() && this.selectedInitiativeIds.size > 0) {
+      policyData.initiatives = Array.from(this.selectedInitiativeIds);
+    }
 
     this.policyService
       .create(policyData)
@@ -643,11 +766,11 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
 
           this.notifications.success(
             'Policy generated successfully!',
-            'Success'
+            'Success',
           );
 
           // Pass created policy id via service; library will call findOne. Navigate by URL (no query params).
-          this.policyCreatedService.setCreatedPolicy(policy._id, 'library');
+          this.policyCreatedService.setCreatedPolicy(policy._id);
           this.router.navigateByUrl('/dashboard/policy-library');
         },
         error: (error) => {
@@ -656,7 +779,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to generate policy. Please try again later.',
-            'Policy Generation Failed'
+            'Policy Generation Failed',
           );
         },
       });
@@ -683,40 +806,181 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       .map((assessment) => assessment._id);
   }
 
-  protected showSourceSelection(): boolean {
-    return this.policySource() === null;
+  protected onIncludeInitiativesCheckboxChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.setIncludeInitiatives(input.checked);
   }
 
-  protected selectSource(source: 'assessments' | 'verified'): void {
-    this.policySource.set(source);
-    if (source === 'assessments') {
-      this.loadDomains();
-    } else if (source === 'verified') {
-      this.loadCountries();
+  protected initiativeFilterTriggerLabel(): string {
+    if (!this.initiativesFilterCountryListId) {
+      return 'All countries';
+    }
+    return this.initiativeFilterSelectedCountryLabel() ?? 'Selected country';
+  }
+
+  protected initiativeFilterSelectedNotInLoaded(): boolean {
+    const id = this.initiativesFilterCountryListId;
+    if (!id) {
+      return false;
+    }
+    return !this.initiativeDropdownCountries().some((c) => c._id === id);
+  }
+
+  protected toggleInitiativeCountryDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.initiativeCountryDropdownOpen()) {
+      this.closeInitiativeCountryDropdown();
+      return;
+    }
+    this.initiativeCountryDropdownOpen.set(true);
+    this.loadInitiativeDropdownCountries(
+      this.initiativeDropdownApiSearchTerm?.trim() || undefined,
+    );
+  }
+
+  protected closeInitiativeCountryDropdown(): void {
+    this.initiativeCountryDropdownOpen.set(false);
+    this.initiativeDropdownSearchInput.set('');
+    this.initiativeDropdownSearchSubject.next('');
+    this.initiativeDropdownCountries.set([]);
+    this.initiativeDropdownTotalCount.set(0);
+    this.initiativeDropdownPage.set(1);
+    this.initiativeDropdownApiSearchTerm = '';
+  }
+
+  protected onInitiativeDropdownSearchInput(value: string): void {
+    const v = value ?? '';
+    this.initiativeDropdownSearchInput.set(v);
+    this.initiativeDropdownSearchSubject.next(v);
+  }
+
+  protected onInitiativeDropdownScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    if (
+      !el ||
+      !this.hasMoreInitiativeDropdownCountries() ||
+      this.isLoadingMoreInitiativeDropdownCountries() ||
+      this.isLoadingInitiativeDropdownCountries()
+    ) {
+      return;
+    }
+    const threshold = 80;
+    const atBottom =
+      el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+    if (atBottom) {
+      this.loadMoreInitiativeDropdownCountries();
     }
   }
 
-  protected goBackToSourceSelection(): void {
-    this.policySource.set(null);
-    this.selectedCountryId = null;
-    this.selectedCountry.set(null);
-    this.countryPickerOpen.set(true);
-    this.countrySearchTerm = '';
-    this.countriesPage.set(1);
-    this.initiatives.set([]);
-    this.initiativesTotalCount.set(0);
+  protected selectInitiativeFilterCountry(countryId: string | null): void {
+    const id = countryId?.trim() || null;
+    this.initiativesFilterCountryListId = id;
+    if (!id) {
+      this.initiativesFilterGaiinCountryId = null;
+      this.initiativeFilterSelectedCountryLabel.set(null);
+    } else {
+      const c = this.initiativeDropdownCountries().find((x) => x._id === id);
+      if (c) {
+        this.initiativesFilterGaiinCountryId = String(c.value);
+        this.initiativeFilterSelectedCountryLabel.set(c.label);
+      }
+    }
+    this.closeInitiativeCountryDropdown();
     this.initiativesPage.set(1);
-    this.initiativesSearchTerm.set('');
-    this.initiativesStartYear.set('');
-    this.initiativesCategory.set('');
-    this.initiativesIntergovernmentalOrgId.set('');
-    this.initiativesInitiativeTypeId.set('');
-    this.initiativesAiPrincipleId.set('');
-    this.initiativesAiTagId.set('');
-    this.selectedInitiativeIds.clear();
-    this.selectedInitiatives.set([]);
-    this.selectedInitiativeTotalCount.set(0);
-    this.resetForm();
+    if (this.includeInitiatives()) {
+      this.loadInitiatives();
+    }
+  }
+
+  protected loadInitiativeDropdownCountries(search?: string): void {
+    this.isLoadingInitiativeDropdownCountries.set(true);
+    this.initiativeDropdownPage.set(1);
+    this.countryService
+      .findMany(1, this.initiativeDropdownPageSize, search?.trim() || undefined)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.initiativeDropdownCountries.set(response.data);
+          this.initiativeDropdownTotalCount.set(response.totalCount);
+          this.initiativeDropdownPage.set(1);
+          this.isLoadingInitiativeDropdownCountries.set(false);
+        },
+        error: (error) => {
+          this.isLoadingInitiativeDropdownCountries.set(false);
+          console.error(
+            'Failed to load countries for initiative filter',
+            error,
+          );
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load countries. Please try again later.',
+            'Country fetch failed',
+          );
+        },
+      });
+  }
+
+  protected loadMoreInitiativeDropdownCountries(): void {
+    if (
+      !this.hasMoreInitiativeDropdownCountries() ||
+      this.isLoadingMoreInitiativeDropdownCountries() ||
+      this.isLoadingInitiativeDropdownCountries()
+    ) {
+      return;
+    }
+    const nextPage = this.initiativeDropdownPage() + 1;
+    this.isLoadingMoreInitiativeDropdownCountries.set(true);
+    this.countryService
+      .findMany(
+        nextPage,
+        this.initiativeDropdownPageSize,
+        this.initiativeDropdownApiSearchTerm?.trim() || undefined,
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.initiativeDropdownCountries.update((prev) => [
+            ...prev,
+            ...response.data,
+          ]);
+          this.initiativeDropdownPage.set(nextPage);
+          this.isLoadingMoreInitiativeDropdownCountries.set(false);
+        },
+        error: (error) => {
+          this.isLoadingMoreInitiativeDropdownCountries.set(false);
+          console.error(
+            'Failed to load more countries for initiative filter',
+            error,
+          );
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to load more countries. Please try again later.',
+            'Load more failed',
+          );
+        },
+      });
+  }
+
+  private setIncludeInitiatives(enabled: boolean): void {
+    this.includeInitiatives.set(enabled);
+    if (!enabled) {
+      this.closeInitiativeCountryDropdown();
+      this.initiativesFilterCountryListId = null;
+      this.initiativesFilterGaiinCountryId = null;
+      this.selectedInitiativeIds.clear();
+      this.selectedInitiatives.set([]);
+      this.selectedInitiativeTotalCount.set(0);
+      this.initiatives.set([]);
+      this.initiativesTotalCount.set(0);
+      this.initiativeFilterSelectedCountryLabel.set(null);
+      return;
+    }
+    this.initiativesPage.set(1);
+    this.loadIntergovernmentalOrganisations();
+    this.loadInitiativeTypes();
+    this.loadAiPrinciples();
+    this.loadAiTags();
+    this.loadInitiatives();
   }
 
   protected loadIntergovernmentalOrganisations(): void {
@@ -739,7 +1003,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => this.initiativesInitiativeTypes.set(response.data),
-        error: (error) => console.error('Failed to load initiative types', error),
+        error: (error) =>
+          console.error('Failed to load initiative types', error),
       });
   }
 
@@ -764,12 +1029,12 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   }
 
   protected loadInitiatives(): void {
-    const country = this.selectedCountry();
-    if (!country) {
+    if (!this.includeInitiatives()) {
       return;
     }
     this.isLoadingInitiatives.set(true);
-    const countryValue = String(country.value);
+    const gaiinFilter =
+      this.initiativesFilterGaiinCountryId?.trim() || undefined;
     this.initiativeService
       .findMany({
         page: this.initiativesPage(),
@@ -777,10 +1042,12 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
         term: this.initiativesSearchTerm().trim() || undefined,
         status: '',
         category: this.initiativesCategory().trim() || undefined,
-        gaiinCountryId: countryValue,
+        gaiinCountryId: gaiinFilter,
         startYear: this.initiativesStartYear().trim() || undefined,
-        intergovernmentalOrganisationId: this.initiativesIntergovernmentalOrgId().trim() || undefined,
-        initiativeTypeId: this.initiativesInitiativeTypeId().trim() || undefined,
+        intergovernmentalOrganisationId:
+          this.initiativesIntergovernmentalOrgId().trim() || undefined,
+        initiativeTypeId:
+          this.initiativesInitiativeTypeId().trim() || undefined,
         aiPrincipleId: this.initiativesAiPrincipleId().trim() || undefined,
         aiTagId: this.initiativesAiTagId().trim() || undefined,
         sortBy: 'createdAt',
@@ -800,7 +1067,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load policies. Please try again later.',
-            'Policies fetch failed'
+            'Policies fetch failed',
           );
         },
       });
@@ -829,7 +1096,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   protected onInitiativesFilterChange(filters: Record<string, string>): void {
     const startYear = filters['startYear'] ?? '';
     const category = filters['category'] ?? '';
-    const intergovernmentalOrganisationId = filters['intergovernmentalOrganisationId'] ?? '';
+    const intergovernmentalOrganisationId =
+      filters['intergovernmentalOrganisationId'] ?? '';
     const initiativeTypeId = filters['initiativeTypeId'] ?? '';
     const aiPrincipleId = filters['aiPrincipleId'] ?? '';
     const aiTagId = filters['aiTagId'] ?? '';
@@ -844,7 +1112,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
   }
 
   protected onInitiativeSelectionChange(
-    selectedRows: Array<Record<string, unknown>>
+    selectedRows: Array<Record<string, unknown>>,
   ): void {
     const currentPageIds = new Set(this.initiatives().map((i) => i._id));
     currentPageIds.forEach((id) => {
@@ -874,11 +1142,13 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           category: initiative.category ?? '—',
           status: initiative.status ?? '—',
           initiativeTypeId: initiative.initiativeType?.name ?? '—',
-          aiPrincipleId: initiative.principles?.map((p) => p.name).join(', ') ?? '—',
-          aiTagId: this.formatTagsForDisplay(initiative.tags),
-          intergovernmentalOrganisationId: initiative.intergovernmentalOrganisation ?? '—',
+          aiPrincipleId: this.formatPrinciplesForTable(initiative.principles),
+          aiTagId: this.formatTagsForTable(initiative.tags),
+          intergovernmentalOrganisationId:
+            initiative.intergovernmentalOrganisation ?? '—',
           responsibleOrganisation: initiative.responsibleOrganisation ?? '—',
-          startYear: initiative.startYear != null ? String(initiative.startYear) : '—',
+          startYear:
+            initiative.startYear != null ? String(initiative.startYear) : '—',
           createdAt: initiative.createdAt
             ? new Date(initiative.createdAt).toLocaleDateString()
             : '—',
@@ -888,19 +1158,49 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     this.selectedInitiatives.set(allSelectedRows);
   }
 
-  private truncateDescription(description: string | undefined, maxLength = 50): string {
+  /** Short character-limited summary for table cells (like description column). */
+  private formatPrinciplesForTable(
+    principles: Initiative['principles'],
+    maxLength = 60,
+  ): string {
+    if (!principles?.length) return '—';
+    const joined = principles
+      .map((p) => p.name)
+      .filter((n) => n != null && String(n).trim() !== '')
+      .join(', ');
+    return this.truncateChars(joined, maxLength) || '—';
+  }
+
+  private truncateChars(
+    text: string | undefined | null,
+    maxLength: number,
+  ): string {
+    if (text == null) return '';
+    const trimmed = String(text).trim();
+    if (!trimmed) return '';
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.slice(0, maxLength) + '...';
+  }
+
+  private truncateDescription(
+    description: string | undefined,
+    maxLength = 50,
+  ): string {
     if (description == null || description === '') return '—';
     const trimmed = description.trim();
     if (trimmed.length <= maxLength) return trimmed;
     return trimmed.slice(0, maxLength) + '...';
   }
 
-  private formatTagsForDisplay(tags: unknown): string {
+  private formatTagsForTable(tags: unknown, maxLength = 60): string {
     if (!Array.isArray(tags) || tags.length === 0) return '—';
     const names = tags.map((t) =>
-      t != null && typeof t === 'object' && 'name' in t ? String((t as { name: unknown }).name) : String(t)
+      t != null && typeof t === 'object' && 'name' in t
+        ? String((t as { name: unknown }).name)
+        : String(t),
     );
-    return names.filter(Boolean).join(', ') || '—';
+    const joined = names.filter(Boolean).join(', ');
+    return this.truncateChars(joined, maxLength) || '—';
   }
 
   protected get initiativeTableRows(): Array<Record<string, unknown>> {
@@ -911,11 +1211,13 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       category: initiative.category ?? '—',
       status: initiative.status ?? '—',
       initiativeTypeId: initiative.initiativeType?.name ?? '—',
-      aiPrincipleId: initiative.principles?.map((p) => p.name).join(', ') ?? '—',
-      aiTagId: this.formatTagsForDisplay(initiative.tags),
-      intergovernmentalOrganisationId: initiative.intergovernmentalOrganisation ?? '—',
+      aiPrincipleId: this.formatPrinciplesForTable(initiative.principles),
+      aiTagId: this.formatTagsForTable(initiative.tags),
+      intergovernmentalOrganisationId:
+        initiative.intergovernmentalOrganisation ?? '—',
       responsibleOrganisation: initiative.responsibleOrganisation ?? '—',
-      startYear: initiative.startYear != null ? String(initiative.startYear) : '—',
+      startYear:
+        initiative.startYear != null ? String(initiative.startYear) : '—',
       createdAt: initiative.createdAt
         ? new Date(initiative.createdAt).toLocaleDateString()
         : '—',
@@ -933,41 +1235,6 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
     if (id) {
       this.router.navigate(['/dashboard/initiative', id]);
     }
-  }
-
-  private createPolicyFromInitiativesWithAnalysisType(
-    analysisType: 'quick' | 'detailed'
-  ): void {
-    this.isGenerating.set(true);
-    const request = {
-      source: 'initiative' as const,
-      initiatives: Array.from(this.selectedInitiativeIds),
-      analysisType,
-    };
-    this.policyService
-      .createFromInitiatives(request)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (policy) => {
-          this.isGenerating.set(false);
-          this.notifications.success(
-            'Policy generated successfully!',
-            'Success'
-          );
-          // Pass created policy id via service; library will call findOne. Navigate by URL (no query params).
-          this.policyCreatedService.setCreatedPolicy(policy._id, 'initiativeLibrary');
-          this.router.navigateByUrl('/dashboard/initiative-library');
-        },
-        error: (error) => {
-          this.isGenerating.set(false);
-          console.error('Failed to generate policy from initiatives', error);
-          this.notifications.danger(
-            error.error?.message ||
-              'Unable to generate policy. Please try again later.',
-            'Policy Generation Failed'
-          );
-        },
-      });
   }
 
   protected openCountryPicker(): void {
@@ -997,7 +1264,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load countries. Please try again later.',
-            'Country fetch failed'
+            'Country fetch failed',
           );
         },
       });
@@ -1017,7 +1284,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       .findMany(
         nextPage,
         this.countriesPageSize,
-        this.countrySearchTerm?.trim() || undefined
+        this.countrySearchTerm?.trim() || undefined,
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -1032,7 +1299,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load more countries. Please try again later.',
-            'Load more failed'
+            'Load more failed',
           );
         },
       });
@@ -1067,6 +1334,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       this.initiativesAiTagId.set('');
       this.selectedInitiativeIds.clear();
       this.selectedInitiatives.set([]);
+      this.selectedInitiativeTotalCount.set(0);
       return;
     }
     const country = this.countries().find((c) => c._id === countryId);
@@ -1085,16 +1353,15 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       this.selectedInitiativeIds.clear();
       this.selectedInitiatives.set([]);
       this.selectedInitiativeTotalCount.set(0);
-      this.loadIntergovernmentalOrganisations();
-      this.loadInitiativeTypes();
-      this.loadAiPrinciples();
-      this.loadAiTags();
-      this.loadInitiatives();
+      this.initiatives.set([]);
+      this.initiativesTotalCount.set(0);
     }
   }
 
   protected getInitiativeTitle(initiative: Initiative): string {
-    return initiative.englishName ?? initiative.description?.slice(0, 80) ?? '—';
+    return (
+      initiative.englishName ?? initiative.description?.slice(0, 80) ?? '—'
+    );
   }
 
   protected getInitiativesTotalPages(): number {
@@ -1119,7 +1386,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load domains. Please try again later.',
-            'Domain fetch failed'
+            'Domain fetch failed',
           );
         },
       });

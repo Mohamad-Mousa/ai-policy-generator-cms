@@ -185,7 +185,7 @@
     } @else if (viewMode === 'assessments') {
       <!-- Assessments List View -->
       <div class="assessments-view">
-        <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
           <button
             type="button"
             class="btn btn-link text-decoration-none p-0 d-flex align-items-center"
@@ -194,6 +194,17 @@
             <span class="material-symbols-rounded me-2">arrow_back</span>
             <span>Back to AI Readiness Assessment</span>
           </button>
+          @if (hasPolicyGeneratorAccess()) {
+          <app-button
+            label="Policy Generator"
+            size="sm"
+            variant="outline"
+            icon="auto_awesome"
+            [functionKey]="policiesFunctionKey"
+            [privilegeAccess]="policiesWritePrivilege"
+            (click)="goToPolicyGenerator()"
+          ></app-button>
+          }
         </div>
 
         @if (selectedDomainFromState) {
@@ -256,6 +267,16 @@
                         @if (assessment.description) {
                           <p class="text-muted small mb-2">{{ assessment.description }}</p>
                         }
+                        <div class="assessment-scores mb-2">
+                          <div class="assessment-score-pill">
+                            <span class="assessment-score-label">Score avg (1–5)</span>
+                            <span class="assessment-score-value">{{ assessment.scoreAvg }}</span>
+                          </div>
+                          <div class="assessment-score-pill">
+                            <span class="assessment-score-label">Score %</span>
+                            <span class="assessment-score-value">{{ assessment.scorePercentage }}</span>
+                          </div>
+                        </div>
                         <div class="mb-2">
                           <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="text-muted small">Progress</span>
@@ -314,6 +335,16 @@
                         @if (assessment.description) {
                           <p class="text-muted small mb-2">{{ assessment.description }}</p>
                         }
+                        <div class="assessment-scores mb-2">
+                          <div class="assessment-score-pill">
+                            <span class="assessment-score-label">Score avg (1–5)</span>
+                            <span class="assessment-score-value">{{ assessment.scoreAvg }}</span>
+                          </div>
+                          <div class="assessment-score-pill">
+                            <span class="assessment-score-label">Score %</span>
+                            <span class="assessment-score-value">{{ assessment.scorePercentage }}</span>
+                          </div>
+                        </div>
                         <div class="mb-2">
                           <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="text-muted small">Progress</span>

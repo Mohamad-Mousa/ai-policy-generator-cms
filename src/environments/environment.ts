@@ -5,7 +5,9 @@
 export const environment = {
   production: false,
   ApiUrl: 'http://localhost:3000/api/v1',
-  IMG_URL: 'http://localhost:3000/'
+  IMG_URL: 'http://localhost:3000/',
+  /** Public assessment page on the CMS dev server (see `public/Assessment` route alias). */
+  publicAssessmentShareBaseUrl: 'http://localhost:4200/public/Assessment',
 };
 
 /*

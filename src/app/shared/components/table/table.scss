@@ -6,6 +6,8 @@
   padding: 1rem;
   // Allow parent to constrain height (e.g. initiatives scroll wrapper)
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .table-wrapper.is-loading {
@@ -18,8 +20,11 @@
 }
 
 .table-responsive {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
   margin-top: 0;
+  max-width: 100%;
 }
 
 table {
@@ -27,11 +32,6 @@ table {
 }
 
 @media (max-width: 992px) {
-  .table-responsive {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
   table {
     min-width: 720px;
   }

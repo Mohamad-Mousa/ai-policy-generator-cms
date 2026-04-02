@@ -1,11 +1,16 @@
-import { Component, Input, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
 import { TableComponent, TableColumn } from '@shared/components/table/table';
 import { DialogComponent } from '@shared/components/dialog/dialog';
-import { PolicyService, PolicyCreatedService, Policy } from '@shared/services';
+import {
+  PolicyService,
+  PolicyCreatedService,
+  Policy,
+  PolicyInitiative,
+} from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
 import { Subject } from 'rxjs';
@@ -17,6 +22,7 @@ import { takeUntil, filter, take } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     ButtonComponent,
     TableComponent,
     DialogComponent,
@@ -26,9 +32,6 @@ import { takeUntil, filter, take } from 'rxjs/operators';
 })
 export class PolicyLibraryComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
-
-  /** 'assessments' = Assessments Policy Library, 'initiatives' = Initiative Policy Library */
-  @Input() libraryType: 'assessments' | 'initiatives' = 'assessments';
 
   protected policies = signal<Policy[]>([]);
   protected isLoading = signal(false);
@@ -52,28 +55,18 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   protected readonly functionKey = 'policies';
   protected readonly deletePrivilege = PrivilegeAccess.D;
 
-  /** Columns for Assessments Policy Library (source = assessments) */
-  protected readonly assessmentTableColumns: TableColumn[] = [
+  protected readonly tableColumns: TableColumn[] = [
+    { label: 'Country', key: 'countryLabel', sortable: false, filterable: false },
     { label: 'Sector', key: 'sector', sortable: true, filterable: false },
     { label: 'Organization Size', key: 'organizationSize', sortable: true, filterable: true },
     { label: 'Risk Appetite', key: 'riskAppetite', sortable: true, filterable: true },
     { label: 'Implementation Timeline', key: 'implementationTimeline', sortable: true, filterable: true },
     { label: 'Domains', key: 'domainsCount', sortable: false },
     { label: 'Assessments', key: 'assessmentsCount', sortable: false },
-    { label: 'Created At', key: 'createdAt', sortable: true },
-  ];
-
-  /** Columns for Initiative Policy Library (source = initiative): initiatives, analysis type, readiness, created */
-  protected readonly initiativeTableColumns: TableColumn[] = [
     { label: 'Initiatives', key: 'initiativesSummary', sortable: false },
     { label: 'Analysis Type', key: 'analysisType', sortable: true, filterable: true },
-    { label: 'Readiness Score', key: 'readinessScore', sortable: true },
     { label: 'Created At', key: 'createdAt', sortable: true },
   ];
-
-  protected get tableColumns(): TableColumn[] {
-    return this.libraryType === 'initiatives' ? this.initiativeTableColumns : this.assessmentTableColumns;
-  }
 
   constructor(
     private policyService: PolicyService,
@@ -85,16 +78,12 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPolicies();
 
-    const expectedTab =
-      this.libraryType === 'initiatives' ? 'initiativeLibrary' : 'library';
-
-    // Show created policy on success: subscribe for policyId, then call findOne (no policyId in URL)
     this.policyCreatedService
       .getCreatedPolicy$()
       .pipe(
         filter(
           (payload): payload is NonNullable<typeof payload> =>
-            payload != null && payload.tab === expectedTab,
+            payload != null && payload.tab === 'library',
         ),
         take(1),
         takeUntil(this.destroy$),
@@ -113,13 +102,6 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   protected loadPolicies(): void {
     this.isLoading.set(true);
 
-    const filters: Record<string, string> = {};
-    if (this.libraryType === 'initiatives') {
-      filters['source'] = 'initiative';
-    } else if (this.libraryType === 'assessments') {
-      filters['source'] = 'assessment';
-    }
-
     this.policyService
       .findMany(
         this.currentPage(),
@@ -127,7 +109,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
         this.searchTerm() || undefined,
         undefined,
         undefined,
-        Object.keys(filters).length > 0 ? filters : undefined,
+        undefined,
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -171,14 +153,9 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected get tableRows(): Array<Record<string, unknown>> {
-    return this.libraryType === 'initiatives'
-      ? this.initiativeTableRows()
-      : this.assessmentTableRows();
-  }
-
-  private assessmentTableRows(): Array<Record<string, unknown>> {
     return this.policies().map((policy) => ({
       _id: policy._id,
+      countryLabel: this.formatPolicyCountry(policy),
       sector: policy.sector || '—',
       organizationSize: policy.organizationSize || '—',
       riskAppetite: policy.riskAppetite || '—',
@@ -203,6 +180,13 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
         }
         return '0 assessments';
       })(),
+      initiativesSummary: this.formatInitiativesSummary(policy),
+      analysisType:
+        policy.analysisType === 'detailed'
+          ? 'Detailed'
+          : policy.analysisType === 'quick'
+            ? 'Quick'
+            : '—',
       createdAt: policy.createdAt
         ? new Date(policy.createdAt).toLocaleDateString()
         : '—',
@@ -210,36 +194,71 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     }));
   }
 
-  private initiativeTableRows(): Array<Record<string, unknown>> {
-    return this.policies().map((policy) => {
-      const initiatives = policy.initiatives ?? [];
-      const count = initiatives.length;
-      const names = initiatives
-        .slice(0, 3)
-        .map((i) => i.englishName || i.originalName || '—')
-        .filter(Boolean);
-      const summary =
-        count === 0
-          ? '—'
-          : count <= 3
-            ? names.join(', ')
-            : `${names.join(', ')} +${count - 3} more`;
-      const readinessScore =
-        policy.analysis?.overallReadiness?.score != null
-          ? String(policy.analysis.overallReadiness.score)
-          : '—';
-      return {
-        _id: policy._id,
-        initiativesSummary: summary,
-        initiativesCount: count,
-        analysisType: policy.analysisType === 'detailed' ? 'Detailed' : policy.analysisType === 'quick' ? 'Quick' : '—',
-        readinessScore,
-        createdAt: policy.createdAt
-          ? new Date(policy.createdAt).toLocaleDateString()
-          : '—',
-        policy: policy,
-      };
-    });
+  private readonly initiativeDetailBodyMaxLength = 320;
+
+  protected initiativeDetailTitle(i: PolicyInitiative): string {
+    const t = (i.englishName || i.originalName || '').trim();
+    return t || '—';
+  }
+
+  /** Original-language name when it differs from the English title. */
+  protected initiativeAlternateName(i: PolicyInitiative): string | null {
+    const en = i.englishName?.trim();
+    const orig = i.originalName?.trim();
+    if (en && orig && orig !== en) {
+      return orig;
+    }
+    return null;
+  }
+
+  protected hasInitiativeNarrative(i: PolicyInitiative): boolean {
+    return !!(i.description?.trim() || i.overview?.trim());
+  }
+
+  protected initiativeNarrativePreview(i: PolicyInitiative): string {
+    const raw =
+      i.description?.trim() || i.overview?.trim() || '';
+    return this.truncateChars(raw, this.initiativeDetailBodyMaxLength);
+  }
+
+  protected formatPolicyCountry(policy: Policy): string {
+    const c = policy.country;
+    if (c == null) return '—';
+    if (typeof c === 'object' && '_id' in c) {
+      return (c as { label?: string }).label || (c as { _id: string })._id;
+    }
+    return String(c);
+  }
+
+  /** Per-title cap in the list view; full cell capped via {@link initiativesSummaryMaxLength}. */
+  private readonly initiativeTitleDisplayMaxLength = 48;
+  private readonly initiativesSummaryMaxLength = 120;
+
+  private truncateChars(text: string, maxLength: number): string {
+    const trimmed = text.trim();
+    if (!trimmed) return '';
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.slice(0, maxLength) + '...';
+  }
+
+  private formatInitiativesSummary(policy: Policy): string {
+    const initiatives = policy.initiatives ?? [];
+    const count = initiatives.length;
+    if (count === 0) return '—';
+    const names = initiatives
+      .slice(0, 3)
+      .map((i) => {
+        const raw = (i.englishName || i.originalName || '').trim();
+        if (!raw) return '—';
+        return this.truncateChars(raw, this.initiativeTitleDisplayMaxLength);
+      })
+      .filter(Boolean);
+    const joined = names.join(', ');
+    const withMore =
+      count <= 3 ? joined : `${joined} +${count - 3} more`;
+    return (
+      this.truncateChars(withMore, this.initiativesSummaryMaxLength) || '—'
+    );
   }
 
   protected selectPolicy(policy: Policy) {
@@ -437,9 +456,6 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
 
   protected readonly Math = Math;
 
-  protected get libraryEmptyMessage(): string {
-    return this.libraryType === 'initiatives'
-      ? 'No initiative-based policies found. Generate a policy from the Policy Generator using verified policies.'
-      : 'No policies found. Create your first policy using the Policy Generator.';
-  }
+  protected readonly libraryEmptyMessage =
+    'No policies found. Create a policy using the Policy Generator.';
 }

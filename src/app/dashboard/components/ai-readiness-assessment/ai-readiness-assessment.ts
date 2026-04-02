@@ -6,9 +6,10 @@ import { LoaderComponent } from '@shared/components/loader/loader';
 import { PrivilegeAccess } from '@shared/enums';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Domain } from '@shared/interfaces';
+import { Domain, domainScoreOrZero } from '@shared/interfaces';
 import { AuthService, DomainService, AssessmentService } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
+import { publicAssessmentShareUrl } from '@shared/utils/public-assessment-share-url';
 
 interface DomainCard {
   id: string;
@@ -17,6 +18,8 @@ interface DomainCard {
   icon?: string;
   completed: boolean;
   progress: number;
+  scoreAvg: number;
+  scorePercentage: number;
   payload: Domain;
 }
 
@@ -38,8 +41,10 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
 
   protected readonly functionKey = 'questions';
   protected readonly domainsFunctionKey = 'domains';
+  protected readonly policiesFunctionKey = 'policies';
   protected readonly writePrivilege = PrivilegeAccess.W;
   protected readonly readPrivilege = PrivilegeAccess.R;
+  protected readonly policiesWritePrivilege = PrivilegeAccess.W;
 
   constructor(
     private router: Router,
@@ -65,6 +70,19 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected hasPolicyGeneratorAccess(): boolean {
+    return this.authService.hasPrivilege(
+      this.policiesFunctionKey,
+      PrivilegeAccess.W
+    );
+  }
+
+  protected goToPolicyGenerator(): void {
+    this.router.navigate(['/dashboard/policy-generator'], {
+      state: { policyGeneratorReset: true },
+    });
+  }
+
   protected goToDomains() {
     this.router.navigate(['/dashboard/domains']);
   }
@@ -76,6 +94,27 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedDomain.set(domain);
+  }
+
+  protected copyPublicShareLink(event: MouseEvent, domain: DomainCard): void {
+    event.stopPropagation();
+    void this.copyPublicAssessmentShareLink(domain.id);
+  }
+
+  private async copyPublicAssessmentShareLink(domainId: string): Promise<void> {
+    const url = publicAssessmentShareUrl(domainId);
+    try {
+      await navigator.clipboard.writeText(url);
+      this.notifications.success(
+        'Respondents can open this link without signing in.',
+        'Public link copied'
+      );
+    } catch {
+      this.notifications.warning(
+        url,
+        'Copy blocked — copy the link from this message'
+      );
+    }
   }
 
   protected startNewAssessment() {
@@ -152,13 +191,16 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   }
 
   private mapDomain(domain: Domain): DomainCard {
+    const scorePercentage = domainScoreOrZero(domain.scorePercentage);
     return {
       id: domain._id,
       title: domain.title,
       description: domain.description,
       icon: domain.icon || 'category',
       completed: false,
-      progress: 0,
+      progress: Math.min(100, Math.max(0, scorePercentage)),
+      scoreAvg: domainScoreOrZero(domain.scoreAvg),
+      scorePercentage,
       payload: domain,
     };
   }

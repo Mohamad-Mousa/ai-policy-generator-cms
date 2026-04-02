@@ -17,13 +17,9 @@ import {
   DialogButton,
   DialogComponent,
 } from '@shared/components/dialog/dialog';
-import {
-  QuestionService,
-  AssessmentService,
-  SubdomainService,
-} from '@shared/services';
-import { Subject, forkJoin, of } from 'rxjs';
-import { map, switchMap, takeUntil } from 'rxjs/operators';
+import { QuestionService, AssessmentService } from '@shared/services';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 interface AssessmentDomain {
   id: string;
@@ -322,7 +318,6 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     private notifications: NotificationService,
     private questionService: QuestionService,
     private assessmentService: AssessmentService,
-    private subdomainService: SubdomainService,
   ) {}
 
   ngOnInit(): void {
@@ -1020,99 +1015,81 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   private loadQuestionsForDomain(domainId: string): void {
     this.isLoadingQuestions.set(true);
-    this.subdomainService
-      .findMany(1, 200, undefined, 'title', 'asc', {
+    this.questionService
+      .findMany(1, 2000, undefined, undefined, undefined, {
         domain: domainId,
         isActive: 'true',
       })
-      .pipe(
-        switchMap((subRes) => {
-          const ids = subRes.data.map((s) => s._id);
-          if (ids.length === 0) {
-            return of({ data: [] as DbQuestion[] });
-          }
-          return forkJoin(
-            ids.map((sid) =>
-              this.questionService.findMany(1, 500, undefined, undefined, undefined, {
-                subdomain: sid,
-                isActive: 'true',
-              }),
-            ),
-          ).pipe(
-            map((responses) => {
-              const merged = responses.flatMap((r) => r.data);
-              const byId = new Map<string, DbQuestion>();
-              merged.forEach((q) => byId.set(q._id, q));
-              return { data: [...byId.values()] };
-            }),
-          );
-        }),
-        takeUntil(this.destroy$),
-      )
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          this.isLoadingQuestions.set(false);
-          const domain = this.selectedDomain;
-          if (!domain) {
-            return;
-          }
-
-          const assessmentQuestions: Question[] = response.data.map(
-            (dbQuestion) => ({
-              id: dbQuestion._id,
-              text: dbQuestion.question,
-              type: dbQuestion.type || 'text',
-              required: true,
-              answers:
-                questionAnswerOptionLabels(dbQuestion.answers) ?? undefined,
-              min: dbQuestion.min,
-              max: dbQuestion.max,
-              answer: undefined,
-              evidenceFiles: undefined,
-            }),
-          );
-
-          const assessmentDomain: AssessmentDomain = {
-            id: domain._id,
-            name: domain.title,
-            description: domain.description || '',
-            icon: domain.icon || 'category',
-            completed: false,
-            progress: 0,
-            questions: assessmentQuestions,
-          };
-
-          this.assessment.domains = [assessmentDomain];
-
-          if (this.pendingAnswers && this.pendingAnswers.length > 0) {
-            this.patchAnswersFromAssessment(this.pendingAnswers);
-          } else {
-            this.calculateProgress();
-          }
-        },
-        error: (error) => {
-          this.isLoadingQuestions.set(false);
-          console.error('Failed to load questions', error);
-          this.notifications.danger(
-            error.error?.message ||
-              'Unable to load questions for this domain. Please try again.',
-            'Questions fetch failed',
-          );
-          const domain = this.selectedDomain;
-          if (domain) {
-            const assessmentDomain: AssessmentDomain = {
-              id: domain._id,
-              name: domain.title,
-              description: domain.description || '',
-              icon: domain.icon || 'category',
-              completed: false,
-              progress: 0,
-              questions: [],
-            };
-            this.assessment.domains = [assessmentDomain];
-          }
-        },
+        next: (response) => this.applyLoadedQuestionsForDomain(response.data),
+        error: (error) => this.onLoadQuestionsError(error),
       });
+  }
+
+  private applyLoadedQuestionsForDomain(rows: DbQuestion[]): void {
+    this.isLoadingQuestions.set(false);
+    const domain = this.selectedDomain;
+    if (!domain) {
+      return;
+    }
+
+    const byId = new Map<string, DbQuestion>();
+    rows.forEach((q) => byId.set(q._id, q));
+    const unique = [...byId.values()];
+
+    const assessmentQuestions: Question[] = unique.map((dbQuestion) => ({
+      id: dbQuestion._id,
+      text: dbQuestion.question,
+      type: dbQuestion.type || 'text',
+      required: true,
+      answers: questionAnswerOptionLabels(dbQuestion.answers) ?? undefined,
+      min: dbQuestion.min,
+      max: dbQuestion.max,
+      answer: undefined,
+      evidenceFiles: undefined,
+    }));
+
+    const assessmentDomain: AssessmentDomain = {
+      id: domain._id,
+      name: domain.title,
+      description: domain.description || '',
+      icon: domain.icon || 'category',
+      completed: false,
+      progress: 0,
+      questions: assessmentQuestions,
+    };
+
+    this.assessment.domains = [assessmentDomain];
+
+    if (this.pendingAnswers && this.pendingAnswers.length > 0) {
+      this.patchAnswersFromAssessment(this.pendingAnswers);
+    } else {
+      this.calculateProgress();
+    }
+  }
+
+  private onLoadQuestionsError(error: unknown): void {
+    this.isLoadingQuestions.set(false);
+    console.error('Failed to load questions', error);
+    this.notifications.danger(
+      (error as { error?: { message?: string } })?.error?.message ||
+        'Unable to load questions for this domain. Please try again.',
+      'Questions fetch failed',
+    );
+    const domain = this.selectedDomain;
+    if (domain) {
+      const assessmentDomain: AssessmentDomain = {
+        id: domain._id,
+        name: domain.title,
+        description: domain.description || '',
+        icon: domain.icon || 'category',
+        completed: false,
+        progress: 0,
+        questions: [],
+      };
+      this.assessment.domains = [assessmentDomain];
+    }
   }
 
   private buildAssessmentDomain(domain: Domain): AssessmentDomain {

@@ -1,11 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
-export type PolicyCreatedTab = 'library' | 'initiativeLibrary';
-
 export interface CreatedPolicyPayload {
   policyId: string;
-  tab: PolicyCreatedTab;
+  tab: 'library';
 }
 
 @Injectable({ providedIn: 'root' })
@@ -13,7 +11,7 @@ export class PolicyCreatedService {
   /** Emits when a policy is created; library subscribes and calls findOne(policyId). */
   private readonly createdPolicy$ = new BehaviorSubject<CreatedPolicyPayload | null>(null);
 
-  setCreatedPolicy(policyId: string, tab: PolicyCreatedTab): void {
+  setCreatedPolicy(policyId: string, tab: 'library' = 'library'): void {
     this.createdPolicy$.next({ policyId, tab });
   }
 

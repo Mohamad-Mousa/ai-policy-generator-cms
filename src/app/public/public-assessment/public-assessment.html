@@ -1,0 +1,144 @@
+<div class="public-assessment-page py-4 py-md-5">
+  <div class="container public-assessment-inner">
+    @if (isLoading()) {
+    <div class="text-center py-5 text-muted">
+      <app-loader size="lg" variant="inline" label="Loading assessment…"></app-loader>
+    </div>
+    } @else if (loadError()) {
+    <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
+    } @else if (submitted()) {
+    <div class="card border-0 shadow-sm text-center py-5">
+      <div class="card-body">
+        <span class="material-symbols-rounded text-success mb-3 d-block" style="font-size: 3rem;">check_circle</span>
+        <h1 class="h4 mb-2">Thank you</h1>
+        <p class="text-muted mb-0">Your responses have been submitted successfully.</p>
+        <p class="text-muted small mt-3 mb-0">You can only submit once on this browser. Closing the tab and opening this link again will still show this confirmation.</p>
+      </div>
+    </div>
+    } @else {
+    <header class="mb-4">
+      <p class="text-uppercase text-muted small fw-semibold mb-1">Public assessment</p>
+      <h1 class="h3 mb-2">{{ domainMeta?.title }}</h1>
+      @if (domainMeta?.description) {
+      <p class="text-muted mb-0">{{ domainMeta?.description }}</p>
+      }
+    </header>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">Your details</h2>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Assessment title</label>
+            <input type="text" class="form-control" [value]="assessmentTitle" readonly
+              title="Set by the organization for this domain" [disabled]="isSubmitting()" />
+            <div class="form-text">This title is predefined for assessments in this domain.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Full name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="fullName" name="fullName"
+              placeholder="Your full name" autocomplete="name" [disabled]="isSubmitting()" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="text" class="form-control" [(ngModel)]="assessmentDescription" name="assessmentDescription"
+              placeholder="Short note about this assessment" [disabled]="isSubmitting()" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">Questions</h2>
+        @if (questions.length === 0) {
+        <div class="alert alert-info mb-0">There are no questions for this domain yet.</div>
+        } @else {
+        <div class="questions-list">
+          @for (question of questions; track question.id) {
+          <div class="question-block mb-4 pb-4 border-bottom border-light-subtle">
+            <label class="form-label fw-semibold mb-2">
+              {{ question.text }}
+              @if (question.required) {
+              <span class="text-danger">*</span>
+              }
+            </label>
+
+            @switch (question.type) {
+            @case ('text') {
+            <textarea class="form-control" rows="4" placeholder="Your answer"
+              [(ngModel)]="question.answer" [name]="'ta-' + question.id" [disabled]="isSubmitting()"></textarea>
+            }
+            @case ('radio') {
+            @if (question.options && question.options.length > 0) {
+            <div class="d-flex flex-column gap-2">
+              @for (opt of question.options; track opt) {
+              <div class="form-check">
+                <input class="form-check-input" type="radio" [name]="'radio-' + question.id"
+                  [id]="'radio-' + question.id + '-' + $index" [value]="opt" [(ngModel)]="question.answer"
+                  [disabled]="isSubmitting()" />
+                <label class="form-check-label" [for]="'radio-' + question.id + '-' + $index">{{ opt }}</label>
+              </div>
+              }
+            </div>
+            } @else {
+            <input type="text" class="form-control" [(ngModel)]="question.answer" [name]="'rfree-' + question.id"
+              [disabled]="isSubmitting()" />
+            }
+            }
+            @case ('checkbox') {
+            @if (question.options && question.options.length > 0) {
+            <div class="d-flex flex-column gap-2">
+              @for (opt of question.options; track opt) {
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'cb-' + question.id + '-' + $index"
+                  [checked]="isAnswerSelected(question.answer, opt)"
+                  (change)="onCheckboxChange($event, question, opt)" [disabled]="isSubmitting()" />
+                <label class="form-check-label" [for]="'cb-' + question.id + '-' + $index">{{ opt }}</label>
+              </div>
+              }
+            </div>
+            } @else {
+            <input type="text" class="form-control" [(ngModel)]="question.answer" [name]="'cfree-' + question.id"
+              [disabled]="isSubmitting()" />
+            }
+            }
+            @case ('number') {
+            <input type="number" class="form-control" [min]="question.min" [max]="question.max"
+              [value]="question.answer ?? ''"
+              (input)="onNumberChange(question, $any($event.target).value)" [disabled]="isSubmitting()" />
+            @if (question.min !== undefined || question.max !== undefined) {
+            <small class="text-muted">
+              @if (question.min !== undefined && question.max !== undefined) {
+              Range: {{ question.min }} – {{ question.max }}
+              } @else if (question.min !== undefined) {
+              Minimum: {{ question.min }}
+              } @else {
+              Maximum: {{ question.max }}
+              }
+            </small>
+            }
+            }
+            @default {
+            <textarea class="form-control" rows="4" [(ngModel)]="question.answer" [name]="'def-' + question.id"
+              [disabled]="isSubmitting()"></textarea>
+            }
+            }
+          </div>
+          }
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end">
+          <button type="button" class="btn btn-primary px-4" (click)="submit()" [disabled]="isSubmitting()">
+            @if (isSubmitting()) {
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Submit assessment
+          </button>
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </div>
+</div>

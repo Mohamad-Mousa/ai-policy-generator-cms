@@ -17,8 +17,14 @@ export { AiTagService } from './ai-tag.service';
 export type { UserLog, UserLogPaginatedResponse } from './user-log.service';
 export type {
   Policy,
+  PolicyInitiative,
   PolicyPaginatedResponse,
   CreatePolicyRequest,
-  CreatePolicyFromInitiativesRequest,
 } from './policy.service';
 export { SettingService } from './setting.service';
+export { PublicAssessmentService } from './public-assessment.service';
+export type {
+  PublicDomainBrief,
+  PublicQuestionsByDomainResult,
+  PublicSubmitAssessmentRequest,
+} from './public-assessment.service';

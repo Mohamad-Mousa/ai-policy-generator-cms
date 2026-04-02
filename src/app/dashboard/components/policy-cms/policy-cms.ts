@@ -21,7 +21,7 @@ import { PolicyLibraryComponent } from '../policy-library/policy-library';
 })
 export class PolicyCmsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
-  protected activeTab: 'generator' | 'library' | 'initiativeLibrary' = 'generator';
+  protected activeTab: 'generator' | 'library' = 'generator';
 
   constructor(
     private router: Router,
@@ -47,9 +47,7 @@ export class PolicyCmsComponent implements OnInit, OnDestroy {
   /** Set active tab from current URL path (no query params). */
   private updateActiveTabFromUrl(): void {
     const url = this.router.url;
-    if (url.includes('initiative-library') && this.canViewLibrary()) {
-      this.activeTab = 'initiativeLibrary';
-    } else if (url.includes('policy-library') && this.canViewLibrary()) {
+    if (url.includes('policy-library') && this.canViewLibrary()) {
       this.activeTab = 'library';
     } else if (this.canViewGenerator()) {
       this.activeTab = 'generator';
@@ -59,17 +57,13 @@ export class PolicyCmsComponent implements OnInit, OnDestroy {
   }
 
   /** User clicked a tab: clear created-policy state so list shows, then navigate by URL. */
-  protected setActiveTab(
-    tab: 'generator' | 'library' | 'initiativeLibrary'
-  ): void {
+  protected setActiveTab(tab: 'generator' | 'library'): void {
     this.policyCreatedService.clearCreatedPolicy();
     this.activeTab = tab;
     const path =
       tab === 'library'
         ? '/dashboard/policy-library'
-        : tab === 'initiativeLibrary'
-          ? '/dashboard/initiative-library'
-          : '/dashboard/policy-generator';
+        : '/dashboard/policy-generator';
     this.router.navigateByUrl(path);
   }
 
@@ -83,5 +77,3 @@ export class PolicyCmsComponent implements OnInit, OnDestroy {
     return this.authService.hasPrivilege('policies', PrivilegeAccess.R);
   }
 }
-
-
