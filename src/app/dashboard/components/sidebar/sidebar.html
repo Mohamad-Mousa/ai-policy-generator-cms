@@ -44,13 +44,14 @@
           <a
             class="nav-tile w-100 text-start"
             [routerLink]="tab.absolute ? ['/', tab.path] : ['/dashboard', tab.path]"
-            routerLinkActive="active"
+            routerLinkActive
             [routerLinkActiveOptions]="{ exact: true }"
             #rla="routerLinkActive"
+            [class.active]="navTileActive(tab, rla)"
             [attr.title]="isCollapsed ? tab.label : null"
             (click)="handleNavSelection()"
           >
-            <span class="material-symbols-rounded nav-icon" [class.active]="rla.isActive">
+            <span class="material-symbols-rounded nav-icon" [class.active]="navTileActive(tab, rla)">
               {{ tab.icon }}
             </span>
             @if (!isCollapsed) {
@@ -58,7 +59,9 @@
                 <p class="mb-1 fw-bold">{{ tab.label }}</p>
                 <small class="text-muted">{{ tab.description }}</small>
               </div>
-              <span class="chevron ms-auto">&rsaquo;</span>
+              <span class="chevron ms-auto" aria-hidden="true">
+                <span class="material-symbols-rounded chevron-icon">chevron_right</span>
+              </span>
             }
           </a>
         }

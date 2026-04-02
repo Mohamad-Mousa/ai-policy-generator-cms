@@ -29,6 +29,15 @@ export interface TableColumn {
   sortable?: boolean;
 }
 
+/** Extra items shown in the row actions menu after the standard CRUD actions. */
+export interface TableAdditionalAction {
+  id: string;
+  label: string;
+  icon: string;
+  /** Defaults to read access when `functionKey` is set. */
+  privilegeAccess?: PrivilegeAccess;
+}
+
 type ActionKey = 'canRead' | 'canWrite' | 'canEdit' | 'canDelete';
 
 @Component({
@@ -68,6 +77,7 @@ export class TableComponent implements OnDestroy, OnChanges {
   @Input() selectedRows: Array<string | number> = [];
   @Input() currentPageInput?: number;
   @Input() pageSizeInput?: number;
+  @Input() additionalActions: TableAdditionalAction[] = [];
   @Output() pageChange = new EventEmitter<number>();
   @Output() limitChange = new EventEmitter<number>();
   @Output() searchChange = new EventEmitter<string>();
@@ -81,6 +91,10 @@ export class TableComponent implements OnDestroy, OnChanges {
   @Output() writeAction = new EventEmitter<Record<string, unknown>>();
   @Output() updateAction = new EventEmitter<Record<string, unknown>>();
   @Output() deleteAction = new EventEmitter<Record<string, unknown>>();
+  @Output() additionalAction = new EventEmitter<{
+    id: string;
+    row: Record<string, unknown>;
+  }>();
 
   protected currentPage = 1;
   protected pageSize = 10;
@@ -305,6 +319,22 @@ export class TableComponent implements OnDestroy, OnChanges {
       return this.authService.hasPrivilege(this.functionKey, access);
     }
     return Boolean(row[key]);
+  }
+
+  protected additionalActionEnabled(action: TableAdditionalAction): boolean {
+    if (this.functionKey) {
+      const access = action.privilegeAccess ?? PrivilegeAccess.R;
+      return this.authService.hasPrivilege(this.functionKey, access);
+    }
+    return true;
+  }
+
+  protected onAdditionalActionClick(
+    row: Record<string, unknown>,
+    actionId: string
+  ): void {
+    this.additionalAction.emit({ id: actionId, row });
+    this.closeActions();
   }
 
   protected onActionClick(row: Record<string, unknown>, key: ActionKey): void {

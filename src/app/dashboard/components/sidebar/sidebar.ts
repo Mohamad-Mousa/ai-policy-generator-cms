@@ -11,6 +11,8 @@ interface NavTab {
   absolute?: boolean;
   logout?: boolean;
   functionKey?: string;
+  /** Dashboard child paths (e.g. domains) that should highlight this tab as well. */
+  alsoHighlightForPaths?: string[];
 }
 
 @Component({
@@ -32,6 +34,7 @@ export class Sidebar {
       description: 'Complete questionnaires and provide evidence per domain',
       path: 'ai-readiness-assessment',
       icon: 'assessment',
+      alsoHighlightForPaths: ['domains', 'subdomains'],
     },
     {
       label: 'Policy Generator',
@@ -62,6 +65,18 @@ export class Sidebar {
   }
 
   constructor(private router: Router, private authService: AuthService) {}
+
+  protected navTileActive(tab: NavTab, rla: { isActive: boolean }): boolean {
+    if (rla.isActive) {
+      return true;
+    }
+    const extras = tab.alsoHighlightForPaths;
+    if (!extras?.length) {
+      return false;
+    }
+    const url = this.router.url.split('?')[0];
+    return extras.some((segment) => url === `/dashboard/${segment}`);
+  }
 
   protected toggleSidebar() {
     this.isCollapsed = !this.isCollapsed;

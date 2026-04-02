@@ -156,6 +156,17 @@
                   </button>
                 </li>
                 }
+                @for (extra of additionalActions; track extra.id) {
+                <li>
+                  <button class="dropdown-item" type="button" [disabled]="!additionalActionEnabled(extra)"
+                    (click)="onAdditionalActionClick(row, extra.id)">
+                    <span class="material-symbols-rounded dropdown-icon" aria-hidden="true">
+                      {{ extra.icon }}
+                    </span>
+                    <span>{{ extra.label }}</span>
+                  </button>
+                </li>
+                }
               </ul>
             </div>
           </td>

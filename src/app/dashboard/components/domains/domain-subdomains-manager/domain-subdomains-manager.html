@@ -1,0 +1,137 @@
+<app-dialog
+  [open]="open"
+  [title]="managerTitle"
+  [description]="managerDescription"
+  width="720px"
+  (closed)="onManagerClose()"
+>
+  <div dialog-body class="subdomains-manager-body">
+    <div class="d-flex justify-content-end mb-3">
+      <app-button
+        label="Add subdomain"
+        size="sm"
+        variant="primary"
+        icon="add"
+        [functionKey]="functionKey"
+        [privilegeAccess]="writePrivilege"
+        (click)="openCreateSubdomain()"
+      ></app-button>
+    </div>
+
+    <app-table
+      [columns]="columns"
+      [rows]="tableRows()"
+      [totalCount]="totalCount()"
+      [showActions]="true"
+      [enableFilters]="true"
+      [enableSorting]="true"
+      [enablePagination]="true"
+      [loading]="tableLoading()"
+      loadingLabel="Loading subdomains..."
+      [functionKey]="functionKey"
+      [excludedActions]="excludedActions"
+      [serverSideSearch]="true"
+      [serverSideFilters]="true"
+      [sortBy]="sortBy"
+      [sortDirection]="sortDirection"
+      [currentPageInput]="currentPageValue"
+      [pageSizeInput]="currentLimitValue"
+      (pageChange)="onPageChange($event)"
+      (limitChange)="onLimitChange($event)"
+      (searchChange)="onSearchChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (updateAction)="onUpdate($event)"
+      (deleteAction)="onDelete($event)"
+    ></app-table>
+  </div>
+</app-dialog>
+
+<app-dialog
+  [open]="isFormDialogOpen"
+  [title]="formDialogTitle"
+  [description]="formDialogDescription"
+  width="480px"
+  (closed)="closeFormDialog()"
+>
+  <form dialog-body [formGroup]="subdomainForm" class="form-grid">
+    <app-form-input
+      [control]="titleControl"
+      formControlName="title"
+      label="Title"
+      type="text"
+      placeholder="Enter subdomain title"
+      [required]="true"
+      [minlength]="2"
+    >
+    </app-form-input>
+
+    <div class="checkbox-field">
+      <span class="field-label">Active</span>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" formControlName="isActive" id="subdomainIsActive" />
+        <label for="subdomainIsActive" class="checkbox-text">Enable this subdomain</label>
+      </div>
+    </div>
+  </form>
+
+  <div dialog-footer>
+    <app-button
+      label="Cancel"
+      variant="text"
+      [disabled]="dialogLoading()"
+      (clicked)="closeFormDialog()"
+    ></app-button>
+    <app-button
+      [label]="formSubmitLabel"
+      variant="primary-gradient"
+      [loading]="dialogLoading()"
+      [disabled]="dialogLoading()"
+      [functionKey]="functionKey"
+      [privilegeAccess]="isEditMode ? PrivilegeAccess.U : writePrivilege"
+      (clicked)="onSubmitForm()"
+    ></app-button>
+  </div>
+</app-dialog>
+
+<app-dialog
+  [open]="isDeleteDialogOpen"
+  title="Delete subdomain"
+  description="This action cannot be undone."
+  width="460px"
+  (closed)="closeDeleteDialog()"
+>
+  <div dialog-body>
+    <div class="d-flex align-items-start gap-3">
+      <div class="text-danger">
+        <span class="material-symbols-rounded" style="font-size: 2rem">warning</span>
+      </div>
+      <div>
+        <p class="fw-semibold mb-1">Delete this subdomain?</p>
+        @if (subdomainToDelete) {
+          <p class="text-muted mb-0">
+            <strong>{{ subdomainToDelete.title }}</strong> will be permanently removed.
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div dialog-footer>
+    <app-button
+      label="Cancel"
+      variant="text"
+      [disabled]="deleteDialogLoading()"
+      (clicked)="closeDeleteDialog()"
+    ></app-button>
+    <app-button
+      [label]="deleteButtonLabel"
+      variant="danger-gradient"
+      [loading]="deleteDialogLoading()"
+      [disabled]="deleteDialogLoading()"
+      [functionKey]="functionKey"
+      [privilegeAccess]="deletePrivilege"
+      (clicked)="confirmDelete()"
+    ></app-button>
+  </div>
+</app-dialog>

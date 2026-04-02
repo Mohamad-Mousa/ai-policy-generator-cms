@@ -20,12 +20,16 @@ import {
   SidebarComponent,
   SidebarField,
 } from '../../../shared/components/sidebar/sidebar';
-import { QuestionService, DomainService } from '../../../shared/services';
+import { QuestionService, SubdomainService } from '../../../shared/services';
 import {
   Question,
+  QuestionAnswerItem,
   CreateQuestionRequest,
   UpdateQuestionRequest,
-  Domain,
+  Subdomain,
+  questionSubdomainId,
+  questionSubdomainLabel,
+  formatQuestionAnswersSummary,
 } from '../../../shared/interfaces';
 import { PrivilegeAccess } from '../../../shared/enums';
 import { FormInputComponent } from '../../../shared/components/form-input/form-input';
@@ -64,11 +68,16 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       sortable: true,
     },
     {
-      label: 'Domain',
-      key: 'domain',
+      label: 'Subdomain',
+      key: 'subdomain',
       filterable: true,
       filterType: 'select',
       filterOptions: [],
+      sortable: false,
+    },
+    {
+      label: 'Answers',
+      key: 'answersSummary',
       sortable: false,
     },
     {
@@ -94,13 +103,13 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   ];
 
   protected questions = signal<Question[]>([]);
-  protected domains = signal<Domain[]>([]);
+  protected subdomains = signal<Subdomain[]>([]);
   protected tableRows = signal<Record<string, unknown>[]>([]);
   protected totalCount = signal(0);
   protected tableLoading = signal(false);
   protected dialogLoading = signal(false);
   protected deleteDialogLoading = signal(false);
-  protected domainsLoading = signal(false);
+  protected subdomainsLoading = signal(false);
   private currentPage = 1;
   private currentLimit = 10;
   private currentSearch = '';
@@ -136,12 +145,12 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private notifications: NotificationService,
     private questionService: QuestionService,
-    private domainService: DomainService
+    private subdomainService: SubdomainService,
   ) {
     this.questionForm = this.fb.group({
       question: ['', [Validators.required, Validators.minLength(3)]],
       type: ['text', [Validators.required]],
-      domain: ['', [Validators.required]],
+      subdomain: ['', [Validators.required]],
       answers: this.fb.array([]),
       min: [null],
       max: [null],
@@ -149,15 +158,16 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     });
 
     // Watch for type changes to update form validation
-    this.questionForm.get('type')?.valueChanges
-      .pipe(takeUntil(this.destroy$))
+    this.questionForm
+      .get('type')
+      ?.valueChanges.pipe(takeUntil(this.destroy$))
       .subscribe((type) => {
         this.onTypeChange(type);
       });
   }
 
   ngOnInit(): void {
-    this.loadDomains();
+    this.loadSubdomains();
     this.tableLoading.set(false);
     this.loadQuestions(
       this.currentPage,
@@ -165,7 +175,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       this.currentSearch,
       this.sortBy,
       this.sortDirection,
-      this.currentFilters
+      this.currentFilters,
     );
   }
 
@@ -174,27 +184,28 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadDomains(): void {
-    this.domainsLoading.set(true);
-    this.domainService
-      .findMany(1, 100, undefined, undefined, undefined, { isActive: 'true' })
+  private loadSubdomains(): void {
+    this.subdomainsLoading.set(true);
+    this.subdomainService
+      .findMany(1, 500, undefined, 'title', 'asc', { isActive: 'true' })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.domains.set(response.data);
-          // Update domain filter options
-          const domainColumn = this.columns.find((col) => col.key === 'domain');
-          if (domainColumn) {
-            domainColumn.filterOptions = response.data.map((domain) => ({
-              label: domain.title,
-              value: domain._id,
+          this.subdomains.set(response.data);
+          const col = this.columns.find((c) => c.key === 'subdomain');
+          if (col) {
+            col.filterOptions = response.data.map((s) => ({
+              label: questionSubdomainLabel(
+                s as unknown as Question['subdomain']
+              ),
+              value: s._id,
             }));
           }
-          this.domainsLoading.set(false);
+          this.subdomainsLoading.set(false);
         },
         error: (error) => {
-          console.error('Error loading domains:', error);
-          this.domainsLoading.set(false);
+          console.error('Error loading subdomains:', error);
+          this.subdomainsLoading.set(false);
         },
       });
   }
@@ -205,7 +216,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     search?: string,
     sortBy?: string,
     sortDirection?: 'asc' | 'desc',
-    filters?: Record<string, string>
+    filters?: Record<string, string>,
   ): void {
     this.tableLoading.set(true);
     this.currentPage = page;
@@ -230,13 +241,13 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         this.currentSearch,
         this.sortBy,
         this.sortDirection,
-        this.currentFilters
+        this.currentFilters,
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           const transformedQuestions = response.data.map((question) =>
-            this.transformQuestionForTable(question)
+            this.transformQuestionForTable(question),
           );
           this.questions.set(response.data);
           this.tableRows.set(transformedQuestions);
@@ -247,7 +258,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
           console.error('Error loading questions:', error);
           this.notifications.danger(
             error.error?.message || 'An error occurred while loading questions',
-            'Failed to load questions'
+            'Failed to load questions',
           );
           this.questions.set([]);
           this.tableRows.set([]);
@@ -258,7 +269,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
   }
 
   protected transformQuestionForTable(
-    question: Question
+    question: Question,
   ): Record<string, unknown> {
     const typeLabels: Record<string, string> = {
       text: 'Text',
@@ -270,8 +281,9 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       ...question,
       statusClass: question.isActive ? 'success' : 'warning',
       isActive: question.isActive ? 'Active' : 'Inactive',
-      domain: question.domain?.title || '—',
+      subdomain: questionSubdomainLabel(question.subdomain),
       type: typeLabels[question.type] || question.type,
+      answersSummary: formatQuestionAnswersSummary(question),
     };
   }
 
@@ -282,7 +294,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       this.currentSearch,
       this.sortBy,
       this.sortDirection,
-      this.currentFilters
+      this.currentFilters,
     );
   }
 
@@ -293,7 +305,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       this.currentSearch,
       this.sortBy,
       this.sortDirection,
-      this.currentFilters
+      this.currentFilters,
     );
   }
 
@@ -304,7 +316,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       searchTerm,
       this.sortBy,
       this.sortDirection,
-      this.currentFilters
+      this.currentFilters,
     );
   }
 
@@ -315,7 +327,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       this.currentSearch,
       this.sortBy,
       this.sortDirection,
-      filters
+      filters,
     );
   }
 
@@ -329,7 +341,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       this.currentSearch,
       event.sortBy,
       event.sortDirection,
-      this.currentFilters
+      this.currentFilters,
     );
   }
 
@@ -345,12 +357,12 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     return this.questionForm.get('type') as FormControl;
   }
 
-  protected get domainControl(): FormControl {
-    return this.questionForm.get('domain') as FormControl;
+  protected get subdomainControl(): FormControl {
+    return this.questionForm.get('subdomain') as FormControl;
   }
 
-  protected get answersArray(): FormArray {
-    return this.questionForm.get('answers') as FormArray;
+  protected get answersArray(): FormArray<FormGroup> {
+    return this.questionForm.get('answers') as FormArray<FormGroup>;
   }
 
   protected get minControl(): FormControl {
@@ -395,10 +407,10 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     return this.deleteDialogLoading() ? 'Deleting...' : 'Delete';
   }
 
-  protected get domainOptions() {
-    return this.domains().map((domain) => ({
-      label: domain.title,
-      value: domain._id,
+  protected get subdomainOptions() {
+    return this.subdomains().map((s) => ({
+      label: questionSubdomainLabel(s as unknown as Question['subdomain']),
+      value: s._id,
     }));
   }
 
@@ -422,7 +434,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     this.questionForm.reset({
       question: '',
       type: 'text',
-      domain: '',
+      subdomain: '',
       isActive: true,
     });
     this.clearAnswers();
@@ -443,7 +455,11 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       if (this.answersArray.length === 0) {
         this.addAnswer();
       }
-      this.answersArray.setValidators([Validators.required, Validators.minLength(1)]);
+      this.applyAnswerRowValidators(type);
+      this.answersArray.setValidators([
+        Validators.required,
+        Validators.minLength(1),
+      ]);
     } else if (type === 'number') {
       this.clearAnswers();
       this.answersArray.clearValidators();
@@ -461,33 +477,100 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     }
   }
 
+  private applyAnswerRowValidators(type: 'radio' | 'checkbox'): void {
+    this.answersArray.controls.forEach((ctrl, i) => {
+      const g = ctrl as FormGroup;
+      const scoreCtrl = g.get('score')!;
+      if (type === 'radio') {
+        scoreCtrl.setValidators([
+          Validators.required,
+          Validators.min(1),
+          Validators.max(5),
+        ]);
+        const v = scoreCtrl.value;
+        if (v === null || v === undefined || v === '') {
+          scoreCtrl.setValue(Math.min(i + 1, 5));
+        }
+      } else {
+        scoreCtrl.clearValidators();
+        scoreCtrl.setValue(null);
+      }
+      scoreCtrl.updateValueAndValidity({ emitEvent: false });
+    });
+  }
+
+  private parseAnswerFromApi(
+    answer: QuestionAnswerItem,
+  ): { text: string; score: number | null } {
+    if (typeof answer === 'string') {
+      return { text: answer, score: null };
+    }
+    const text = answer.text ?? '';
+    const score =
+      'score' in answer && answer.score != null ? answer.score : null;
+    return { text, score };
+  }
+
   private clearNumberFields(): void {
     this.minControl.setValue(null);
     this.maxControl.setValue(null);
   }
 
   protected addAnswer(): void {
-    const answerControl = this.fb.control('', [Validators.required]);
-    this.answersArray.push(answerControl);
-    // Trigger change detection to ensure form-input component picks up the new control
+    const type = this.typeControl?.value;
+    if (type === 'radio' && this.answersArray.length >= 5) {
+      this.notifications.danger(
+        'Radio questions allow at most 5 answer options.',
+        'Limit reached',
+      );
+      return;
+    }
+    const index = this.answersArray.length;
+    const scoreValidators =
+      type === 'radio'
+        ? [Validators.required, Validators.min(1), Validators.max(5)]
+        : [];
+    const defaultScore = type === 'radio' ? Math.min(index + 1, 5) : null;
+    this.answersArray.push(
+      this.fb.group({
+        text: ['', [Validators.required]],
+        score: [defaultScore, scoreValidators],
+      }),
+    );
     this.answersArray.updateValueAndValidity();
   }
 
   protected removeAnswer(index: number): void {
-    if (this.answersArray.length > 1 && index >= 0 && index < this.answersArray.length) {
+    if (
+      this.answersArray.length > 1 &&
+      index >= 0 &&
+      index < this.answersArray.length
+    ) {
       this.answersArray.removeAt(index);
       // Update validity after removal
       this.answersArray.updateValueAndValidity();
     }
   }
 
-  protected getAnswerControl(index: number): FormControl {
-    return this.answersArray.at(index) as FormControl;
+  protected getAnswerGroup(index: number): FormGroup {
+    return this.answersArray.at(index) as FormGroup;
+  }
+
+  protected getAnswerTextControl(index: number): FormControl {
+    return this.getAnswerGroup(index).get('text') as FormControl;
+  }
+
+  protected getAnswerScoreControl(index: number): FormControl {
+    return this.getAnswerGroup(index).get('score') as FormControl;
+  }
+
+  protected get isRadioAnswers(): boolean {
+    return this.typeControl?.value === 'radio';
   }
 
   protected onSubmit() {
     this.questionForm.markAllAsTouched();
-    
+
     // Additional validation for number type
     const formValue = this.questionForm.value;
     if (formValue.type === 'number') {
@@ -498,7 +581,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         this.maxControl.setErrors({ minMaxInvalid: true });
         this.notifications.danger(
           'Minimum value must be less than maximum value',
-          'Validation Error'
+          'Validation Error',
         );
         return;
       }
@@ -515,17 +598,72 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     const questionData: CreateQuestionRequest | UpdateQuestionRequest = {
       question: formValue.question.trim(),
       type: type,
-      domain: formValue.domain,
+      subdomain: formValue.subdomain,
       ...(formValue.isActive !== undefined && {
         isActive: formValue.isActive ? 'true' : 'false',
       }),
     };
 
     // Add type-specific fields
-    if (type === 'radio' || type === 'checkbox') {
-      const answers = formValue.answers
-        .map((answer: string) => answer?.trim())
-        .filter((answer: string) => answer);
+    if (type === 'radio') {
+      const rows = (
+        formValue.answers as { text: string; score: number | string | null }[]
+      )
+        .map((r) => ({
+          text: (r.text ?? '').trim(),
+          score: r.score,
+        }))
+        .filter((r) => r.text);
+      if (rows.length === 0) {
+        this.dialogLoading.set(false);
+        this.tableLoading.set(false);
+        this.notifications.danger(
+          'Add at least one answer with text and a score from 1 to 5.',
+          'Validation error',
+        );
+        return;
+      }
+      if (rows.length > 5) {
+        this.dialogLoading.set(false);
+        this.tableLoading.set(false);
+        this.notifications.danger(
+          'Radio questions allow at most 5 options.',
+          'Validation error',
+        );
+        return;
+      }
+      const scored = rows.map((r) => ({
+        text: r.text,
+        score: Number(r.score),
+      }));
+      for (const r of scored) {
+        if (!Number.isInteger(r.score) || r.score < 1 || r.score > 5) {
+          this.dialogLoading.set(false);
+          this.tableLoading.set(false);
+          this.notifications.danger(
+            'Each radio option needs an integer score from 1 to 5.',
+            'Validation error',
+          );
+          return;
+        }
+      }
+      const scoreSet = new Set(scored.map((r) => r.score));
+      if (scoreSet.size !== scored.length) {
+        this.dialogLoading.set(false);
+        this.tableLoading.set(false);
+        this.notifications.danger(
+          'Radio scores must be unique (1–5).',
+          'Validation error',
+        );
+        return;
+      }
+      questionData.answers = scored;
+    } else if (type === 'checkbox') {
+      const answers = (
+        formValue.answers as { text: string; score?: unknown }[]
+      )
+        .map((r) => r.text?.trim())
+        .filter((t): t is string => !!t);
       if (answers.length > 0) {
         questionData.answers = answers;
       }
@@ -557,18 +695,18 @@ export class QuestionsComponent implements OnInit, OnDestroy {
           this.currentSearch,
           this.sortBy,
           this.sortDirection,
-          this.currentFilters
+          this.currentFilters,
         );
 
         this.notifications.success(
           wasEditMode ? 'Question updated' : 'Question created',
-          `Question has been ${wasEditMode ? 'updated' : 'added'} successfully`
+          `Question has been ${wasEditMode ? 'updated' : 'added'} successfully`,
         );
       },
       error: (error) => {
         console.error(
           `Error ${this.isEditMode ? 'updating' : 'creating'} question:`,
-          error
+          error,
         );
         this.dialogLoading.set(false);
         this.notifications.danger(
@@ -576,7 +714,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
             `An error occurred while ${
               this.isEditMode ? 'updating' : 'creating'
             } the question`,
-          `Failed to ${this.isEditMode ? 'update' : 'create'} question`
+          `Failed to ${this.isEditMode ? 'update' : 'create'} question`,
         );
         this.tableLoading.set(false);
       },
@@ -590,7 +728,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     if (!fullQuestion) {
       this.notifications.danger(
         'Question not found',
-        'Could not load question details'
+        'Could not load question details',
       );
       return;
     }
@@ -623,29 +761,48 @@ export class QuestionsComponent implements OnInit, OnDestroy {
             checkbox: 'Checkbox',
             number: 'Number',
           };
-          return typeLabels[this.sidebarQuestion?.type || ''] || this.sidebarQuestion?.type || '—';
+          return (
+            typeLabels[this.sidebarQuestion?.type || ''] ||
+            this.sidebarQuestion?.type ||
+            '—'
+          );
         },
       },
       {
-        label: 'Domain',
-        key: 'domain',
+        label: 'Subdomain',
+        key: 'subdomain',
         type: 'text',
-        format: () => this.sidebarQuestion?.domain?.title || '—',
+        format: () =>
+          this.sidebarQuestion
+            ? questionSubdomainLabel(this.sidebarQuestion.subdomain)
+            : '—',
       },
     ];
 
     // Add type-specific fields
-    if (this.sidebarQuestion.type === 'radio' || this.sidebarQuestion.type === 'checkbox') {
-      if (this.sidebarQuestion.answers && this.sidebarQuestion.answers.length > 0) {
+    if (
+      this.sidebarQuestion.type === 'radio' ||
+      this.sidebarQuestion.type === 'checkbox'
+    ) {
+      if (
+        this.sidebarQuestion.answers &&
+        this.sidebarQuestion.answers.length > 0
+      ) {
         fields.push({
           label: 'Answers',
           key: 'answers',
           type: 'text',
-          format: () => this.sidebarQuestion?.answers?.join(', ') || '—',
+          format: () =>
+            this.sidebarQuestion
+              ? formatQuestionAnswersSummary(this.sidebarQuestion)
+              : '—',
         });
       }
     } else if (this.sidebarQuestion.type === 'number') {
-      if (this.sidebarQuestion.min !== undefined || this.sidebarQuestion.max !== undefined) {
+      if (
+        this.sidebarQuestion.min !== undefined ||
+        this.sidebarQuestion.max !== undefined
+      ) {
         fields.push({
           label: 'Min',
           key: 'min',
@@ -678,7 +835,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         label: 'Updated At',
         key: 'updatedAt',
         type: 'date',
-      }
+      },
     );
 
     return fields;
@@ -700,7 +857,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     if (!fullQuestion) {
       this.notifications.danger(
         'Question not found',
-        'Could not load question details for editing'
+        'Could not load question details for editing',
       );
       return;
     }
@@ -713,28 +870,44 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     this.clearNumberFields();
 
     // Set type without triggering change handler to avoid interference
-    this.typeControl.setValue(fullQuestion.type || 'text', { emitEvent: false });
+    this.typeControl.setValue(fullQuestion.type || 'text', {
+      emitEvent: false,
+    });
 
     // Set basic fields
     this.questionForm.patchValue({
       question: fullQuestion.question,
-      domain: fullQuestion.domain._id,
+      subdomain: questionSubdomainId(fullQuestion.subdomain),
       isActive: fullQuestion.isActive,
     });
 
     // Set type-specific fields
     if (fullQuestion.type === 'radio' || fullQuestion.type === 'checkbox') {
       if (fullQuestion.answers && fullQuestion.answers.length > 0) {
-        fullQuestion.answers.forEach((answer) => {
+        fullQuestion.answers.forEach((answer, idx) => {
           this.addAnswer();
           const lastIndex = this.answersArray.length - 1;
-          this.answersArray.at(lastIndex).setValue(answer);
+          const g = this.getAnswerGroup(lastIndex);
+          const parsed = this.parseAnswerFromApi(answer);
+          g.patchValue({
+            text: parsed.text,
+            score:
+              fullQuestion.type === 'radio'
+                ? (parsed.score ?? Math.min(idx + 1, 5))
+                : null,
+          });
         });
       } else {
         this.addAnswer();
       }
+      this.applyAnswerRowValidators(
+        fullQuestion.type === 'radio' ? 'radio' : 'checkbox',
+      );
       // Set validators for answers array
-      this.answersArray.setValidators([Validators.required, Validators.minLength(1)]);
+      this.answersArray.setValidators([
+        Validators.required,
+        Validators.minLength(1),
+      ]);
       this.answersArray.updateValueAndValidity();
     } else if (fullQuestion.type === 'number') {
       this.questionForm.patchValue({
@@ -756,7 +929,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
     if (!fullQuestion) {
       this.notifications.danger(
         'Question not found',
-        'Could not find question to delete'
+        'Could not find question to delete',
       );
       return;
     }
@@ -794,12 +967,12 @@ export class QuestionsComponent implements OnInit, OnDestroy {
             this.currentSearch,
             this.sortBy,
             this.sortDirection,
-            this.currentFilters
+            this.currentFilters,
           );
 
           this.notifications.success(
             'Question deleted',
-            `Question has been deleted successfully`
+            `Question has been deleted successfully`,
           );
         },
         error: (error) => {
@@ -808,11 +981,10 @@ export class QuestionsComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'An error occurred while deleting the question',
-            'Failed to delete question'
+            'Failed to delete question',
           );
           this.tableLoading.set(false);
         },
       });
   }
 }
-

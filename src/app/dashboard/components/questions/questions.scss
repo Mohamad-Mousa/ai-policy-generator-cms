@@ -58,6 +58,28 @@
   position: relative;
 }
 
+.answer-row-fields {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  min-width: 0;
+
+  > app-form-input:first-child {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  > app-form-input:last-child:not(:first-child) {
+    flex: 0 0 7rem;
+  }
+}
+
+.answers-hint {
+  margin-top: -0.25rem;
+}
+
 .btn-remove-answer {
   background: none;
   border: none;

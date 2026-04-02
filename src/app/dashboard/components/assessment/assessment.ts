@@ -10,15 +10,20 @@ import {
   Assessment as ApiAssessment,
   AssessmentQuestion as ApiAssessmentQuestion,
   UpdateAssessmentRequest,
+  questionAnswerOptionLabels,
 } from '@shared/interfaces';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import {
   DialogButton,
   DialogComponent,
 } from '@shared/components/dialog/dialog';
-import { QuestionService, AssessmentService } from '@shared/services';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import {
+  QuestionService,
+  AssessmentService,
+  SubdomainService,
+} from '@shared/services';
+import { Subject, forkJoin, of } from 'rxjs';
+import { map, switchMap, takeUntil } from 'rxjs/operators';
 
 interface AssessmentDomain {
   id: string;
@@ -316,7 +321,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     private router: Router,
     private notifications: NotificationService,
     private questionService: QuestionService,
-    private assessmentService: AssessmentService
+    private assessmentService: AssessmentService,
+    private subdomainService: SubdomainService,
   ) {}
 
   ngOnInit(): void {
@@ -331,7 +337,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!domainFromState?._id) {
       this.notifications.info(
         'Please select a domain from the AI readiness page before creating an assessment.',
-        'Domain required'
+        'Domain required',
       );
       this.router.navigate(['/dashboard/ai-readiness-assessment']);
       return;
@@ -512,7 +518,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             return Array.isArray(q.answer) && q.answer.length > 0;
           }
           if (q.type === 'number') {
-            return q.answer !== undefined && q.answer !== null && q.answer !== '';
+            return (
+              q.answer !== undefined && q.answer !== null && q.answer !== ''
+            );
           }
           return q.answer !== undefined && q.answer !== null && q.answer !== '';
         }
@@ -524,7 +532,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
     const totalProgress = this.assessment.domains.reduce(
       (sum, domain) => sum + domain.progress,
-      0
+      0,
     );
     this.assessment.overallProgress =
       totalProgress / this.assessment.domains.length;
@@ -540,7 +548,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!this.assessment.name) {
       this.notifications.danger(
         'Assessment name is required to save as draft.',
-        'Validation error'
+        'Validation error',
       );
       return;
     }
@@ -548,7 +556,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (this.assessment.isCompleted) {
       this.notifications.info(
         'This assessment has already been completed and cannot be edited.',
-        'Assessment locked'
+        'Assessment locked',
       );
       return;
     }
@@ -564,7 +572,9 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             return Array.isArray(q.answer) && q.answer.length > 0;
           }
           if (q.type === 'number') {
-            return q.answer !== undefined && q.answer !== null && q.answer !== '';
+            return (
+              q.answer !== undefined && q.answer !== null && q.answer !== ''
+            );
           }
           return q.answer !== undefined && q.answer !== null && q.answer !== '';
         })
@@ -619,7 +629,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.assessment.id = response._id;
             this.notifications.success(
               'Progress saved successfully as draft.',
-              'Assessment updated'
+              'Assessment updated',
             );
             this.hasUnsavedChanges = false;
           },
@@ -629,7 +639,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.notifications.danger(
               error.error?.message ||
                 'Failed to save assessment. Please try again.',
-              'Save failed'
+              'Save failed',
             );
           },
         });
@@ -655,7 +665,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.assessment.id = response._id;
             this.notifications.success(
               'Progress saved successfully as draft.',
-              'Assessment created'
+              'Assessment created',
             );
             this.hasUnsavedChanges = false;
           },
@@ -665,7 +675,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.notifications.danger(
               error.error?.message ||
                 'Failed to create assessment. Please try again.',
-              'Create failed'
+              'Create failed',
             );
           },
         });
@@ -676,14 +686,14 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (this.assessment.isCompleted) {
       this.notifications.info(
         'This assessment has already been completed and cannot be edited.',
-        'Assessment locked'
+        'Assessment locked',
       );
       return;
     }
     if (!this.assessment.domainId) {
       this.notifications.danger(
         'Domain is required to complete assessment.',
-        'Validation error'
+        'Validation error',
       );
       return;
     }
@@ -691,7 +701,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!this.assessment.name) {
       this.notifications.danger(
         'Assessment name is required.',
-        'Validation error'
+        'Validation error',
       );
       return;
     }
@@ -699,7 +709,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!this.assessment.description) {
       this.notifications.danger(
         'Description is required to complete assessment.',
-        'Validation error'
+        'Validation error',
       );
       return;
     }
@@ -707,7 +717,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!this.assessment.fullName) {
       this.notifications.danger(
         'Full name is required to complete assessment.',
-        'Validation error'
+        'Validation error',
       );
       return;
     }
@@ -715,7 +725,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     if (!this.canCompleteDomain) {
       this.notifications.info(
         'Please answer all required questions before completing the assessment.',
-        'Incomplete assessment'
+        'Incomplete assessment',
       );
       return;
     }
@@ -732,10 +742,16 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           answer = Array.isArray(q.answer) ? q.answer : [];
         } else if (q.type === 'number') {
           // Send number answers as number
-          answer = typeof q.answer === 'number' ? q.answer : (q.answer !== undefined && q.answer !== null && q.answer !== '' ? Number(q.answer) : '');
+          answer =
+            typeof q.answer === 'number'
+              ? q.answer
+              : q.answer !== undefined && q.answer !== null && q.answer !== ''
+                ? Number(q.answer)
+                : '';
         } else {
           // Send text/radio answers as string
-          answer = q.answer !== undefined && q.answer !== null ? String(q.answer) : '';
+          answer =
+            q.answer !== undefined && q.answer !== null ? String(q.answer) : '';
         }
         return {
           // Store both question text and reference id on the assessment
@@ -763,7 +779,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.isCompleting.set(false);
             this.notifications.success(
               'Assessment completed successfully!',
-              'Assessment completed'
+              'Assessment completed',
             );
 
             this.router.navigate(['/dashboard/readiness-reports'], {
@@ -778,7 +794,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.notifications.danger(
               error.error?.message ||
                 'Failed to complete assessment. Please try again.',
-              'Complete failed'
+              'Complete failed',
             );
           },
         });
@@ -800,7 +816,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.assessment.id = response._id;
             this.notifications.success(
               'Assessment completed successfully!',
-              'Assessment completed'
+              'Assessment completed',
             );
 
             this.router.navigate(['/dashboard/readiness-reports'], {
@@ -815,7 +831,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             this.notifications.danger(
               error.error?.message ||
                 'Failed to complete assessment. Please try again.',
-              'Complete failed'
+              'Complete failed',
             );
           },
         });
@@ -893,7 +909,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load assessment details. Please try again.',
-            'Assessment load failed'
+            'Assessment load failed',
           );
           this.isLoadingAssessment.set(false);
         },
@@ -902,7 +918,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   private parseAnswer(
     answer: string | string[] | number | undefined,
-    questionType?: string
+    questionType?: string,
   ): any {
     if (answer === undefined || answer === null) {
       return undefined;
@@ -913,7 +929,10 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         return answer;
       } else if (typeof answer === 'string' && answer) {
         // If it's a comma-separated string, split it
-        return answer.split(',').map((a) => a.trim()).filter((a) => a);
+        return answer
+          .split(',')
+          .map((a) => a.trim())
+          .filter((a) => a);
       }
       return [];
     } else if (questionType === 'number') {
@@ -937,8 +956,14 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
 
     const currentDomain = this.assessment.domains[0];
-    const answerMapByRef = new Map<string, string | string[] | number | undefined>();
-    const answerMapByText = new Map<string, string | string[] | number | undefined>();
+    const answerMapByRef = new Map<
+      string,
+      string | string[] | number | undefined
+    >();
+    const answerMapByText = new Map<
+      string,
+      string | string[] | number | undefined
+    >();
 
     answers.forEach((a) => {
       // Prefer matching by questionRef when available, fall back to question text
@@ -962,7 +987,10 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             q.answer = answerValue;
           } else if (typeof answerValue === 'string' && answerValue) {
             // If it's a comma-separated string, split it
-            q.answer = answerValue.split(',').map(a => a.trim()).filter(a => a);
+            q.answer = answerValue
+              .split(',')
+              .map((a) => a.trim())
+              .filter((a) => a);
           } else {
             q.answer = [];
           }
@@ -970,7 +998,11 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           // Backend sends number as number
           if (typeof answerValue === 'number') {
             q.answer = answerValue;
-          } else if (answerValue !== undefined && answerValue !== null && answerValue !== '') {
+          } else if (
+            answerValue !== undefined &&
+            answerValue !== null &&
+            answerValue !== ''
+          ) {
             q.answer = Number(answerValue);
           } else {
             q.answer = undefined;
@@ -988,12 +1020,35 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
   private loadQuestionsForDomain(domainId: string): void {
     this.isLoadingQuestions.set(true);
-    this.questionService
-      .findMany(1, 100, undefined, undefined, undefined, {
+    this.subdomainService
+      .findMany(1, 200, undefined, 'title', 'asc', {
         domain: domainId,
         isActive: 'true',
       })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        switchMap((subRes) => {
+          const ids = subRes.data.map((s) => s._id);
+          if (ids.length === 0) {
+            return of({ data: [] as DbQuestion[] });
+          }
+          return forkJoin(
+            ids.map((sid) =>
+              this.questionService.findMany(1, 500, undefined, undefined, undefined, {
+                subdomain: sid,
+                isActive: 'true',
+              }),
+            ),
+          ).pipe(
+            map((responses) => {
+              const merged = responses.flatMap((r) => r.data);
+              const byId = new Map<string, DbQuestion>();
+              merged.forEach((q) => byId.set(q._id, q));
+              return { data: [...byId.values()] };
+            }),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
       .subscribe({
         next: (response) => {
           this.isLoadingQuestions.set(false);
@@ -1002,22 +1057,21 @@ export class AssessmentComponent implements OnInit, OnDestroy {
             return;
           }
 
-          // Map database questions to assessment questions
           const assessmentQuestions: Question[] = response.data.map(
             (dbQuestion) => ({
               id: dbQuestion._id,
               text: dbQuestion.question,
               type: dbQuestion.type || 'text',
               required: true,
-              answers: dbQuestion.answers || undefined,
+              answers:
+                questionAnswerOptionLabels(dbQuestion.answers) ?? undefined,
               min: dbQuestion.min,
               max: dbQuestion.max,
               answer: undefined,
               evidenceFiles: undefined,
-            })
+            }),
           );
 
-          // Build assessment domain with questions from database
           const assessmentDomain: AssessmentDomain = {
             id: domain._id,
             name: domain.title,
@@ -1042,9 +1096,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           this.notifications.danger(
             error.error?.message ||
               'Unable to load questions for this domain. Please try again.',
-            'Questions fetch failed'
+            'Questions fetch failed',
           );
-          // Fallback to empty domain
           const domain = this.selectedDomain;
           if (domain) {
             const assessmentDomain: AssessmentDomain = {

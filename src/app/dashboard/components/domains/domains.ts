@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   FormBuilder,
   FormControl,
@@ -11,7 +12,9 @@ import { Subject, takeUntil } from 'rxjs';
 import {
   TableComponent,
   TableColumn,
+  TableAdditionalAction,
 } from '../../../shared/components/table/table';
+import { DomainSubdomainsManagerComponent } from './domain-subdomains-manager/domain-subdomains-manager';
 import { ButtonComponent } from '../../../shared/components/button/button';
 import { DialogComponent } from '../../../shared/components/dialog/dialog';
 import { NotificationService } from '../../../shared/components/notification/notification.service';
@@ -39,6 +42,7 @@ import { FormInputComponent } from '../../../shared/components/form-input/form-i
     ReactiveFormsModule,
     SidebarComponent,
     FormInputComponent,
+    DomainSubdomainsManagerComponent,
   ],
   templateUrl: './domains.html',
   styleUrl: './domains.scss',
@@ -108,6 +112,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
     'canRead' | 'canWrite' | 'canEdit' | 'canDelete'
   > = ['canWrite'];
   protected readonly functionKey = 'domains';
+  protected readonly readPrivilege = PrivilegeAccess.R;
   protected readonly writePrivilege = PrivilegeAccess.W;
   protected readonly deletePrivilege = PrivilegeAccess.D;
   protected readonly PrivilegeAccess = PrivilegeAccess;
@@ -120,10 +125,18 @@ export class DomainsComponent implements OnInit, OnDestroy {
   protected isSidebarOpen = false;
   protected sidebarDomain?: Domain;
 
+  protected isSubdomainManagerOpen = false;
+  protected subdomainContextDomain?: Domain;
+
+  protected readonly subdomainRowActions: TableAdditionalAction[] = [
+    { id: 'subdomains', label: 'Subdomain', icon: 'account_tree' },
+  ];
+
   constructor(
     private fb: FormBuilder,
     private notifications: NotificationService,
-    private domainService: DomainService
+    private domainService: DomainService,
+    private router: Router
   ) {
     this.domainForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(2)]],
@@ -215,8 +228,31 @@ export class DomainsComponent implements OnInit, OnDestroy {
       statusClass: domain.isActive ? 'success' : 'warning',
       isActive: domain.isActive ? 'Active' : 'Inactive',
       icon: domain.icon || '',
-      subDomains: domain.subDomains ?? [],
+      subDomains: this.subDomainTitles(domain.subDomains),
     };
+  }
+
+  /** Titles for tags column / forms; API returns `subDomains` as `{ _id, title, ... }[]`. */
+  private subDomainTitles(
+    subDomains: Domain['subDomains'] | undefined
+  ): string[] {
+    if (!subDomains?.length) return [];
+    return subDomains.map((s) => s.title).filter(Boolean);
+  }
+
+  private formatSubDomainList(value: unknown): string {
+    if (!Array.isArray(value) || !value.length) return '—';
+    const titles = value.map((v) =>
+      typeof v === 'string'
+        ? v
+        : typeof v === 'object' &&
+            v !== null &&
+            'title' in v &&
+            typeof (v as { title: unknown }).title === 'string'
+          ? (v as { title: string }).title
+          : ''
+    ).filter(Boolean);
+    return titles.length ? titles.join(', ') : '—';
   }
 
   protected onPageChange(page: number): void {
@@ -421,6 +457,35 @@ export class DomainsComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected goToSubdomainsManagement(): void {
+    this.router.navigate(['/dashboard/subdomains']);
+  }
+
+  protected onSubdomainAdditionalAction(event: {
+    id: string;
+    row: Record<string, unknown>;
+  }): void {
+    if (event.id !== 'subdomains') {
+      return;
+    }
+    const domainId = event.row['_id'] as string;
+    const fullDomain = this.domains().find((d) => d._id === domainId);
+    if (!fullDomain) {
+      this.notifications.danger(
+        'Domain not found',
+        'Could not open subdomains for this row'
+      );
+      return;
+    }
+    this.subdomainContextDomain = fullDomain;
+    this.isSubdomainManagerOpen = true;
+  }
+
+  protected onSubdomainManagerClosed(): void {
+    this.isSubdomainManagerOpen = false;
+    this.subdomainContextDomain = undefined;
+  }
+
   protected onRead(domain: Record<string, unknown>): void {
     const domainId = domain['_id'] as string;
     const fullDomain = this.domains().find((d) => d._id === domainId);
@@ -471,8 +536,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
         label: 'Subdomains',
         key: 'subDomains',
         type: 'text',
-        format: (value) =>
-          Array.isArray(value) && value.length ? value.join(', ') : '—',
+        format: (value) => this.formatSubDomainList(value),
       },
       {
         label: 'Created At',
@@ -517,7 +581,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       title: fullDomain.title,
       description: fullDomain.description,
       icon: fullDomain.icon || '',
-      subDomains: [...(fullDomain.subDomains ?? [])],
+      subDomains: this.subDomainTitles(fullDomain.subDomains),
       isActive: fullDomain.isActive,
     });
   }

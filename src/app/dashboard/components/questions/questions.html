@@ -13,8 +13,8 @@
       [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
       loadingLabel="Loading questions..." [functionKey]="functionKey" [excludedActions]="excludedActions"
       [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy" [sortDirection]="sortDirection"
-      [currentPageInput]="currentPageValue" [pageSizeInput]="currentLimitValue"
-      (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
+      [currentPageInput]="currentPageValue" [pageSizeInput]="currentLimitValue" (pageChange)="onPageChange($event)"
+      (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
       (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (readAction)="onRead($event)"
       (updateAction)="onUpdate($event)" (deleteAction)="onDelete($event)"></app-table>
   </div>
@@ -30,19 +30,29 @@
       placeholder="Select question type" [required]="true" [options]="questionTypes">
     </app-form-input>
 
-    <app-form-input [control]="domainControl" formControlName="domain" label="Domain" type="select"
-      placeholder="Select a domain" [required]="true" [options]="domainOptions">
+    <app-form-input [control]="subdomainControl" formControlName="subdomain" label="Subdomain" type="select"
+      placeholder="Select a subdomain" [required]="true" [options]="subdomainOptions">
     </app-form-input>
 
     @if (showAnswersField) {
     <div class="answers-field">
       <span class="field-label">Answers <span class="text-danger">*</span></span>
+      @if (isRadioAnswers) {
+      <p class="answers-hint text-muted small mb-0">Each option needs a unique score from 1 to 5 (at most 5 options).</p>
+      }
       <div class="answers-list" formArrayName="answers">
-        @for (answerControl of answersArray.controls; track answerControl) {
-        <div class="answer-item">
-          <app-form-input [control]="getAnswerControl($index)" [formControlName]="$index"
-            [label]="'Answer ' + ($index + 1)" type="text" placeholder="Enter answer option" [required]="true">
-          </app-form-input>
+        @for (g of answersArray.controls; track $index) {
+        <div class="answer-item" [formGroupName]="$index">
+          <div class="answer-row-fields">
+            <app-form-input [control]="getAnswerTextControl($index)" formControlName="text"
+              [label]="'Answer ' + ($index + 1)" type="text" placeholder="Enter answer option" [required]="true">
+            </app-form-input>
+            @if (isRadioAnswers) {
+            <app-form-input [control]="getAnswerScoreControl($index)" formControlName="score" label="Score"
+              type="number" placeholder="1–5" [required]="true" [min]="1" [max]="5">
+            </app-form-input>
+            }
+          </div>
           @if (answersArray.length > 1) {
           <button type="button" class="btn-remove-answer" (click)="removeAnswer($index)"
             [attr.aria-label]="'Remove answer ' + ($index + 1)">
@@ -51,7 +61,8 @@
           }
         </div>
         }
-        <button type="button" class="btn-add-answer" (click)="addAnswer()">
+        <button type="button" class="btn-add-answer" (click)="addAnswer()"
+          [disabled]="isRadioAnswers && answersArray.length >= 5">
           <span class="material-symbols-rounded">add</span>
           Add Answer
         </button>
@@ -88,8 +99,8 @@
   </div>
 </app-dialog>
 
-<app-dialog [open]="isDeleteDialogOpen" title="Delete question" description="This action cannot be undone." width="460px"
-  (closed)="closeDeleteDialog()">
+<app-dialog [open]="isDeleteDialogOpen" title="Delete question" description="This action cannot be undone."
+  width="460px" (closed)="closeDeleteDialog()">
   <div dialog-body>
     <div class="d-flex align-items-start gap-3">
       <div class="text-danger">
@@ -118,4 +129,3 @@
 
 <app-sidebar [open]="isSidebarOpen" title="Question Details" [fields]="sidebarFields" [data]="sidebarData"
   (closed)="closeSidebar()"></app-sidebar>
-

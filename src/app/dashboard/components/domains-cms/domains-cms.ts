@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '@shared/services';
 import { PrivilegeAccess } from '@shared/enums';
 import { DomainsComponent } from '../domains/domains';
@@ -8,7 +9,7 @@ import { QuestionsComponent } from '../questions/questions';
 @Component({
   selector: 'app-domains-cms',
   standalone: true,
-  imports: [CommonModule, DomainsComponent, QuestionsComponent],
+  imports: [CommonModule, RouterLink, DomainsComponent, QuestionsComponent],
   templateUrl: './domains-cms.html',
   styleUrl: './domains-cms.scss',
 })

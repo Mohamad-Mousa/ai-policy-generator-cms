@@ -10,15 +10,34 @@ export type { Admin, AdminPaginatedResponse } from './admin';
 export type { User, UserAuthenticated } from './user';
 export type {
   Domain,
+  DomainNestedSubdomain,
   DomainPaginatedResponse,
   CreateDomainRequest,
   UpdateDomainRequest,
 } from './domain';
 export type {
+  Subdomain,
+  SubdomainDomainRef,
+  SubdomainPaginatedResponse,
+  CreateSubdomainRequest,
+  UpdateSubdomainRequest,
+} from './subdomain';
+export { subdomainDomainId, subdomainDomainTitle } from './subdomain';
+export type {
   Question,
+  QuestionAnswerItem,
+  QuestionCheckboxAnswer,
+  QuestionRadioAnswer,
+  QuestionSubdomainRef,
   QuestionPaginatedResponse,
   CreateQuestionRequest,
   UpdateQuestionRequest,
+} from './question';
+export {
+  questionSubdomainId,
+  questionSubdomainLabel,
+  questionAnswerOptionLabels,
+  formatQuestionAnswersSummary,
 } from './question';
 export type {
   Assessment,

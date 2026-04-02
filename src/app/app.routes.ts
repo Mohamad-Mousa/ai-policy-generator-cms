@@ -57,6 +57,14 @@ export const routes: Routes = [
         canActivate: [privilegeGuard('domains', PrivilegeAccess.R)],
       },
       {
+        path: 'subdomains',
+        loadComponent: () =>
+          import('./dashboard/components/subdomains-cms/subdomains-cms').then(
+            (m) => m.SubdomainsCmsComponent
+          ),
+        canActivate: [privilegeGuard('domains', PrivilegeAccess.R)],
+      },
+      {
         path: 'questions',
         loadComponent: () =>
           import('./dashboard/components/questions/questions').then(
