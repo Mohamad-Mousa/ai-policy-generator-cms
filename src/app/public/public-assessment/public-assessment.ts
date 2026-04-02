@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -32,6 +33,7 @@ interface PublicQuestionItem {
 }
 
 const SUBMITTED_STORAGE_PREFIX = 'pg_public_assessment_submitted:';
+const DOC_TITLE_BRAND = 'Policy Generator AI';
 
 @Component({
   selector: 'app-public-assessment',
@@ -42,6 +44,7 @@ const SUBMITTED_STORAGE_PREFIX = 'pg_public_assessment_submitted:';
 })
 export class PublicAssessmentComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
+  private readonly title = inject(Title);
   private readonly publicAssessmentService = inject(PublicAssessmentService);
   private readonly notifications = inject(NotificationService);
   private readonly destroy$ = new Subject<void>();
@@ -60,13 +63,16 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
   protected questions: PublicQuestionItem[] = [];
 
   ngOnInit(): void {
+    this.setDocumentTitle('Public assessment');
     this.domainId = this.route.snapshot.paramMap.get('domainId')?.trim() ?? '';
     if (!this.domainId) {
+      this.setDocumentTitle('Invalid link');
       this.loadError.set('Invalid link: missing domain.');
       this.isLoading.set(false);
       return;
     }
     if (this.readSubmittedFlag(this.domainId)) {
+      this.setDocumentTitle('Thank you');
       this.submitted.set(true);
       this.isLoading.set(false);
       return;
@@ -99,8 +105,14 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
           }));
           this.isLoading.set(false);
           this.loadError.set(null);
+          const pageTitle =
+            res.domain.title?.trim() ||
+            this.assessmentTitle.trim() ||
+            'Assessment';
+          this.setDocumentTitle(pageTitle);
         },
         error: (err: { error?: { message?: string }; message?: string }) => {
+          this.setDocumentTitle('Assessment unavailable');
           this.isLoading.set(false);
           const msg =
             err?.error?.message ||
@@ -113,8 +125,14 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.title.setTitle(DOC_TITLE_BRAND);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private setDocumentTitle(pageSegment: string): void {
+    const part = pageSegment.trim() || 'Public assessment';
+    this.title.setTitle(`${part} · ${DOC_TITLE_BRAND}`);
   }
 
   protected isAnswerSelected(
@@ -236,6 +254,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
         next: () => {
           this.writeSubmittedFlag(this.domainId);
           this.isSubmitting.set(false);
+          this.setDocumentTitle('Thank you');
           this.submitted.set(true);
           this.notifications.success(
             'Your assessment was submitted successfully.',
