@@ -25,6 +25,8 @@ export { SettingService } from './setting.service';
 export { PublicAssessmentService } from './public-assessment.service';
 export type {
   PublicDomainBrief,
+  PublicBulkSubmitResults,
   PublicQuestionsByDomainResult,
+  PublicQuestionsMultiResult,
   PublicSubmitAssessmentRequest,
 } from './public-assessment.service';

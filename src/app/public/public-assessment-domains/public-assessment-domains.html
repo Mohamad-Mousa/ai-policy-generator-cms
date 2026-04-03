@@ -1,0 +1,315 @@
+<div class="public-multi-page py-4 py-md-5">
+  <div class="container public-multi-inner">
+    @if (step() === 'loading') {
+    <div class="text-center py-5 text-muted">
+      <app-loader size="lg" variant="inline" label="Loading domains…"></app-loader>
+    </div>
+    } @else if (step() === 'error') {
+    <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
+    } @else if (step() === 'submitted') {
+    <div class="card border-0 shadow-sm text-center py-5">
+      <div class="card-body">
+        <span class="material-symbols-rounded text-success mb-3 d-block" style="font-size: 3rem;">check_circle</span>
+        <h1 class="h4 mb-2">All assessments submitted</h1>
+        <p class="text-muted mb-0">Thank you. Your responses have been recorded.</p>
+      </div>
+    </div>
+    } @else if (step() === 'select') {
+    <header class="mb-4">
+      <p class="text-uppercase text-muted small fw-semibold mb-1">Public assessment</p>
+      <h1 class="h3 mb-2">Choose domains to assess</h1>
+      <p class="text-muted mb-0">Select one or more domains, then start. You will complete each assessment in order.</p>
+    </header>
+    <div class="domains-select-grid mb-4">
+      @for (row of domainsForSelect(); track row.domain._id) {
+      <button
+        type="button"
+        class="domain-select-card card border shadow-sm text-start h-100 w-100"
+        [class.domain-select-card--active]="isSelected(row.domain._id)"
+        (click)="toggleDomain(row.domain._id)"
+      >
+        <div class="card-body">
+          <div class="d-flex align-items-start gap-2">
+            <span class="material-symbols-rounded domain-select-card__check flex-shrink-0">
+              {{ isSelected(row.domain._id) ? 'check_box' : 'check_box_outline_blank' }}
+            </span>
+            <div class="min-w-0">
+              <div class="fw-semibold">{{ row.domain.title }}</div>
+              @if (row.domain.description) {
+              <p class="text-muted small mb-2 mt-1">{{ row.domain.description }}</p>
+              }
+              <p class="text-muted small mb-0">{{ row.questions.length }} question(s)</p>
+            </div>
+          </div>
+        </div>
+      </button>
+      }
+    </div>
+    <div class="d-flex justify-content-end">
+      <button type="button" class="btn btn-primary px-4" (click)="startAssessments()">
+        Start assessments
+      </button>
+    </div>
+    } @else if (step() === 'fill' && currentDraft(); as draft) {
+    <header class="mb-4">
+      <p class="text-uppercase text-muted small fw-semibold mb-1">Public assessment</p>
+      <h1 class="h3 mb-2">{{ draft.domain.title }}</h1>
+      @if (draft.domain.description) {
+      <p class="text-muted mb-0">{{ draft.domain.description }}</p>
+      }
+    </header>
+
+    <div class="progress-tracker card border-0 shadow-sm mb-4">
+      <div class="card-body py-3">
+        <div class="d-flex align-items-center gap-1 flex-wrap progress-pills-row">
+          @for (id of activeSequence; track id; let idx = $index) {
+          <div class="d-flex align-items-center flex-grow-1 progress-pill-wrap" style="min-width: 0;">
+            <div
+              class="progress-pill"
+              [class.progress-pill--current]="fillIndex() === idx"
+              [class.progress-pill--done]="fillIndex() > idx"
+            >
+              <span class="progress-pill__label text-truncate">{{ stepDomainTitle(id) }}</span>
+            </div>
+            @if (idx < activeSequence.length - 1) {
+            <div class="progress-connector flex-grow-1" [class.progress-connector--done]="fillIndex() > idx"></div>
+            }
+          </div>
+          }
+        </div>
+        <div class="progress mt-2" style="height: 6px;">
+          <div
+            class="progress-bar bg-primary"
+            role="progressbar"
+            [style.width.%]="progressPercent()"
+            [attr.aria-valuenow]="progressPercent()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          ></div>
+        </div>
+        <p class="text-muted small mb-0 mt-2">
+          Domain {{ fillIndex() + 1 }} of {{ activeSequence.length }}
+        </p>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">Your name</h2>
+        <p class="text-muted small mb-3">
+          Enter once. The same name is used for every domain you assess in this session.
+        </p>
+        <label class="form-label">Full name <span class="text-danger">*</span></label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="respondentFullName"
+          name="respondentFullName"
+          placeholder="Your full name"
+          autocomplete="name"
+          [disabled]="isSubmitting()"
+        />
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">This assessment</h2>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Assessment title</label>
+            <input type="text" class="form-control" [value]="draft.assessmentTitle" readonly
+              [disabled]="isSubmitting()" />
+            <div class="form-text">Predefined for this domain.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="draft.description"
+              [name]="'desc-' + draft.domainId"
+              placeholder="Short note for this domain only"
+              [disabled]="isSubmitting()"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">Questions</h2>
+        @if (draft.questions.length === 0) {
+        <div class="alert alert-info mb-0">There are no questions for this domain.</div>
+        } @else {
+        <div class="questions-list">
+          @for (question of draft.questions; track question.id) {
+          <div class="question-block mb-4 pb-4 border-bottom border-light-subtle">
+            <label class="form-label fw-semibold mb-2">
+              {{ question.text }}
+              @if (question.required) {
+              <span class="text-danger">*</span>
+              }
+            </label>
+            @switch (question.type) {
+            @case ('text') {
+            <textarea
+              class="form-control"
+              rows="4"
+              placeholder="Your answer"
+              [(ngModel)]="question.answer"
+              [name]="'ta-' + draft.domainId + '-' + question.id"
+            ></textarea>
+            }
+            @case ('radio') {
+            @if (question.options && question.options.length > 0) {
+            <div class="d-flex flex-column gap-2">
+              @for (opt of question.options; track opt) {
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  [name]="'radio-' + draft.domainId + '-' + question.id"
+                  [id]="'radio-' + draft.domainId + '-' + question.id + '-' + $index"
+                  [value]="opt"
+                  [(ngModel)]="question.answer"
+                />
+                <label
+                  class="form-check-label"
+                  [for]="'radio-' + draft.domainId + '-' + question.id + '-' + $index"
+                  >{{ opt }}</label
+                >
+              </div>
+              }
+            </div>
+            } @else {
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="question.answer"
+              [name]="'rfree-' + draft.domainId + '-' + question.id"
+            />
+            }
+            }
+            @case ('checkbox') {
+            @if (question.options && question.options.length > 0) {
+            <div class="d-flex flex-column gap-2">
+              @for (opt of question.options; track opt) {
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  [id]="'cb-' + draft.domainId + '-' + question.id + '-' + $index"
+                  [checked]="isAnswerSelected(question.answer, opt)"
+                  (change)="onCheckboxChange($event, question, opt)"
+                />
+                <label
+                  class="form-check-label"
+                  [for]="'cb-' + draft.domainId + '-' + question.id + '-' + $index"
+                  >{{ opt }}</label
+                >
+              </div>
+              }
+            </div>
+            } @else {
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="question.answer"
+              [name]="'cfree-' + draft.domainId + '-' + question.id"
+            />
+            }
+            }
+            @case ('number') {
+            <input
+              type="number"
+              class="form-control"
+              [min]="question.min"
+              [max]="question.max"
+              [value]="question.answer ?? ''"
+              (input)="onNumberChange(question, $any($event.target).value)"
+            />
+            @if (question.min !== undefined || question.max !== undefined) {
+            <small class="text-muted">
+              @if (question.min !== undefined && question.max !== undefined) {
+              Range: {{ question.min }} – {{ question.max }}
+              } @else if (question.min !== undefined) {
+              Minimum: {{ question.min }}
+              } @else {
+              Maximum: {{ question.max }}
+              }
+            </small>
+            }
+            }
+            @default {
+            <textarea
+              class="form-control"
+              rows="4"
+              [(ngModel)]="question.answer"
+              [name]="'def-' + draft.domainId + '-' + question.id"
+            ></textarea>
+            }
+            }
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 justify-content-between">
+      <button type="button" class="btn btn-outline-secondary" (click)="goBackFromFill()">Back</button>
+      <button type="button" class="btn btn-primary px-4" (click)="goNextFromFill()">
+        @if (fillIndex() < activeSequence.length - 1) {
+        Next domain
+        } @else {
+        Review all
+        }
+      </button>
+    </div>
+    } @else if (step() === 'review') {
+    <header class="mb-4">
+      <p class="text-uppercase text-muted small fw-semibold mb-1">Public assessment</p>
+      <h1 class="h3 mb-2">Review</h1>
+      <p class="text-muted mb-2">Confirm each assessment below. Use Edit to change answers before submitting.</p>
+      <p class="text-muted small mb-0">
+        Respondent: <strong>{{ respondentFullName || '—' }}</strong>
+      </p>
+    </header>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          @for (row of reviewRows(); track row.domainId; let i = $index) {
+          <li
+            class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 py-3"
+          >
+            <div>
+              <div class="fw-semibold">{{ row.domain.title }}</div>
+              <div class="text-muted small">{{ row.assessmentTitle }}</div>
+              @if (row.description.trim()) {
+              <div class="text-muted small">Description: {{ row.description }}</div>
+              }
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="editFromReview(i)">Edit</button>
+          </li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 justify-content-between">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToLastDomainFromReview()">
+        Back to last domain
+      </button>
+      <button type="button" class="btn btn-primary px-4" (click)="submitAll()" [disabled]="isSubmitting()">
+        @if (isSubmitting()) {
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        }
+        Submit all
+      </button>
+    </div>
+    }
+  </div>
+</div>

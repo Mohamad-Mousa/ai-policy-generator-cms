@@ -25,6 +25,13 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'assessment/domains',
+    loadComponent: () =>
+      import('./public/public-assessment-domains/public-assessment-domains').then(
+        (m) => m.PublicAssessmentDomainsComponent,
+      ),
+  },
+  {
     path: 'dashboard',
     loadComponent: () =>
       import('./dashboard/dashboard').then((m) => m.Dashboard),

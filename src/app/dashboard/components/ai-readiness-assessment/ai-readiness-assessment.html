@@ -15,6 +15,9 @@
           [functionKey]="policiesFunctionKey" [privilegeAccess]="policiesWritePrivilege"
           (click)="goToPolicyGenerator()"></app-button>
         }
+        <app-button label="Share all public link" size="sm" variant="outline" icon="link"
+          [disabled]="!domains().length || isLoading()" [functionKey]="functionKey"
+          [privilegeAccess]="readPrivilege" (click)="copyAllPublicShareLink()"></app-button>
         <app-button label="View Assessments" size="sm" variant="outline" icon="visibility"
           [disabled]="!selectedDomain()" [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
           (click)="viewAssessments()"></app-button>

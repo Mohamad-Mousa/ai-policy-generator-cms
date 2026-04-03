@@ -9,7 +9,10 @@ import { takeUntil } from 'rxjs/operators';
 import { Domain, domainScoreOrZero } from '@shared/interfaces';
 import { AuthService, DomainService, AssessmentService } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
-import { publicAssessmentShareUrl } from '@shared/utils/public-assessment-share-url';
+import {
+  publicAssessmentShareUrl,
+  publicMultiAssessmentShareUrl,
+} from '@shared/utils/public-assessment-share-url';
 
 interface DomainCard {
   id: string;
@@ -32,6 +35,8 @@ interface DomainCard {
 })
 export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  /** Load enough active domains for the grid and for “share all public link”. */
+  private readonly activeDomainsFetchLimit = 500;
   protected domains = signal<DomainCard[]>([]);
   protected selectedDomain = signal<DomainCard | null>(null);
   protected isLoading = signal(false);
@@ -102,17 +107,39 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   }
 
   private async copyPublicAssessmentShareLink(domainId: string): Promise<void> {
-    const url = publicAssessmentShareUrl(domainId);
+    await this.copyUrlToClipboard(
+      publicAssessmentShareUrl(domainId),
+      'Respondents can open this link without signing in.',
+    );
+  }
+
+  protected copyAllPublicShareLink(): void {
+    const ids = this.domains().map((d) => d.id);
+    const url = publicMultiAssessmentShareUrl(ids);
+    if (!url) {
+      this.notifications.warning(
+        'No domains are available to build a link.',
+        'Nothing to share',
+      );
+      return;
+    }
+    void this.copyUrlToClipboard(
+      url,
+      'Multi-domain public link copied. Respondents choose and complete assessments in one flow.',
+    );
+  }
+
+  private async copyUrlToClipboard(
+    url: string,
+    successDetail: string,
+  ): Promise<void> {
     try {
       await navigator.clipboard.writeText(url);
-      this.notifications.success(
-        'Respondents can open this link without signing in.',
-        'Public link copied'
-      );
+      this.notifications.success(successDetail, 'Link copied');
     } catch {
       this.notifications.warning(
         url,
-        'Copy blocked — copy the link from this message'
+        'Copy blocked — copy the link from this message',
       );
     }
   }
@@ -154,7 +181,14 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   private loadDomains() {
     this.isLoading.set(true);
     this.domainService
-      .findMany(1, 10, undefined, undefined, undefined, { isActive: 'true' })
+      .findMany(
+        1,
+        this.activeDomainsFetchLimit,
+        undefined,
+        undefined,
+        undefined,
+        { isActive: 'true' },
+      )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
