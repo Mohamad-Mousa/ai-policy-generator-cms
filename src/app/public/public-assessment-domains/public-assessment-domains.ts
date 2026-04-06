@@ -20,6 +20,10 @@ import {
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { LoaderComponent } from '@shared/components/loader/loader';
 import { Question, questionAnswerOptionLabels } from '@shared/interfaces';
+import {
+  publicQuestionsAnsweredCount,
+  publicQuestionsProgressPercent,
+} from '@shared/utils/public-assessment-question-progress';
 
 type MultiStep =
   | 'loading'
@@ -202,6 +206,30 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
       return 0;
     }
     return Math.round(((this.fillIndex() + 1) / n) * 100);
+  }
+
+  /** Question-level completion for one domain in the multi flow (0–100). */
+  protected draftQuestionsProgressPercent(domainId: string): number {
+    const d = this.drafts[domainId];
+    return d ? publicQuestionsProgressPercent(d.questions) : 0;
+  }
+
+  protected draftQuestionsAnsweredLabel(domainId: string): string {
+    const d = this.drafts[domainId];
+    if (!d) {
+      return '0 / 0';
+    }
+    const c = publicQuestionsAnsweredCount(d.questions);
+    return `${c} / ${d.questions.length}`;
+  }
+
+  protected reviewRowQuestionsProgressPercent(row: DomainDraft): number {
+    return publicQuestionsProgressPercent(row.questions);
+  }
+
+  protected reviewRowQuestionsAnsweredLabel(row: DomainDraft): string {
+    const c = publicQuestionsAnsweredCount(row.questions);
+    return `${c} / ${row.questions.length}`;
   }
 
   protected backToLastDomainFromReview(): void {

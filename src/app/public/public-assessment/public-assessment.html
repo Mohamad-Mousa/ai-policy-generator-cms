@@ -48,6 +48,32 @@
       </div>
     </div>
 
+    @if (questions.length > 0) {
+    <div class="card border-0 shadow-sm mb-4 public-assessment-progress-card">
+      <div class="card-body py-3">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h6 text-muted mb-0">Your progress</h2>
+          <span class="small text-muted text-nowrap"
+            >{{ questionsAnsweredCount() }} / {{ questions.length }} questions</span
+          >
+        </div>
+        <div class="progress public-assessment-progress-bar" role="presentation">
+          <div
+            class="progress-bar bg-primary"
+            role="progressbar"
+            [style.width.%]="questionsProgressPercent()"
+            [attr.aria-valuenow]="questionsProgressPercent()"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-label]="
+              questionsAnsweredCount() + ' of ' + questions.length + ' questions answered'
+            "
+          ></div>
+        </div>
+      </div>
+    </div>
+    }
+
     <div class="card border-0 shadow-sm">
       <div class="card-body">
         <h2 class="h6 text-muted mb-3">Questions</h2>

@@ -7,8 +7,7 @@
       </div>
       <div class="d-flex flex-wrap gap-2">
         @if (hasDomainsAccess()) {
-        <app-button label="Domains" size="sm" variant="outline" icon="category"
-          (click)="goToDomains()"></app-button>
+        <app-button label="Domains" size="sm" variant="outline" icon="category" (click)="goToDomains()"></app-button>
         }
         @if (hasPolicyGeneratorAccess()) {
         <app-button label="Policy Generator" size="sm" variant="outline" icon="auto_awesome"
@@ -16,8 +15,8 @@
           (click)="goToPolicyGenerator()"></app-button>
         }
         <app-button label="Share all public link" size="sm" variant="outline" icon="link"
-          [disabled]="!domains().length || isLoading()" [functionKey]="functionKey"
-          [privilegeAccess]="readPrivilege" (click)="copyAllPublicShareLink()"></app-button>
+          [disabled]="!domains().length || isLoading()" [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
+          (click)="copyAllPublicShareLink()"></app-button>
         <app-button label="View Assessments" size="sm" variant="outline" icon="visibility"
           [disabled]="!selectedDomain()" [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
           (click)="viewAssessments()"></app-button>
@@ -41,13 +40,200 @@
       <app-loader size="lg" variant="inline" label="Loading active domains..."></app-loader>
     </div>
     } @else {
+    @if (overallScoresFromApi() || firstReadinessInProgressDomain()) {
+    <div class="readiness-summary-row mb-4">
+      @if (overallScoresFromApi()) {
+      <div class="readiness-summary-row__cell">
+    <div class="overall-readiness-summary card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="overall-readiness-summary__rings">
+          <div class="overall-readiness-summary__metric">
+            <p class="overall-readiness-summary__metric-title text-uppercase text-muted fw-semibold small mb-1">
+              Overall average (1–5)
+            </p>
+        <div
+          class="overall-avg-ring"
+          role="progressbar"
+          [attr.aria-valuenow]="overallScoreAvg()"
+          aria-valuemin="0"
+          aria-valuemax="5"
+          [attr.aria-valuetext]="(overallScoreAvg() | number : '1.1-2') + ' out of 5'"
+        >
+          <svg class="overall-avg-ring__svg" viewBox="0 0 100 100" aria-hidden="true">
+            <defs>
+              <linearGradient
+                id="araOverallRingAttention"
+                gradientUnits="objectBoundingBox"
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="0%" stop-color="var(--readiness-meter-attention-from)" />
+                <stop offset="100%" stop-color="var(--readiness-meter-attention-to)" />
+              </linearGradient>
+              <linearGradient
+                id="araOverallRingProgress"
+                gradientUnits="objectBoundingBox"
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="0%" stop-color="var(--readiness-meter-progress-from)" />
+                <stop offset="100%" stop-color="var(--readiness-meter-progress-to)" />
+              </linearGradient>
+              <linearGradient
+                id="araOverallRingReady"
+                gradientUnits="objectBoundingBox"
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="0%" stop-color="var(--readiness-meter-ready-from)" />
+                <stop offset="100%" stop-color="var(--readiness-meter-ready-to)" />
+              </linearGradient>
+            </defs>
+            <circle
+              class="overall-avg-ring__track"
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke-width="9"
+            />
+            <circle
+              class="overall-avg-ring__progress-layer"
+              [class.overall-avg-ring__progress-layer--active]="overallScoreAvgMeterBand() === 'attention'"
+              cx="50"
+              cy="50"
+              r="40"
+              stroke="url(#araOverallRingAttention)"
+              [attr.stroke-dasharray]="overallRingCircumference + ' ' + overallRingCircumference"
+              [attr.stroke-dashoffset]="overallRingDashOffset()"
+              transform="rotate(-90 50 50)"
+            />
+            <circle
+              class="overall-avg-ring__progress-layer"
+              [class.overall-avg-ring__progress-layer--active]="overallScoreAvgMeterBand() === 'progress'"
+              cx="50"
+              cy="50"
+              r="40"
+              stroke="url(#araOverallRingProgress)"
+              [attr.stroke-dasharray]="overallRingCircumference + ' ' + overallRingCircumference"
+              [attr.stroke-dashoffset]="overallRingDashOffset()"
+              transform="rotate(-90 50 50)"
+            />
+            <circle
+              class="overall-avg-ring__progress-layer"
+              [class.overall-avg-ring__progress-layer--active]="overallScoreAvgMeterBand() === 'ready'"
+              cx="50"
+              cy="50"
+              r="40"
+              stroke="url(#araOverallRingReady)"
+              [attr.stroke-dasharray]="overallRingCircumference + ' ' + overallRingCircumference"
+              [attr.stroke-dashoffset]="overallRingDashOffset()"
+              transform="rotate(-90 50 50)"
+            />
+          </svg>
+          <div class="overall-avg-ring__label">
+            <span class="overall-avg-ring__score">{{ overallScoreAvg() | number : '1.1-2' }}</span>
+            <span class="overall-avg-ring__max">/ 5</span>
+          </div>
+        </div>
+          </div>
+          <div class="overall-readiness-summary__metric">
+            <p class="overall-readiness-summary__metric-title text-uppercase text-muted fw-semibold small mb-1">
+              Readiness (score %)
+            </p>
+            <div
+              class="overall-readiness-ring"
+              role="progressbar"
+              [attr.aria-valuenow]="overallReadinessPercent()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuetext]="overallReadinessPercent() + ' percent readiness'"
+            >
+              <svg class="overall-readiness-ring__svg" viewBox="0 0 100 100" aria-hidden="true">
+                <circle
+                  class="overall-readiness-ring__track"
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke-width="9"
+                />
+                <circle
+                  class="overall-readiness-ring__progress"
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke-width="9"
+                  stroke-linecap="round"
+                  [attr.stroke-dasharray]="overallRingCircumference + ' ' + overallRingCircumference"
+                  [attr.stroke-dashoffset]="overallReadinessRingDashOffset()"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <div class="overall-readiness-ring__label">
+                <span class="overall-readiness-ring__value">{{ overallReadinessPercent() }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+      </div>
+      }
+      @if (firstReadinessInProgressDomain(); as inProgressDomain) {
+      <div class="readiness-summary-row__cell">
+    <div class="in-progress-domain-summary card border-0 shadow-sm h-100">
+      <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-start gap-3 min-w-0 flex-grow-1">
+          <span class="material-symbols-rounded domain-icon in-progress-domain-summary__icon flex-shrink-0" aria-hidden="true">{{
+            inProgressDomain.icon
+          }}</span>
+          <div class="in-progress-domain-summary__text min-w-0">
+            <p class="text-uppercase text-muted fw-semibold small mb-1">In progress</p>
+            <p class="fw-semibold mb-1 text-truncate" [attr.title]="inProgressDomain.title">
+              {{ inProgressDomain.title }}
+            </p>
+            <p class="small text-muted mb-0">
+              {{ readinessPercent(inProgressDomain) }}% readiness (41–75%)
+            </p>
+          </div>
+        </div>
+        <app-button
+          label="Continue"
+          size="sm"
+          variant="primary"
+          icon="play_arrow"
+          [functionKey]="functionKey"
+          [privilegeAccess]="writePrivilege"
+          (clicked)="continueAssessmentFromSummary(inProgressDomain)"
+        ></app-button>
+      </div>
+    </div>
+      </div>
+      }
+    </div>
+    }
     @if (!domains().length) {
     <div class="alert alert-warning mb-0" role="alert">
       No active domains are available yet. Please create or activate a domain first.
     </div>
     } @else {
-    <p class="text-muted small mb-3">
+    <p class="text-muted small mb-2">
       Select a domain to enable the assessment button. Only one domain can be assessed at a time.
+    </p>
+    <p class="readiness-legend small text-muted mb-3">
+      <span class="readiness-legend__swatch readiness-legend__swatch--attention"></span> 0–40% needs attention
+      <span class="readiness-legend__dot">·</span>
+      <span class="readiness-legend__swatch readiness-legend__swatch--progress"></span> 41–75% in progress
+      <span class="readiness-legend__dot">·</span>
+      <span class="readiness-legend__swatch readiness-legend__swatch--ready"></span> 76–100% ready
     </p>
 
     <div class="domains-grid">
@@ -61,36 +247,48 @@
               <h5 class="mb-1">{{ domain.title }}</h5>
               <p class="text-muted small mb-0">{{ domain.description }}</p>
             </div>
-            <button
-              type="button"
+            <button type="button"
               class="btn btn-sm btn-outline-secondary domain-share-link d-inline-flex align-items-center gap-1 flex-shrink-0"
-              title="Copy public assessment link (policygeneratorai.com)"
-              (click)="copyPublicShareLink($event, domain)"
-            >
+              title="Copy public assessment link (policygeneratorai.com)" (click)="copyPublicShareLink($event, domain)">
               <span class="material-symbols-rounded" style="font-size: 1.125rem">link</span>
               <span>Share link</span>
             </button>
           </div>
 
-          <div class="domain-scores">
-            <div class="domain-score-pill">
-              <span class="domain-score-label">Score avg (1–5)</span>
-              <span class="domain-score-value">{{ domain.scoreAvg }}</span>
+          <div class="domain-meter-block mt-2">
+            <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+              <span class="domain-meter-label">Average (scale 1–5)</span>
+              <span class="domain-meter-value">{{ domain.scoreAvg | number : '1.1-2' }} / 5</span>
             </div>
-            <div class="domain-score-pill">
-              <span class="domain-score-label">Score %</span>
-              <span class="domain-score-value">{{ domain.scorePercentage }}</span>
+            <div class="progress domain-meter-track">
+              <div class="progress-bar domain-meter-fill"
+                [class.domain-meter-fill--attention]="scoreAvgMeterBand(domain) === 'attention'"
+                [class.domain-meter-fill--progress]="scoreAvgMeterBand(domain) === 'progress'"
+                [class.domain-meter-fill--ready]="scoreAvgMeterBand(domain) === 'ready'"
+                [style.width.%]="scoreAvgMeterPercent(domain)" role="progressbar" [attr.aria-valuenow]="domain.scoreAvg"
+                aria-valuemin="0" aria-valuemax="5"
+                [attr.aria-label]="'Average score ' + domain.scoreAvg + ' out of 5'"></div>
+            </div>
+            <div class="domain-meter-ticks" aria-hidden="true">
+              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
             </div>
           </div>
 
-          <div class="d-flex align-items-center justify-content-between mt-3">
-            <div class="flex-grow-1 me-3">
-              <div class="progress" style="height: 6px;">
-                <div class="progress-bar" [class.bg-success]="domain.completed" [class.bg-primary]="!domain.completed"
-                  role="progressbar" [style.width.%]="domain.progress" [attr.aria-valuenow]="domain.progress"
-                  aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
+          <div class="domain-card-action mt-3" (click)="$event.stopPropagation()">
+            @if (domainHasNoScores(domain)) {
+            <app-button label="Start Assessment" size="sm" variant="primary" icon="add" [functionKey]="functionKey"
+              [privilegeAccess]="writePrivilege" (clicked)="onStartAssessmentForDomain($event, domain)"></app-button>
+            } @else if (readinessBand(domain) === 'progress') {
+            <app-button label="Continue" size="sm" variant="primary" icon="play_arrow" [functionKey]="functionKey"
+              [privilegeAccess]="writePrivilege" (clicked)="onStartAssessmentForDomain($event, domain)"></app-button>
+            } @else {
+            <app-button label="View Assessments" size="sm" variant="outline" icon="visibility"
+              [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
+              (clicked)="onViewAssessmentsForDomain($event, domain)"></app-button>
+            }
+          </div>
+
+          <div class="d-flex align-items-center justify-content-end mt-3 pt-2 border-top border-light-subtle">
             <span class="badge" [class.bg-primary]="selectedDomain()?.id === domain.id"
               [class.bg-light]="selectedDomain()?.id !== domain.id"
               [class.text-white]="selectedDomain()?.id === domain.id"

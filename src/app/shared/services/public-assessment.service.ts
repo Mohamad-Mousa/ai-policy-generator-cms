@@ -57,21 +57,26 @@ export class PublicAssessmentService {
 
   constructor(private http: HttpClient) {}
 
+  /**
+   * Single-domain public link. Uses the same `domains=` query as the multi flow
+   * (backend requires `domains`, not legacy `domain`).
+   */
   listQuestionsByDomain(
     domainId: string,
   ): Observable<PublicQuestionsByDomainResult> {
-    const params = new HttpParams().set('domain', domainId.trim());
-    return this.http
-      .get<ApiResponse<PublicQuestionsByDomainResult | PublicQuestionsMultiShape>>(
-        `${this.apiUrl}/public/question`,
-        { params },
-      )
-      .pipe(
-        map((res) => this.unwrapSingleOrThrow(res)),
-        catchError((err: HttpErrorResponse) => {
-          return throwError(() => err);
-        }),
-      );
+    const id = domainId.trim();
+    if (!id) {
+      return throwError(() => new Error('Domain id is required.'));
+    }
+    return this.listQuestionsByDomains([id]).pipe(
+      map((multi) => {
+        const item = multi.items[0];
+        if (!item) {
+          throw new Error('No questions returned for this domain.');
+        }
+        return item;
+      }),
+    );
   }
 
   /**
@@ -139,23 +144,6 @@ export class PublicAssessmentService {
           return throwError(() => err);
         }),
       );
-  }
-
-  private unwrapSingleOrThrow(
-    res: ApiResponse<PublicQuestionsByDomainResult | PublicQuestionsMultiShape>,
-  ): PublicQuestionsByDomainResult {
-    if (res.error || res.results == null) {
-      throw new Error(String(res.message || 'Invalid response from server'));
-    }
-    const results = res.results;
-    if (this.isMultiShape(results)) {
-      const first = results.items?.[0];
-      if (!first) {
-        throw new Error('No questions returned for this domain.');
-      }
-      return first;
-    }
-    return results as PublicQuestionsByDomainResult;
   }
 
   private normalizeMultiResult(

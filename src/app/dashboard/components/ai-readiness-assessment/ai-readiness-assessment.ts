@@ -1,4 +1,12 @@
-import { Component, OnDestroy, OnInit, signal, ViewChild, ElementRef } from '@angular/core';
+import {
+  Component,
+  computed,
+  OnDestroy,
+  OnInit,
+  signal,
+  ViewChild,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '@shared/components/button/button';
@@ -42,6 +50,10 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   protected isLoading = signal(false);
   protected isDownloadingTemplate = signal(false);
   protected isImporting = signal(false);
+  /** Set when the domain list response includes overall score fields. */
+  protected overallScoresFromApi = signal(false);
+  protected overallScoreAvg = signal(0);
+  protected overallScorePercentage = signal(0);
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   protected readonly functionKey = 'questions';
@@ -154,10 +166,17 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.navigateToAssessmentForDomain(domain);
+  }
+
+  /** Same navigation as New Assessment: open assessment flow for the given domain. */
+  protected continueAssessmentFromSummary(domain: DomainCard): void {
+    this.navigateToAssessmentForDomain(domain);
+  }
+
+  private navigateToAssessmentForDomain(domain: DomainCard): void {
     this.router.navigate(['/dashboard/assessment'], {
-      state: {
-        domain: domain.payload,
-      },
+      state: { domain: domain.payload },
     });
   }
 
@@ -178,6 +197,114 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Both scores zero → prompt to start; otherwise show reports. */
+  protected domainHasNoScores(domain: DomainCard): boolean {
+    return domain.scoreAvg === 0 && domain.scorePercentage === 0;
+  }
+
+  protected onStartAssessmentForDomain(event: MouseEvent, domain: DomainCard): void {
+    event.stopPropagation();
+    this.navigateToAssessmentForDomain(domain);
+  }
+
+  protected onViewAssessmentsForDomain(event: MouseEvent, domain: DomainCard): void {
+    event.stopPropagation();
+    this.router.navigate(['/dashboard/readiness-reports'], {
+      state: { domain: domain.payload },
+    });
+  }
+
+  /** Score % used for readiness bar (0–100). */
+  protected readinessPercent(domain: DomainCard): number {
+    return Math.min(100, Math.max(0, Math.round(domain.scorePercentage)));
+  }
+
+  /**
+   * 0–40%: needs attention · 41–75%: in progress · 76–100%: ready
+   */
+  protected readinessBand(
+    domain: DomainCard,
+  ): 'attention' | 'progress' | 'ready' {
+    const p = this.readinessPercent(domain);
+    if (p <= 40) {
+      return 'attention';
+    }
+    if (p <= 75) {
+      return 'progress';
+    }
+    return 'ready';
+  }
+
+  /** First domain whose readiness % is in the 41–75% “in progress” band (list order). */
+  protected readonly firstReadinessInProgressDomain = computed(() => {
+    for (const d of this.domains()) {
+      if (this.readinessBand(d) === 'progress') {
+        return d;
+      }
+    }
+    return null;
+  });
+
+  /** Fill width for average score on a 1–5 scale (0–100%). */
+  protected scoreAvgMeterPercent(domain: DomainCard): number {
+    const raw = (domain.scoreAvg / 5) * 100;
+    return Math.min(100, Math.max(0, raw));
+  }
+
+  /** Same tier logic applied to the 1–5 meter fill percentage. */
+  protected scoreAvgMeterBand(
+    domain: DomainCard,
+  ): 'attention' | 'progress' | 'ready' {
+    const p = Math.round(this.scoreAvgMeterPercent(domain));
+    if (p <= 40) {
+      return 'attention';
+    }
+    if (p <= 75) {
+      return 'progress';
+    }
+    return 'ready';
+  }
+
+  /** Fill width 0–100% from average on 1–5 scale (integer % for ring progress). */
+  protected overallScoreAvgMeterPercentRounded(): number {
+    const raw = (this.overallScoreAvg() / 5) * 100;
+    return Math.min(100, Math.max(0, Math.round(raw)));
+  }
+
+  /** SVG circle r=40 in 100×100 viewBox. */
+  protected readonly overallRingCircumference = 2 * Math.PI * 40;
+
+  /** Stroke offset so the arc shows `overallScoreAvgMeterPercentRounded()`% of the ring. */
+  protected overallRingDashOffset(): number {
+    const p = this.overallScoreAvgMeterPercentRounded() / 100;
+    return this.overallRingCircumference * (1 - p);
+  }
+
+  /** Stroke offset for readiness ring (0–100% API score), same geometry as `overallRingCircumference`. */
+  protected overallReadinessRingDashOffset(): number {
+    const p = this.overallReadinessPercent() / 100;
+    return this.overallRingCircumference * (1 - p);
+  }
+
+  protected overallScoreAvgMeterBand(): 'attention' | 'progress' | 'ready' {
+    const p = this.overallScoreAvgMeterPercentRounded();
+    if (p <= 40) {
+      return 'attention';
+    }
+    if (p <= 75) {
+      return 'progress';
+    }
+    return 'ready';
+  }
+
+  /** Overall readiness score % from API (0–100), same basis as domain readiness bars. */
+  protected overallReadinessPercent(): number {
+    return Math.min(
+      100,
+      Math.max(0, Math.round(this.overallScorePercentage())),
+    );
+  }
+
   private loadDomains() {
     this.isLoading.set(true);
     this.domainService
@@ -193,6 +320,16 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           this.isLoading.set(false);
+          this.overallScoresFromApi.set(
+            response.overallScoreAvg !== undefined,
+          );
+          this.overallScoreAvg.set(
+            domainScoreOrZero(response.overallScoreAvg),
+          );
+          this.overallScorePercentage.set(
+            domainScoreOrZero(response.overallScorePercentage),
+          );
+
           const mappedDomains = response.data.map((domain) =>
             this.mapDomain(domain)
           );
@@ -212,6 +349,9 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.isLoading.set(false);
+          this.overallScoresFromApi.set(false);
+          this.overallScoreAvg.set(0);
+          this.overallScorePercentage.set(0);
           console.error('Failed to load domains', error);
           this.domains.set([]);
           this.selectedDomain.set(null);

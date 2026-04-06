@@ -1,25 +1,18 @@
-import {
-  Component,
-  OnDestroy,
-  OnInit,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import {
-  PublicAssessmentService,
-  PublicDomainBrief,
-} from '@shared/services';
+import { PublicAssessmentService, PublicDomainBrief } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { LoaderComponent } from '@shared/components/loader/loader';
+import { questionAnswerOptionLabels } from '@shared/interfaces';
 import {
-  questionAnswerOptionLabels,
-} from '@shared/interfaces';
+  publicQuestionsAnsweredCount,
+  publicQuestionsProgressPercent,
+} from '@shared/utils/public-assessment-question-progress';
 
 interface PublicQuestionItem {
   id: string;
@@ -97,11 +90,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
             min: q.min,
             max: q.max,
             answer:
-              q.type === 'checkbox'
-                ? []
-                : q.type === 'number'
-                  ? undefined
-                  : '',
+              q.type === 'checkbox' ? [] : q.type === 'number' ? undefined : '',
           }));
           this.isLoading.set(false);
           this.loadError.set(null);
@@ -170,6 +159,14 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
     question.answer = Number.isFinite(n) ? n : undefined;
   }
 
+  protected questionsProgressPercent(): number {
+    return publicQuestionsProgressPercent(this.questions);
+  }
+
+  protected questionsAnsweredCount(): number {
+    return publicQuestionsAnsweredCount(this.questions);
+  }
+
   private validate(): boolean {
     if (!this.fullName.trim()) {
       this.notifications.warning(
@@ -183,10 +180,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
       if (q.type === 'checkbox') {
         const a = q.answer;
         if (!Array.isArray(a) || a.length === 0) {
-          this.notifications.warning(
-            `Please answer: ${q.text}`,
-            'Incomplete',
-          );
+          this.notifications.warning(`Please answer: ${q.text}`, 'Incomplete');
           return false;
         }
       } else if (q.type === 'number') {
@@ -195,19 +189,13 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
           q.answer === null ||
           (typeof q.answer === 'number' && Number.isNaN(q.answer))
         ) {
-          this.notifications.warning(
-            `Please answer: ${q.text}`,
-            'Incomplete',
-          );
+          this.notifications.warning(`Please answer: ${q.text}`, 'Incomplete');
           return false;
         }
       } else {
         const s = q.answer != null ? String(q.answer).trim() : '';
         if (!s) {
-          this.notifications.warning(
-            `Please answer: ${q.text}`,
-            'Incomplete',
-          );
+          this.notifications.warning(`Please answer: ${q.text}`, 'Incomplete');
           return false;
         }
       }
@@ -264,8 +252,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
         error: (err: { error?: { message?: string } }) => {
           this.isSubmitting.set(false);
           this.notifications.danger(
-            err?.error?.message ||
-              'Submission failed. Please try again later.',
+            err?.error?.message || 'Submission failed. Please try again later.',
             'Submit failed',
           );
         },

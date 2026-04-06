@@ -61,9 +61,10 @@
 
     <div class="progress-tracker card border-0 shadow-sm mb-4">
       <div class="card-body py-3">
-        <div class="d-flex align-items-center gap-1 flex-wrap progress-pills-row">
+        <p class="small text-muted mb-2">Progress per assessment (questions answered)</p>
+        <div class="d-flex align-items-stretch flex-wrap progress-pills-row">
           @for (id of activeSequence; track id; let idx = $index) {
-          <div class="d-flex align-items-center flex-grow-1 progress-pill-wrap" style="min-width: 0;">
+          <div class="progress-pill-wrap flex-grow-1 d-flex flex-column min-w-0">
             <div
               class="progress-pill"
               [class.progress-pill--current]="fillIndex() === idx"
@@ -71,20 +72,38 @@
             >
               <span class="progress-pill__label text-truncate">{{ stepDomainTitle(id) }}</span>
             </div>
-            @if (idx < activeSequence.length - 1) {
-            <div class="progress-connector flex-grow-1" [class.progress-connector--done]="fillIndex() > idx"></div>
-            }
+            <div class="progress public-multi-assessment-progress mt-1" role="presentation">
+              <div
+                class="progress-bar bg-primary"
+                role="progressbar"
+                [style.width.%]="draftQuestionsProgressPercent(id)"
+                [attr.aria-valuenow]="draftQuestionsProgressPercent(id)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-label]="
+                  'Questions for ' + stepDomainTitle(id) + ': ' + draftQuestionsAnsweredLabel(id) + ' answered'
+                "
+              ></div>
+            </div>
+            <span class="progress-pill__count small text-muted">{{ draftQuestionsAnsweredLabel(id) }}</span>
           </div>
+          @if (idx < activeSequence.length - 1) {
+          <div
+            class="progress-connector align-self-center flex-shrink-0"
+            [class.progress-connector--done]="fillIndex() > idx"
+          ></div>
+          }
           }
         </div>
-        <div class="progress mt-2" style="height: 6px;">
+        <div class="progress mt-3 public-multi-step-progress" role="presentation">
           <div
-            class="progress-bar bg-primary"
+            class="progress-bar bg-primary bg-opacity-75"
             role="progressbar"
             [style.width.%]="progressPercent()"
             [attr.aria-valuenow]="progressPercent()"
             aria-valuemin="0"
             aria-valuemax="100"
+            [attr.aria-label]="'Current step: domain ' + (fillIndex() + 1) + ' of ' + activeSequence.length"
           ></div>
         </div>
         <p class="text-muted small mb-0 mt-2">
@@ -282,17 +301,38 @@
       <div class="card-body p-0">
         <ul class="list-group list-group-flush">
           @for (row of reviewRows(); track row.domainId; let i = $index) {
-          <li
-            class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 py-3"
-          >
-            <div>
-              <div class="fw-semibold">{{ row.domain.title }}</div>
-              <div class="text-muted small">{{ row.assessmentTitle }}</div>
-              @if (row.description.trim()) {
-              <div class="text-muted small">Description: {{ row.description }}</div>
-              }
+          <li class="list-group-item py-3">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
+              <div class="min-w-0 flex-grow-1">
+                <div class="fw-semibold">{{ row.domain.title }}</div>
+                <div class="text-muted small">{{ row.assessmentTitle }}</div>
+                @if (row.description.trim()) {
+                <div class="text-muted small">Description: {{ row.description }}</div>
+                }
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" (click)="editFromReview(i)">
+                Edit
+              </button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" (click)="editFromReview(i)">Edit</button>
+            <div class="mt-2">
+              <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                <span class="small text-muted">Questions</span>
+                <span class="small text-muted">{{ reviewRowQuestionsAnsweredLabel(row) }}</span>
+              </div>
+              <div class="progress public-multi-assessment-progress" role="presentation">
+                <div
+                  class="progress-bar bg-primary"
+                  role="progressbar"
+                  [style.width.%]="reviewRowQuestionsProgressPercent(row)"
+                  [attr.aria-valuenow]="reviewRowQuestionsProgressPercent(row)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-label]="
+                    row.domain.title + ': ' + reviewRowQuestionsAnsweredLabel(row) + ' questions answered'
+                  "
+                ></div>
+              </div>
+            </div>
           </li>
           }
         </ul>

@@ -36,6 +36,9 @@ export function domainScoreOrZero(value: number | null | undefined): number {
 export interface DomainPaginatedResponse {
   data: Domain[];
   totalCount: number;
+  /** Aggregated across domains (when returned by the list API). */
+  overallScoreAvg?: number | null;
+  overallScorePercentage?: number | null;
 }
 
 export interface CreateDomainRequest {

@@ -42,6 +42,19 @@
   min-width: 120px;
 }
 
+.public-multi-assessment-progress {
+  height: 6px;
+}
+
+.public-multi-step-progress {
+  height: 6px;
+}
+
+.progress-pill__count {
+  margin-top: 0.2rem;
+  line-height: 1.2;
+}
+
 .progress-pill {
   border-radius: 999px;
   padding: 0.35rem 0.75rem;
@@ -66,10 +79,11 @@
 }
 
 .progress-connector {
+  width: 14px;
   height: 2px;
-  min-width: 8px;
+  flex: 0 0 14px;
   background: var(--bs-border-color);
-  margin: 0 2px;
+  margin: 0 4px;
 
   &--done {
     background: var(--bs-success);
