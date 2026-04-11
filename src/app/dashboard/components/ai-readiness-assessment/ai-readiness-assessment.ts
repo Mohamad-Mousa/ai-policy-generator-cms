@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  HostListener,
   OnDestroy,
   OnInit,
   signal,
@@ -48,13 +49,22 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   protected domains = signal<DomainCard[]>([]);
   protected selectedDomain = signal<DomainCard | null>(null);
   protected isLoading = signal(false);
-  protected isDownloadingTemplate = signal(false);
+  /** While a template download is in progress, the domain id being downloaded (for row loading state). */
+  protected downloadingTemplateDomainId = signal<string | null>(null);
   protected isImporting = signal(false);
+  /** Domain card that opened the import file picker (for menu loading state). */
+  protected importTriggerDomainId = signal<string | null>(null);
+  /** Which domain card’s ⋮ menu is open (at most one). */
+  protected domainCardMenuOpenId = signal<string | null>(null);
   /** Set when the domain list response includes overall score fields. */
   protected overallScoresFromApi = signal(false);
   protected overallScoreAvg = signal(0);
   protected overallScorePercentage = signal(0);
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('newAssessmentDropdownRoot')
+  private newAssessmentDropdownRoot?: ElementRef<HTMLElement>;
+  /** Domain picker opened from the header New Assessment control. */
+  protected newAssessmentMenuOpen = signal(false);
 
   protected readonly functionKey = 'questions';
   protected readonly domainsFunctionKey = 'domains';
@@ -94,6 +104,14 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     );
   }
 
+  protected canReadQuestionsTools(): boolean {
+    return this.authService.hasPrivilege(this.functionKey, PrivilegeAccess.R);
+  }
+
+  protected canWriteQuestionsTools(): boolean {
+    return this.authService.hasPrivilege(this.functionKey, PrivilegeAccess.W);
+  }
+
   protected goToPolicyGenerator(): void {
     this.router.navigate(['/dashboard/policy-generator'], {
       state: { policyGeneratorReset: true },
@@ -104,18 +122,14 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     this.router.navigate(['/dashboard/domains']);
   }
 
-  protected selectDomain(domain: DomainCard) {
-    const currentSelection = this.selectedDomain();
-    if (currentSelection?.id === domain.id) {
-      this.selectedDomain.set(null);
-      return;
-    }
-    this.selectedDomain.set(domain);
-  }
-
   protected copyPublicShareLink(event: MouseEvent, domain: DomainCard): void {
     event.stopPropagation();
     void this.copyPublicAssessmentShareLink(domain.id);
+  }
+
+  protected onShareLinkFromMenu(event: MouseEvent, domain: DomainCard): void {
+    this.domainCardMenuOpenId.set(null);
+    this.copyPublicShareLink(event, domain);
   }
 
   private async copyPublicAssessmentShareLink(domainId: string): Promise<void> {
@@ -156,44 +170,55 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected startNewAssessment() {
-    const domain = this.selectedDomain();
-    if (!domain) {
-      this.notifications.info(
-        'Please select a domain before starting a new assessment.',
-        'Domain required'
-      );
+  protected toggleNewAssessmentMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.isLoading() || !this.domains().length) {
       return;
     }
+    this.newAssessmentMenuOpen.update((open) => !open);
+  }
 
+  protected onPickDomainForNewAssessment(domain: DomainCard): void {
+    this.newAssessmentMenuOpen.set(false);
+    this.selectedDomain.set(domain);
     this.navigateToAssessmentForDomain(domain);
   }
 
-  /** Same navigation as New Assessment: open assessment flow for the given domain. */
-  protected continueAssessmentFromSummary(domain: DomainCard): void {
-    this.navigateToAssessmentForDomain(domain);
+  @HostListener('document:click', ['$event'])
+  protected onDocumentClickCloseMenus(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.newAssessmentMenuOpen()) {
+      const root = this.newAssessmentDropdownRoot?.nativeElement;
+      if (root && !root.contains(target)) {
+        this.newAssessmentMenuOpen.set(false);
+      }
+    }
+    const openCardMenuId = this.domainCardMenuOpenId();
+    if (openCardMenuId !== null) {
+      const menuEl = document.querySelector(
+        `[data-domain-menu="${CSS.escape(openCardMenuId)}"]`,
+      );
+      if (menuEl && !menuEl.contains(target)) {
+        this.domainCardMenuOpenId.set(null);
+      }
+    }
+  }
+
+  protected toggleDomainCardMenu(event: MouseEvent, domainId: string): void {
+    event.stopPropagation();
+    this.domainCardMenuOpenId.update((id) => (id === domainId ? null : domainId));
+  }
+
+  /** Open readiness reports for the domain highlighted in the summary row. */
+  protected goToReadinessReportsForDomain(domain: DomainCard): void {
+    this.router.navigate(['/dashboard/readiness-reports'], {
+      state: { domain: domain.payload },
+    });
   }
 
   private navigateToAssessmentForDomain(domain: DomainCard): void {
     this.router.navigate(['/dashboard/assessment'], {
       state: { domain: domain.payload },
-    });
-  }
-
-  protected viewAssessments() {
-    const domain = this.selectedDomain();
-    if (!domain) {
-      this.notifications.info(
-        'Please select a domain to view assessments.',
-        'Domain required'
-      );
-      return;
-    }
-
-    this.router.navigate(['/dashboard/readiness-reports'], {
-      state: {
-        domain: domain.payload,
-      },
     });
   }
 
@@ -209,9 +234,24 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
 
   protected onViewAssessmentsForDomain(event: MouseEvent, domain: DomainCard): void {
     event.stopPropagation();
+    this.domainCardMenuOpenId.set(null);
     this.router.navigate(['/dashboard/readiness-reports'], {
       state: { domain: domain.payload },
     });
+  }
+
+  protected onDownloadTemplateForDomain(event: MouseEvent, domain: DomainCard): void {
+    event.stopPropagation();
+    this.domainCardMenuOpenId.set(null);
+    this.downloadTemplateForDomain(domain);
+  }
+
+  protected onImportFileForDomain(event: MouseEvent, domain: DomainCard): void {
+    event.stopPropagation();
+    this.domainCardMenuOpenId.set(null);
+    this.selectedDomain.set(domain);
+    this.importTriggerDomainId.set(domain.id);
+    this.fileInput?.nativeElement.click();
   }
 
   /** Score % used for readiness bar (0–100). */
@@ -220,30 +260,47 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 0–40%: needs attention · 41–75%: in progress · 76–100%: ready
+   * Readiness % tier (same bands as overall % ring): 0–49 · 50–64 · 65–84 · 85–100.
    */
   protected readinessBand(
     domain: DomainCard,
-  ): 'attention' | 'progress' | 'ready' {
-    const p = this.readinessPercent(domain);
-    if (p <= 40) {
-      return 'attention';
-    }
-    if (p <= 75) {
-      return 'progress';
-    }
-    return 'ready';
+  ): 'pct-low' | 'pct-lowmid' | 'pct-mid' | 'pct-high' {
+    return this.readinessPercentScoreBand(this.readinessPercent(domain));
   }
 
-  /** First domain whose readiness % is in the 41–75% “in progress” band (list order). */
-  protected readonly firstReadinessInProgressDomain = computed(() => {
-    for (const d of this.domains()) {
-      if (this.readinessBand(d) === 'progress') {
-        return d;
+  /**
+   * Domain with the highest readiness % (API score). Tie-break: first in list order.
+   */
+  protected readonly highestReadinessDomain = computed((): DomainCard | null => {
+    const list = this.domains();
+    if (list.length === 0) {
+      return null;
+    }
+    let best = list[0];
+    let bestP = this.readinessPercent(best);
+    for (let i = 1; i < list.length; i++) {
+      const d = list[i];
+      const p = this.readinessPercent(d);
+      if (p > bestP) {
+        best = d;
+        bestP = p;
       }
     }
-    return null;
+    return best;
   });
+
+  protected readinessBandLabel(domain: DomainCard): string {
+    switch (this.readinessBand(domain)) {
+      case 'pct-low':
+        return 'needs attention';
+      case 'pct-lowmid':
+        return 'in progress';
+      case 'pct-mid':
+        return 'advancing';
+      case 'pct-high':
+        return 'ready';
+    }
+  }
 
   /** Fill width for average score on a 1–5 scale (0–100%). */
   protected scoreAvgMeterPercent(domain: DomainCard): number {
@@ -286,6 +343,12 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     return this.overallRingCircumference * (1 - p);
   }
 
+  /** Small highest-domain summary ring: same SVG r=40 as overall readiness ring. */
+  protected highestDomainReadinessRingDashOffset(domain: DomainCard): number {
+    const p = this.readinessPercent(domain) / 100;
+    return this.overallRingCircumference * (1 - p);
+  }
+
   protected overallScoreAvgMeterBand(): 'attention' | 'progress' | 'ready' {
     const p = this.overallScoreAvgMeterPercentRounded();
     if (p <= 40) {
@@ -303,6 +366,33 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       100,
       Math.max(0, Math.round(this.overallScorePercentage())),
     );
+  }
+
+  /**
+   * Shared color tiers for readiness % rings: 0–49 · 50–64 · 65–84 · 85–100.
+   */
+  protected readinessPercentScoreBand(
+    percent: number,
+  ): 'pct-low' | 'pct-lowmid' | 'pct-mid' | 'pct-high' {
+    const p = Math.min(100, Math.max(0, Math.round(percent)));
+    if (p < 50) {
+      return 'pct-low';
+    }
+    if (p < 65) {
+      return 'pct-lowmid';
+    }
+    if (p < 85) {
+      return 'pct-mid';
+    }
+    return 'pct-high';
+  }
+
+  protected overallReadinessPercentBand():
+    | 'pct-low'
+    | 'pct-lowmid'
+    | 'pct-mid'
+    | 'pct-high' {
+    return this.readinessPercentScoreBand(this.overallReadinessPercent());
   }
 
   private loadDomains() {
@@ -379,23 +469,14 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     };
   }
 
-  protected downloadTemplate() {
-    const domain = this.selectedDomain();
-    if (!domain) {
-      this.notifications.info(
-        'Please select a domain before downloading the template.',
-        'Domain required'
-      );
-      return;
-    }
-
-    this.isDownloadingTemplate.set(true);
+  private downloadTemplateForDomain(domain: DomainCard): void {
+    this.downloadingTemplateDomainId.set(domain.id);
     this.assessmentService
       .downloadTemplate(domain.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (blob: Blob) => {
-          this.isDownloadingTemplate.set(false);
+          this.downloadingTemplateDomainId.set(null);
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -410,7 +491,7 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
           );
         },
         error: (error) => {
-          this.isDownloadingTemplate.set(false);
+          this.downloadingTemplateDomainId.set(null);
           console.error('Failed to download template', error);
           this.notifications.danger(
             error.error?.message ||
@@ -419,10 +500,6 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
           );
         },
       });
-  }
-
-  protected triggerFileInput() {
-    this.fileInput?.nativeElement.click();
   }
 
   protected onFileSelected(event: Event) {
@@ -436,6 +513,7 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
       
       if (!isValidFile) {
+        this.importTriggerDomainId.set(null);
         this.notifications.danger(
           'Please select a valid Excel file (.xlsx or .xls).',
           'Invalid file type'
@@ -446,6 +524,8 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
 
       this.importFile(file);
       input.value = '';
+    } else {
+      this.importTriggerDomainId.set(null);
     }
   }
 
@@ -457,6 +537,7 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (results) => {
           this.isImporting.set(false);
+          this.importTriggerDomainId.set(null);
           const successCount = results.success?.length || 0;
           const errorCount = results.errors?.length || 0;
           const total = results.total || 0;
@@ -483,6 +564,7 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.isImporting.set(false);
+          this.importTriggerDomainId.set(null);
           console.error('Failed to import file', error);
           this.notifications.danger(
             error.error?.message ||
