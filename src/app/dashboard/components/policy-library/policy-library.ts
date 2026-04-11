@@ -61,7 +61,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     { label: 'Organization Size', key: 'organizationSize', sortable: true, filterable: true },
     { label: 'Risk Appetite', key: 'riskAppetite', sortable: true, filterable: true },
     { label: 'Implementation Timeline', key: 'implementationTimeline', sortable: true, filterable: true },
-    { label: 'Domains', key: 'domainsCount', sortable: false },
+    { label: 'Factors', key: 'domainsCount', sortable: false },
     { label: 'Assessments', key: 'assessmentsCount', sortable: false },
     { label: 'Initiatives', key: 'initiativesSummary', sortable: false },
     { label: 'Analysis Type', key: 'analysisType', sortable: true, filterable: true },
@@ -160,7 +160,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
       organizationSize: policy.organizationSize || '—',
       riskAppetite: policy.riskAppetite || '—',
       implementationTimeline: policy.implementationTimeline || '—',
-      domainsCount: `${policy.domains?.length || 0} domain${
+      domainsCount: `${policy.domains?.length || 0} factor${
         (policy.domains?.length || 0) !== 1 ? 's' : ''
       }`,
       assessmentsCount: (() => {

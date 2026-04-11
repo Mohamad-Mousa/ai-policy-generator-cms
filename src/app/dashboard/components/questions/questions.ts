@@ -68,7 +68,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
       sortable: true,
     },
     {
-      label: 'Subdomain',
+      label: 'Subfactor',
       key: 'subdomain',
       filterable: true,
       filterType: 'select',
@@ -769,7 +769,7 @@ export class QuestionsComponent implements OnInit, OnDestroy {
         },
       },
       {
-        label: 'Subdomain',
+        label: 'Subfactor',
         key: 'subdomain',
         type: 'text',
         format: () =>

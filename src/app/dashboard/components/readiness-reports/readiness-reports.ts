@@ -298,7 +298,7 @@ export class ReadinessReportsComponent implements OnInit {
         type: 'text',
       },
       {
-        label: 'Domain',
+        label: 'Factor',
         key: 'domain',
         type: 'text',
         format: () => this.sidebarAssessment?.domain?.title || '—',
@@ -502,7 +502,7 @@ export class ReadinessReportsComponent implements OnInit {
           console.error('Failed to load assessments', error);
           this.notifications.danger(
             error.error?.message ||
-              'Unable to load assessments for this domain. Please try again.',
+              'Unable to load assessments for this factor. Please try again.',
             'Assessments fetch failed'
           );
           this.assessments.set([]);

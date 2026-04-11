@@ -8,7 +8,7 @@
   <div dialog-body class="subdomains-manager-body">
     <div class="d-flex justify-content-end mb-3">
       <app-button
-        label="Add subdomain"
+        label="Add subfactor"
         size="sm"
         variant="primary"
         icon="add"
@@ -27,7 +27,7 @@
       [enableSorting]="true"
       [enablePagination]="true"
       [loading]="tableLoading()"
-      loadingLabel="Loading subdomains..."
+      loadingLabel="Loading subfactors..."
       [functionKey]="functionKey"
       [excludedActions]="excludedActions"
       [serverSideSearch]="true"
@@ -60,7 +60,7 @@
       formControlName="title"
       label="Title"
       type="text"
-      placeholder="Enter subdomain title"
+      placeholder="Enter subfactor title"
       [required]="true"
       [minlength]="2"
     >
@@ -70,7 +70,7 @@
       <span class="field-label">Active</span>
       <div class="checkbox-wrapper">
         <input type="checkbox" formControlName="isActive" id="subdomainIsActive" />
-        <label for="subdomainIsActive" class="checkbox-text">Enable this subdomain</label>
+        <label for="subdomainIsActive" class="checkbox-text">Enable this subfactor</label>
       </div>
     </div>
   </form>
@@ -96,7 +96,7 @@
 
 <app-dialog
   [open]="isDeleteDialogOpen"
-  title="Delete subdomain"
+  title="Delete subfactor"
   description="This action cannot be undone."
   width="460px"
   (closed)="closeDeleteDialog()"
@@ -107,7 +107,7 @@
         <span class="material-symbols-rounded" style="font-size: 2rem">warning</span>
       </div>
       <div>
-        <p class="fw-semibold mb-1">Delete this subdomain?</p>
+        <p class="fw-semibold mb-1">Delete this subfactor?</p>
         @if (subdomainToDelete) {
           <p class="text-muted mb-0">
             <strong>{{ subdomainToDelete.title }}</strong> will be permanently removed.

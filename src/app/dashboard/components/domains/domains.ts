@@ -74,7 +74,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
       sortable: true,
     },
     {
-      label: 'Subdomains',
+      label: 'Subfactors',
       key: 'subDomains',
       type: 'tags',
       filterable: false,
@@ -150,7 +150,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
 
   protected readonly subdomainRowActions: TableAdditionalAction[] = [
     { id: 'share-public-assessment', label: 'Share public link', icon: 'link' },
-    { id: 'subdomains', label: 'Subdomain', icon: 'account_tree' },
+    { id: 'subdomains', label: 'Subfactor', icon: 'account_tree' },
   ];
 
   constructor(
@@ -232,8 +232,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error loading domains:', error);
           this.notifications.danger(
-            error.error?.message || 'An error occurred while loading domains',
-            'Failed to load domains'
+            error.error?.message || 'An error occurred while loading factors',
+            'Failed to load factors'
           );
           this.domains.set([]);
           this.tableRows.set([]);
@@ -363,20 +363,20 @@ export class DomainsComponent implements OnInit, OnDestroy {
   }
 
   protected get dialogTitle(): string {
-    return this.isEditMode ? 'Edit domain' : 'Create domain';
+    return this.isEditMode ? 'Edit Factor' : 'Create Factor';
   }
 
   protected get dialogDescription(): string {
     return this.isEditMode
-      ? 'Update domain information.'
-      : 'Add a new domain to the system.';
+      ? 'Update factor information.'
+      : 'Add a new factor to the system.';
   }
 
   protected get createButtonLabel(): string {
     if (this.dialogLoading()) {
       return this.isEditMode ? 'Updating...' : 'Creating...';
     }
-    return this.isEditMode ? 'Update domain' : 'Create domain';
+    return this.isEditMode ? 'Update Factor' : 'Create Factor';
   }
 
   protected get deleteButtonLabel(): string {
@@ -462,7 +462,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
         );
 
         this.notifications.success(
-          wasEditMode ? 'Domain updated' : 'Domain created',
+          wasEditMode ? 'Factor updated' : 'Factor created',
           `${domain.title} has been ${
             wasEditMode ? 'updated' : 'added'
           } successfully`
@@ -478,8 +478,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
           error.error?.message ||
             `An error occurred while ${
               this.isEditMode ? 'updating' : 'creating'
-            } the domain`,
-          `Failed to ${this.isEditMode ? 'update' : 'create'} domain`
+            } the factor`,
+          `Failed to ${this.isEditMode ? 'update' : 'create'} factor`
         );
         this.tableLoading.set(false);
       },
@@ -497,7 +497,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
     if (event.id === 'share-public-assessment') {
       const domainId = event.row['_id'] as string;
       if (!domainId) {
-        this.notifications.danger('Missing domain id', 'Cannot build link');
+        this.notifications.danger('Missing factor id', 'Cannot build link');
         return;
       }
       void this.copyPublicAssessmentShareLink(domainId);
@@ -510,8 +510,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
     const fullDomain = this.domains().find((d) => d._id === domainId);
     if (!fullDomain) {
       this.notifications.danger(
-        'Domain not found',
-        'Could not open subdomains for this row'
+        'Factor not found',
+        'Could not open subfactors for this row'
       );
       return;
     }
@@ -546,8 +546,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
 
     if (!fullDomain) {
       this.notifications.danger(
-        'Domain not found',
-        'Could not load domain details'
+        'Factor not found',
+        'Could not load factor details'
       );
       return;
     }
@@ -594,7 +594,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
         type: 'icon',
       },
       {
-        label: 'Subdomains',
+        label: 'Subfactors',
         key: 'subDomains',
         type: 'text',
         format: (value) => this.formatSubDomainList(value),
@@ -645,8 +645,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
 
     if (!fullDomain) {
       this.notifications.danger(
-        'Domain not found',
-        'Could not load domain details for editing'
+        'Factor not found',
+        'Could not load factor details for editing'
       );
       return;
     }
@@ -669,8 +669,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
 
     if (!fullDomain) {
       this.notifications.danger(
-        'Domain not found',
-        'Could not find domain to delete'
+        'Factor not found',
+        'Could not find factor to delete'
       );
       return;
     }
@@ -712,7 +712,7 @@ export class DomainsComponent implements OnInit, OnDestroy {
           );
 
           this.notifications.success(
-            'Domain deleted',
+            'Factor deleted',
             `${this.domainToDelete?.title} has been deleted successfully`
           );
         },
@@ -721,8 +721,8 @@ export class DomainsComponent implements OnInit, OnDestroy {
           this.deleteDialogLoading.set(false);
           this.notifications.danger(
             error.error?.message ||
-              'An error occurred while deleting the domain',
-            'Failed to delete domain'
+              'An error occurred while deleting the factor',
+            'Failed to delete factor'
           );
           this.tableLoading.set(false);
         },

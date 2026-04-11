@@ -3,20 +3,20 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
       <div>
         <p class="text-uppercase text-muted fw-semibold small mb-1">Directory</p>
-        <h2 class="h4 mb-0">Domains</h2>
+        <h2 class="h4 mb-0">Factors</h2>
       </div>
       <div class="d-flex flex-wrap gap-2">
-        <app-button label="Manage subdomains" size="sm" variant="outline" icon="account_tree"
+        <app-button label="Manage subfactors" size="sm" variant="outline" icon="account_tree"
           [functionKey]="functionKey" [privilegeAccess]="readPrivilege"
           (click)="goToSubdomainsManagement()"></app-button>
-        <app-button label="Create Domain" size="sm" variant="primary" icon="add" [functionKey]="functionKey"
+        <app-button label="Create Factor" size="sm" variant="primary" icon="add" [functionKey]="functionKey"
           [privilegeAccess]="writePrivilege" (click)="openCreateDomainDialog()"></app-button>
       </div>
     </div>
 
     <app-table [columns]="columns" [rows]="tableRows()" [totalCount]="totalCount()" [showActions]="true"
       [enableFilters]="true" [enableSorting]="true" [enablePagination]="true" [loading]="tableLoading()"
-      loadingLabel="Loading domains..." [functionKey]="functionKey" [excludedActions]="excludedActions"
+      loadingLabel="Loading factors..." [functionKey]="functionKey" [excludedActions]="excludedActions"
       [additionalActions]="subdomainRowActions" [serverSideSearch]="true" [serverSideFilters]="true" [sortBy]="sortBy"
       [sortDirection]="sortDirection" [currentPageInput]="currentPageValue" [pageSizeInput]="currentLimitValue"
       (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)" (searchChange)="onSearchChange($event)"
@@ -29,28 +29,28 @@
 <app-dialog [open]="isDialogOpen" [title]="dialogTitle" [description]="dialogDescription" (closed)="closeDialog()">
   <form dialog-body [formGroup]="domainForm" class="form-grid">
     <app-form-input [control]="titleControl" formControlName="title" label="Title" type="text"
-      placeholder="Enter domain title" [required]="true" [minlength]="2">
+      placeholder="Enter factor title" [required]="true" [minlength]="2">
     </app-form-input>
 
     <app-form-input [control]="descriptionControl" formControlName="description" label="Description" type="textarea"
-      placeholder="Enter domain description" [required]="true" [minlength]="3">
+      placeholder="Enter factor description" [required]="true" [minlength]="3">
     </app-form-input>
 
     <app-form-input [control]="predefinedAssessmentTitleControl" formControlName="predefinedAssessmentTitle"
       label="Predefined assessment title" type="text"
       placeholder="e.g. Q1 2026 AI readiness — optional default for new assessments"
-      hint="Suggested title when users start an assessment in this domain. Leave empty for none.">
+      hint="Suggested title when users start an assessment in this factor. Leave empty for none.">
     </app-form-input>
 
     <app-form-input [control]="iconControl" formControlName="icon" label="Icon" type="text"
-      placeholder="e.g., category, folder, domain" hint="Enter a Google Material Icon name">
+      placeholder="e.g., category, folder, widgets" hint="Enter a Google Material Icon name">
     </app-form-input>
 
     <div class="checkbox-field">
       <span class="field-label">Active Status</span>
       <div class="checkbox-wrapper">
         <input type="checkbox" formControlName="isActive" id="isActive" />
-        <label for="isActive" class="checkbox-text">Enable or disable this domain</label>
+        <label for="isActive" class="checkbox-text">Enable or disable this factor</label>
       </div>
     </div>
   </form>
@@ -64,7 +64,7 @@
   </div>
 </app-dialog>
 
-<app-dialog [open]="isDeleteDialogOpen" title="Delete domain" description="This action cannot be undone." width="460px"
+<app-dialog [open]="isDeleteDialogOpen" title="Delete factor" description="This action cannot be undone." width="460px"
   (closed)="closeDeleteDialog()">
   <div dialog-body>
     <div class="d-flex align-items-start gap-3">
@@ -72,7 +72,7 @@
         <span class="material-symbols-rounded" style="font-size: 2rem;">warning</span>
       </div>
       <div>
-        <p class="fw-semibold mb-1">Are you sure you want to delete this domain?</p>
+        <p class="fw-semibold mb-1">Are you sure you want to delete this factor?</p>
         @if (domainToDelete) {
         <p class="text-muted mb-0">
           <strong>{{ domainToDelete.title }}</strong> will be permanently
@@ -92,7 +92,7 @@
   </div>
 </app-dialog>
 
-<app-sidebar [open]="isSidebarOpen" title="Domain Details" [fields]="sidebarFields" [data]="sidebarData"
+<app-sidebar [open]="isSidebarOpen" title="Factor details" [fields]="sidebarFields" [data]="sidebarData"
   (closed)="closeSidebar()"></app-sidebar>
 
 <app-domain-subdomains-manager [open]="isSubdomainManagerOpen"

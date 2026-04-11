@@ -54,7 +54,7 @@
         <app-loader size="lg" variant="inline" label="Loading questions..."></app-loader>
       </div>
       } @else if (currentDomain) {
-      <!-- Domain Header -->
+      <!-- Factor header -->
       <div class="d-flex align-items-start gap-3 mb-4">
         <span class="material-symbols-rounded domain-header-icon">{{ currentDomain.icon }}</span>
         <div class="flex-grow-1">
@@ -71,7 +71,7 @@
       <!-- All Questions -->
       @if (currentDomain.questions.length === 0) {
       <div class="alert alert-info mb-0" role="alert">
-        No questions available for this domain.
+        No questions available for this factor.
       </div>
       } @else {
       <div class="questions-list">
@@ -169,7 +169,7 @@
       }
       } @else {
       <div class="alert alert-warning mb-0" role="alert">
-        Unable to load domain information.
+        Unable to load factor information.
       </div>
       }
     </div>

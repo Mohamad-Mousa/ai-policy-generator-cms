@@ -2,7 +2,7 @@
   <div class="container public-multi-inner">
     @if (step() === 'loading') {
     <div class="text-center py-5 text-muted">
-      <app-loader size="lg" variant="inline" label="Loading domains…"></app-loader>
+      <app-loader size="lg" variant="inline" label="Loading factors…"></app-loader>
     </div>
     } @else if (step() === 'error') {
     <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
@@ -17,8 +17,8 @@
     } @else if (step() === 'select') {
     <header class="mb-4">
       <p class="text-uppercase text-muted small fw-semibold mb-1">Public assessment</p>
-      <h1 class="h3 mb-2">Choose domains to assess</h1>
-      <p class="text-muted mb-0">Select one or more domains, then start. You will complete each assessment in order.</p>
+      <h1 class="h3 mb-2">Choose factors to assess</h1>
+      <p class="text-muted mb-0">Select one or more factors, then start. You will complete each assessment in order.</p>
     </header>
     <div class="domains-select-grid mb-4">
       @for (row of domainsForSelect(); track row.domain._id) {
@@ -103,11 +103,11 @@
             [attr.aria-valuenow]="progressPercent()"
             aria-valuemin="0"
             aria-valuemax="100"
-            [attr.aria-label]="'Current step: domain ' + (fillIndex() + 1) + ' of ' + activeSequence.length"
+                [attr.aria-label]="'Current step: factor ' + (fillIndex() + 1) + ' of ' + activeSequence.length"
           ></div>
         </div>
         <p class="text-muted small mb-0 mt-2">
-          Domain {{ fillIndex() + 1 }} of {{ activeSequence.length }}
+          Factor {{ fillIndex() + 1 }} of {{ activeSequence.length }}
         </p>
       </div>
     </div>
@@ -116,7 +116,7 @@
       <div class="card-body">
         <h2 class="h6 text-muted mb-3">Your name</h2>
         <p class="text-muted small mb-3">
-          Enter once. The same name is used for every domain you assess in this session.
+          Enter once. The same name is used for every factor you assess in this session.
         </p>
         <label class="form-label">Full name <span class="text-danger">*</span></label>
         <input
@@ -139,7 +139,7 @@
             <label class="form-label">Assessment title</label>
             <input type="text" class="form-control" [value]="draft.assessmentTitle" readonly
               [disabled]="isSubmitting()" />
-            <div class="form-text">Predefined for this domain.</div>
+            <div class="form-text">Predefined for this factor.</div>
           </div>
           <div class="col-12">
             <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
@@ -148,7 +148,7 @@
               class="form-control"
               [(ngModel)]="draft.description"
               [name]="'desc-' + draft.domainId"
-              placeholder="Short note for this domain only"
+              placeholder="Short note for this factor only"
               [disabled]="isSubmitting()"
             />
           </div>
@@ -160,7 +160,7 @@
       <div class="card-body">
         <h2 class="h6 text-muted mb-3">Questions</h2>
         @if (draft.questions.length === 0) {
-        <div class="alert alert-info mb-0">There are no questions for this domain.</div>
+        <div class="alert alert-info mb-0">There are no questions for this factor.</div>
         } @else {
         <div class="questions-list">
           @for (question of draft.questions; track question.id) {
@@ -281,7 +281,7 @@
       <button type="button" class="btn btn-outline-secondary" (click)="goBackFromFill()">Back</button>
       <button type="button" class="btn btn-primary px-4" (click)="goNextFromFill()">
         @if (fillIndex() < activeSequence.length - 1) {
-        Next domain
+        Next factor
         } @else {
         Review all
         }
@@ -341,7 +341,7 @@
 
     <div class="d-flex flex-wrap gap-2 justify-content-between">
       <button type="button" class="btn btn-outline-secondary" (click)="backToLastDomainFromReview()">
-        Back to last domain
+        Back to last factor
       </button>
       <button type="button" class="btn btn-primary px-4" (click)="submitAll()" [disabled]="isSubmitting()">
         @if (isSubmitting()) {

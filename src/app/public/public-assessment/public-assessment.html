@@ -31,8 +31,8 @@
           <div class="col-12">
             <label class="form-label">Assessment title</label>
             <input type="text" class="form-control" [value]="assessmentTitle" readonly
-              title="Set by the organization for this domain" [disabled]="isSubmitting()" />
-            <div class="form-text">This title is predefined for assessments in this domain.</div>
+              title="Set by the organization for this factor" [disabled]="isSubmitting()" />
+            <div class="form-text">This title is predefined for assessments in this factor.</div>
           </div>
           <div class="col-md-6">
             <label class="form-label">Full name <span class="text-danger">*</span></label>
@@ -78,7 +78,7 @@
       <div class="card-body">
         <h2 class="h6 text-muted mb-3">Questions</h2>
         @if (questions.length === 0) {
-        <div class="alert alert-info mb-0">There are no questions for this domain yet.</div>
+        <div class="alert alert-info mb-0">There are no questions for this factor yet.</div>
         } @else {
         <div class="questions-list">
           @for (question of questions; track question.id) {

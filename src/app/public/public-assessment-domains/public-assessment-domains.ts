@@ -94,7 +94,7 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
     if (!this.urlDomainOrder.length) {
       this.step.set('error');
       this.loadError.set(
-        'Add a domains query parameter with one or more domain IDs, e.g. ?domains=id1,id2',
+        'Add a `domains` query parameter with one or more factor IDs, e.g. ?domains=id1,id2',
       );
       this.setDocumentTitle('Invalid link');
       return;
@@ -117,19 +117,19 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
           );
           if (!this.selectedIds.size) {
             this.step.set('error');
-            this.loadError.set('No domains could be loaded for the given IDs.');
+            this.loadError.set('No factors could be loaded for the given IDs.');
             this.setDocumentTitle('Assessment unavailable');
             return;
           }
           this.step.set('select');
           this.loadError.set(null);
-          this.setDocumentTitle('Choose domains');
+          this.setDocumentTitle('Choose factors');
         },
         error: (err: { error?: { message?: string }; message?: string }) => {
           const msg =
             err?.error?.message ||
             err?.message ||
-            'Could not load domains and questions.';
+            'Could not load factors and questions.';
           this.loadError.set(msg);
           this.step.set('error');
           this.setDocumentTitle('Assessment unavailable');
@@ -172,7 +172,7 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
     const order = this.urlDomainOrder.filter((id) => this.selectedIds.has(id));
     if (!order.length) {
       this.notifications.warning(
-        'Select at least one domain to continue.',
+        'Select at least one factor to continue.',
         'Selection required',
       );
       return;
@@ -264,7 +264,7 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
       this.fillIndex.set(i - 1);
     } else {
       this.step.set('select');
-      this.setDocumentTitle('Choose domains');
+      this.setDocumentTitle('Choose factors');
     }
   }
 

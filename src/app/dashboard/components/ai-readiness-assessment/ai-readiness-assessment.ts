@@ -35,6 +35,9 @@ interface DomainCard {
   payload: Domain;
 }
 
+/** Readiness score % tiers: five 20% bands (rd0 = 0–19 … rd4 = 80–100). */
+type ReadinessScoreTier = 'rd0' | 'rd1' | 'rd2' | 'rd3' | 'rd4';
+
 @Component({
   selector: 'app-ai-readiness-assessment',
   standalone: true,
@@ -144,14 +147,14 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     const url = publicMultiAssessmentShareUrl(ids);
     if (!url) {
       this.notifications.warning(
-        'No domains are available to build a link.',
+        'No factors are available to build a link.',
         'Nothing to share',
       );
       return;
     }
     void this.copyUrlToClipboard(
       url,
-      'Multi-domain public link copied. Respondents choose and complete assessments in one flow.',
+      'Multi-factor public link copied. Respondents choose and complete assessments in one flow.',
     );
   }
 
@@ -260,12 +263,21 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Readiness % tier (same bands as overall % ring): 0–49 · 50–64 · 65–84 · 85–100.
+   * Readiness % tier: five 20% bands (0–19 … 80–100), same as score % rings and legend.
    */
   protected readinessBand(
     domain: DomainCard,
-  ): 'pct-low' | 'pct-lowmid' | 'pct-mid' | 'pct-high' {
+  ): ReadinessScoreTier {
     return this.readinessPercentScoreBand(this.readinessPercent(domain));
+  }
+
+  /** Show “Continue” when there are scores and readiness is in the middle bands (20–79%). */
+  protected showContinueAssessmentCta(domain: DomainCard): boolean {
+    if (this.domainHasNoScores(domain)) {
+      return false;
+    }
+    const p = this.readinessPercent(domain);
+    return p >= 20 && p < 80;
   }
 
   /**
@@ -291,13 +303,15 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
 
   protected readinessBandLabel(domain: DomainCard): string {
     switch (this.readinessBand(domain)) {
-      case 'pct-low':
+      case 'rd0':
         return 'needs attention';
-      case 'pct-lowmid':
+      case 'rd1':
+        return 'early progress';
+      case 'rd2':
         return 'in progress';
-      case 'pct-mid':
+      case 'rd3':
         return 'advancing';
-      case 'pct-high':
+      case 'rd4':
         return 'ready';
     }
   }
@@ -306,20 +320,6 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
   protected scoreAvgMeterPercent(domain: DomainCard): number {
     const raw = (domain.scoreAvg / 5) * 100;
     return Math.min(100, Math.max(0, raw));
-  }
-
-  /** Same tier logic applied to the 1–5 meter fill percentage. */
-  protected scoreAvgMeterBand(
-    domain: DomainCard,
-  ): 'attention' | 'progress' | 'ready' {
-    const p = Math.round(this.scoreAvgMeterPercent(domain));
-    if (p <= 40) {
-      return 'attention';
-    }
-    if (p <= 75) {
-      return 'progress';
-    }
-    return 'ready';
   }
 
   /** Fill width 0–100% from average on 1–5 scale (integer % for ring progress). */
@@ -349,15 +349,41 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     return this.overallRingCircumference * (1 - p);
   }
 
-  protected overallScoreAvgMeterBand(): 'attention' | 'progress' | 'ready' {
-    const p = this.overallScoreAvgMeterPercentRounded();
-    if (p <= 40) {
-      return 'attention';
+  /**
+   * Five 20% tiers (0–19 … 80–100): shared by 1–5 average, readiness % rings, and card bars.
+   */
+  private tierColorFromRoundedPercent(p: number): string {
+    const x = Math.min(100, Math.max(0, Math.round(p)));
+    if (x < 20) {
+      return '#E02020';
     }
-    if (p <= 75) {
-      return 'progress';
+    if (x < 40) {
+      return '#F0952A';
     }
-    return 'ready';
+    if (x < 60) {
+      return '#F7E07A';
+    }
+    if (x < 80) {
+      return '#A8C837';
+    }
+    return '#3CBB1A';
+  }
+
+  /** Solid stroke for overall (1–5) ring. */
+  protected overallScoreAvgRingStrokeColor(): string {
+    return this.tierColorFromRoundedPercent(
+      this.overallScoreAvgMeterPercentRounded(),
+    );
+  }
+
+  /** Readiness % ring stroke (overall and highest-factor summary). */
+  protected readinessRingStrokeColor(percent: number): string {
+    return this.tierColorFromRoundedPercent(percent);
+  }
+
+  /** Card average bar fill. */
+  protected scoreAvgMeterBarColor(domain: DomainCard): string {
+    return this.tierColorFromRoundedPercent(this.scoreAvgMeterPercent(domain));
   }
 
   /** Overall readiness score % from API (0–100), same basis as domain readiness bars. */
@@ -368,31 +394,21 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
     );
   }
 
-  /**
-   * Shared color tiers for readiness % rings: 0–49 · 50–64 · 65–84 · 85–100.
-   */
-  protected readinessPercentScoreBand(
-    percent: number,
-  ): 'pct-low' | 'pct-lowmid' | 'pct-mid' | 'pct-high' {
+  protected readinessPercentScoreBand(percent: number): ReadinessScoreTier {
     const p = Math.min(100, Math.max(0, Math.round(percent)));
-    if (p < 50) {
-      return 'pct-low';
+    if (p < 20) {
+      return 'rd0';
     }
-    if (p < 65) {
-      return 'pct-lowmid';
+    if (p < 40) {
+      return 'rd1';
     }
-    if (p < 85) {
-      return 'pct-mid';
+    if (p < 60) {
+      return 'rd2';
     }
-    return 'pct-high';
-  }
-
-  protected overallReadinessPercentBand():
-    | 'pct-low'
-    | 'pct-lowmid'
-    | 'pct-mid'
-    | 'pct-high' {
-    return this.readinessPercentScoreBand(this.overallReadinessPercent());
+    if (p < 80) {
+      return 'rd3';
+    }
+    return 'rd4';
   }
 
   private loadDomains() {
@@ -447,8 +463,8 @@ export class AIReadinessAssessmentComponent implements OnInit, OnDestroy {
           this.selectedDomain.set(null);
           this.notifications.danger(
             error.error?.message ||
-              'Unable to load AI readiness domains. Please try again.',
-            'Domain fetch failed'
+              'Unable to load AI readiness factors. Please try again.',
+            'Factor fetch failed'
           );
         },
       });

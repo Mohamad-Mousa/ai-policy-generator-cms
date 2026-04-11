@@ -120,13 +120,12 @@
 :host {
   display: block;
   height: 100%;
-  /* Domain average meter gradients; readiness % uses four-tier solid colors (see legend). */
-  --readiness-meter-attention-from: #b91c1c;
-  --readiness-meter-attention-to: #f97316;
-  --readiness-meter-progress-from: #fbbf24;
-  --readiness-meter-progress-to: #b45309;
-  --readiness-meter-ready-from: #047857;
-  --readiness-meter-ready-to: #34d399;
+  /* Shared 20% band colors: 1–5 average, readiness % rings, horizontal meters, legend. */
+  --readiness-tier-0: #e02020;
+  --readiness-tier-1: #f0952a;
+  --readiness-tier-2: #f7e07a;
+  --readiness-tier-3: #a8c837;
+  --readiness-tier-4: #3cbb1a;
 }
 
 .domains-grid {
@@ -191,44 +190,24 @@
   vertical-align: middle;
   margin-right: 0.15rem;
 
-  &--attention {
-    background: linear-gradient(
-      90deg,
-      var(--readiness-meter-attention-from),
-      var(--readiness-meter-attention-to)
-    );
+  &--tier-0 {
+    background: var(--readiness-tier-0);
   }
 
-  &--progress {
-    background: linear-gradient(
-      90deg,
-      var(--readiness-meter-progress-from),
-      var(--readiness-meter-progress-to)
-    );
+  &--tier-1 {
+    background: var(--readiness-tier-1);
   }
 
-  &--ready {
-    background: linear-gradient(
-      90deg,
-      var(--readiness-meter-ready-from),
-      var(--readiness-meter-ready-to)
-    );
+  &--tier-2 {
+    background: var(--readiness-tier-2);
   }
 
-  &--pct-low {
-    background: #dc2626;
+  &--tier-3 {
+    background: var(--readiness-tier-3);
   }
 
-  &--pct-lowmid {
-    background: #ea580c;
-  }
-
-  &--pct-mid {
-    background: #4ade80;
-  }
-
-  &--pct-high {
-    background: #16a34a;
+  &--tier-4 {
+    background: var(--readiness-tier-4);
   }
 }
 
@@ -260,32 +239,9 @@
 
 .domain-meter-fill {
   border-radius: 999px;
-  transition: width 0.35s ease;
-  background-color: transparent;
-
-  &--attention {
-    background-image: linear-gradient(
-      90deg,
-      var(--readiness-meter-attention-from),
-      var(--readiness-meter-attention-to)
-    );
-  }
-
-  &--progress {
-    background-image: linear-gradient(
-      90deg,
-      var(--readiness-meter-progress-to),
-      var(--readiness-meter-progress-from)
-    );
-  }
-
-  &--ready {
-    background-image: linear-gradient(
-      90deg,
-      var(--readiness-meter-ready-from),
-      var(--readiness-meter-ready-to)
-    );
-  }
+  transition:
+    width 0.35s ease,
+    background-color 0.35s ease;
 }
 
 .domain-meter-ticks {
@@ -400,22 +356,6 @@
   fill: none;
 }
 
-.highest-domain-ring--pct-low .highest-domain-ring__progress {
-  stroke: #dc2626;
-}
-
-.highest-domain-ring--pct-lowmid .highest-domain-ring__progress {
-  stroke: #ea580c;
-}
-
-.highest-domain-ring--pct-mid .highest-domain-ring__progress {
-  stroke: #4ade80;
-}
-
-.highest-domain-ring--pct-high .highest-domain-ring__progress {
-  stroke: #16a34a;
-}
-
 .highest-domain-ring__label {
   position: absolute;
   inset: 0;
@@ -430,22 +370,6 @@
   font-size: 0.95rem;
   letter-spacing: -0.02em;
   transition: color 0.35s ease;
-}
-
-.highest-domain-ring--pct-low .highest-domain-ring__value {
-  color: #b91c1c;
-}
-
-.highest-domain-ring--pct-lowmid .highest-domain-ring__value {
-  color: #c2410c;
-}
-
-.highest-domain-ring--pct-mid .highest-domain-ring__value {
-  color: #15803d;
-}
-
-.highest-domain-ring--pct-high .highest-domain-ring__value {
-  color: #14532d;
 }
 
 .overall-avg-ring {
@@ -467,7 +391,10 @@
 }
 
 .overall-avg-ring__progress-layer {
-  transition: stroke-dashoffset 0.45s ease, opacity 0.2s ease;
+  transition:
+    stroke-dashoffset 0.45s ease,
+    stroke 0.35s ease,
+    opacity 0.2s ease;
   fill: none;
   stroke-width: 9;
   stroke-linecap: round;
@@ -528,22 +455,6 @@
   fill: none;
 }
 
-.overall-readiness-ring--pct-low .overall-readiness-ring__progress {
-  stroke: #dc2626;
-}
-
-.overall-readiness-ring--pct-lowmid .overall-readiness-ring__progress {
-  stroke: #ea580c;
-}
-
-.overall-readiness-ring--pct-mid .overall-readiness-ring__progress {
-  stroke: #4ade80;
-}
-
-.overall-readiness-ring--pct-high .overall-readiness-ring__progress {
-  stroke: #16a34a;
-}
-
 .overall-readiness-ring__label {
   position: absolute;
   inset: 0;
@@ -558,22 +469,6 @@
   font-size: 1.35rem;
   letter-spacing: -0.02em;
   transition: color 0.35s ease;
-}
-
-.overall-readiness-ring--pct-low .overall-readiness-ring__value {
-  color: #b91c1c;
-}
-
-.overall-readiness-ring--pct-lowmid .overall-readiness-ring__value {
-  color: #c2410c;
-}
-
-.overall-readiness-ring--pct-mid .overall-readiness-ring__value {
-  color: #15803d;
-}
-
-.overall-readiness-ring--pct-high .overall-readiness-ring__value {
-  color: #14532d;
 }
 
 .questionnaire-view {

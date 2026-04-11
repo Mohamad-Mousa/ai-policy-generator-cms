@@ -152,11 +152,11 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
 
   protected get managerTitle(): string {
     const t = this.domain?.title;
-    return t ? `Subdomains — ${t}` : 'Subdomains';
+    return t ? `Subfactors — ${t}` : 'Subfactors';
   }
 
   protected get managerDescription(): string {
-    return 'Create and manage subdomains linked to this domain.';
+    return 'Create and manage subfactors linked to this factor.';
   }
 
   protected get isEditMode(): boolean {
@@ -172,13 +172,13 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
   }
 
   protected get formDialogTitle(): string {
-    return this.isEditMode ? 'Edit subdomain' : 'Create subdomain';
+    return this.isEditMode ? 'Edit subfactor' : 'Create subfactor';
   }
 
   protected get formDialogDescription(): string {
     return this.isEditMode
-      ? 'Update this subdomain.'
-      : 'Add a new subdomain under this domain.';
+      ? 'Update this subfactor.'
+      : 'Add a new subfactor under this factor.';
   }
 
   protected get formSubmitLabel(): string {
@@ -247,8 +247,8 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
           console.error('Error loading subdomains:', error);
           this.notifications.danger(
             error.error?.message ||
-              'An error occurred while loading subdomains',
-            'Failed to load subdomains'
+              'An error occurred while loading subfactors',
+            'Failed to load subfactors'
           );
           this.subdomains.set([]);
           this.tableRows.set([]);
@@ -365,8 +365,8 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
     const full = this.subdomains().find((s) => s._id === id);
     if (!full) {
       this.notifications.danger(
-        'Subdomain not found',
-        'Could not load subdomain for editing'
+        'Subfactor not found',
+        'Could not load subfactor for editing'
       );
       return;
     }
@@ -383,8 +383,8 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
     const full = this.subdomains().find((s) => s._id === id);
     if (!full) {
       this.notifications.danger(
-        'Subdomain not found',
-        'Could not find subdomain to delete'
+        'Subfactor not found',
+        'Could not find subfactor to delete'
       );
       return;
     }
@@ -426,7 +426,7 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
             this.closeFormDialog();
             this.reloadCurrentPage();
             this.notifications.success(
-              'Subdomain updated',
+              'Subfactor updated',
               `${title} has been updated`
             );
           },
@@ -434,7 +434,7 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
             console.error('Error updating subdomain:', error);
             this.dialogLoading.set(false);
             this.notifications.danger(
-              error.error?.message || 'Unable to update subdomain',
+              error.error?.message || 'Unable to update subfactor',
               'Update failed'
             );
           },
@@ -457,7 +457,7 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
           this.closeFormDialog();
           this.reloadCurrentPage();
           this.notifications.success(
-            'Subdomain created',
+            'Subfactor created',
             `${title} has been added`
           );
         },
@@ -465,7 +465,7 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
           console.error('Error creating subdomain:', error);
           this.dialogLoading.set(false);
           this.notifications.danger(
-            error.error?.message || 'Unable to create subdomain',
+            error.error?.message || 'Unable to create subfactor',
             'Create failed'
           );
         },
@@ -500,8 +500,8 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
           this.closeDeleteDialog();
           this.reloadCurrentPage();
           this.notifications.success(
-            'Subdomain deleted',
-            `${deletedTitle ?? 'Subdomain'} has been removed`
+            'Subfactor deleted',
+            `${deletedTitle ?? 'Subfactor'} has been removed`
           );
           this.tableLoading.set(false);
         },
@@ -510,7 +510,7 @@ export class DomainSubdomainsManagerComponent implements OnChanges, OnDestroy {
           this.deleteDialogLoading.set(false);
           this.tableLoading.set(false);
           this.notifications.danger(
-            error.error?.message || 'Unable to delete subdomain',
+            error.error?.message || 'Unable to delete subfactor',
             'Delete failed'
           );
         },

@@ -31,7 +31,7 @@ export class Sidebar {
   protected readonly allNavTabs: NavTab[] = [
     {
       label: 'AI Readiness Assessment',
-      description: 'Complete questionnaires and provide evidence per domain',
+      description: 'Complete questionnaires and provide evidence per factor',
       path: 'ai-readiness-assessment',
       icon: 'assessment',
       alsoHighlightForPaths: ['domains', 'subdomains'],

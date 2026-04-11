@@ -18,7 +18,7 @@
     </div>
 
     <div class="alert alert-info mb-4" role="alert">
-      <strong>How it works:</strong> Choose a policy country, domains and context, optionally add governance initiatives
+      <strong>How it works:</strong> Choose a policy country, factors and context, optionally add governance initiatives
       (use the initiative country filter if you want to narrow the list), then select completed assessments.
     </div>
 
@@ -40,7 +40,7 @@
           <div>
             <h5 class="mb-1">Completed Assessments</h5>
             <p class="text-muted small mb-0">
-              Showing assessments for selected domains
+              Showing assessments for selected factors
               @if (selectedAssessments().length > 0) {
               <span class="ms-2">
                 • <strong>{{ selectedAssessments().length }}</strong> selected
@@ -62,7 +62,7 @@
 
         @if (assessments().length === 0) {
         <div class="alert alert-info" role="alert">
-          <strong>No assessments found:</strong> There are no completed assessments for the selected domains.
+          <strong>No assessments found:</strong> There are no completed assessments for the selected factors.
         </div>
         } @else {
         <app-table [columns]="assessmentTableColumns" [rows]="assessmentTableRows"
@@ -141,12 +141,12 @@
           </div>
 
           <div class="col-12">
-            <label class="form-label">Domains <span class="text-danger">*</span></label>
+            <label class="form-label">Factors <span class="text-danger">*</span></label>
             @if (isLoadingDomains()) {
-            <div class="text-muted">Loading domains...</div>
+            <div class="text-muted">Loading factors...</div>
             } @else if (!domains().length) {
             <small class="text-muted d-block">
-              No active domains available. Please create or enable a domain first.
+              No active factors available. Please create or enable a factor first.
             </small>
             } @else {
             <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
@@ -163,7 +163,7 @@
             </div>
             @if (selectedDomainIds.length > 0) {
             <small class="text-muted d-block mt-2">
-              {{ selectedDomainIds.length }} domain{{ selectedDomainIds.length > 1 ? 's' : '' }} selected
+              {{ selectedDomainIds.length }} factor{{ selectedDomainIds.length > 1 ? 's' : '' }} selected
             </small>
             }
             }
@@ -343,7 +343,7 @@
       <div class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Loading...</span>
       </div>
-      <p class="text-muted">Loading completed assessments for selected domains...</p>
+      <p class="text-muted">Loading completed assessments for selected factors...</p>
     </div>
     }
     } @else {
@@ -363,10 +363,10 @@
           Generated for
           @if (selectedDomains().length === 1) {
           <strong class="ms-1">{{ selectedDomains()[0].title }}</strong>
-          <span class="ms-1">domain.</span>
+          <span class="ms-1">factor.</span>
           } @else {
           <strong class="ms-1">{{ selectedDomains().length }}</strong>
-          <span class="ms-1">domains:</span>
+          <span class="ms-1">factors:</span>
           @for (domain of selectedDomains(); track domain._id; let isLast = $last) {
           <strong class="ms-1">{{ domain.title }}</strong>@if (!isLast) {<span>,</span>}
           }

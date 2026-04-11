@@ -60,7 +60,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
     this.domainId = this.route.snapshot.paramMap.get('domainId')?.trim() ?? '';
     if (!this.domainId) {
       this.setDocumentTitle('Invalid link');
-      this.loadError.set('Invalid link: missing domain.');
+      this.loadError.set('Invalid link: missing factor.');
       this.isLoading.set(false);
       return;
     }
@@ -106,7 +106,7 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
           const msg =
             err?.error?.message ||
             err?.message ||
-            'Could not load questions for this domain.';
+            'Could not load questions for this factor.';
           this.loadError.set(msg);
           this.notifications.danger(msg, 'Load failed');
         },

@@ -321,7 +321,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
       filterable: true,
     },
     {
-      label: 'Domain',
+      label: 'Factor',
       key: 'domainTitle',
       sortable: true,
       filterable: true,
@@ -498,7 +498,7 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
 
           if (response.data.length === 0 && this.currentPage() === 1) {
             this.notifications.info(
-              'No completed assessments found for the selected domains.',
+              'No completed assessments found for the selected factors.',
               'No Assessments',
             );
           }
@@ -1385,8 +1385,8 @@ export class PolicyGeneratorComponent implements OnInit, OnDestroy {
           console.error('Failed to load domains', error);
           this.notifications.danger(
             error.error?.message ||
-              'Unable to load domains. Please try again later.',
-            'Domain fetch failed',
+              'Unable to load factors. Please try again later.',
+            'Factor fetch failed',
           );
         },
       });

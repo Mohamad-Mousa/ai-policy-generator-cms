@@ -293,13 +293,13 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         questions: [
           {
             id: 'default-1',
-            text: 'Describe the primary AI objectives for this domain.',
+            text: 'Describe the primary AI objectives for this factor.',
             type: 'text',
             required: true,
           },
           {
             id: 'default-2',
-            text: 'List key stakeholders involved in AI initiatives for this domain.',
+            text: 'List key stakeholders involved in AI initiatives for this factor.',
             type: 'text',
             required: false,
           },
@@ -331,8 +331,8 @@ export class AssessmentComponent implements OnInit, OnDestroy {
 
     if (!domainFromState?._id) {
       this.notifications.info(
-        'Please select a domain from the AI readiness page before creating an assessment.',
-        'Domain required',
+        'Please select a factor from the AI readiness page before creating an assessment.',
+        'Factor required',
       );
       this.router.navigate(['/dashboard/ai-readiness-assessment']);
       return;
@@ -687,7 +687,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     }
     if (!this.assessment.domainId) {
       this.notifications.danger(
-        'Domain is required to complete assessment.',
+        'Factor is required to complete assessment.',
         'Validation error',
       );
       return;
@@ -1074,7 +1074,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
     console.error('Failed to load questions', error);
     this.notifications.danger(
       (error as { error?: { message?: string } })?.error?.message ||
-        'Unable to load questions for this domain. Please try again.',
+        'Unable to load questions for this factor. Please try again.',
       'Questions fetch failed',
     );
     const domain = this.selectedDomain;

@@ -48,7 +48,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
   private domainTitleById = new Map<string, string>();
 
   protected readonly columns: TableColumn[] = [
-    { label: 'Domain', key: 'domainTitle', filterable: false, sortable: false },
+    { label: 'Factor', key: 'domainTitle', filterable: false, sortable: false },
     { label: 'Title', key: 'title', filterable: true, sortable: true },
     {
       label: 'Status',
@@ -151,13 +151,13 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
   }
 
   protected get formDialogTitle(): string {
-    return this.isEditMode ? 'Edit subdomain' : 'Create subdomain';
+    return this.isEditMode ? 'Edit subfactor' : 'Create subfactor';
   }
 
   protected get formDialogDescription(): string {
     return this.isEditMode
-      ? 'Update this subdomain.'
-      : 'Choose a parent domain and add a subdomain.';
+      ? 'Update this subfactor.'
+      : 'Choose a parent factor and add a subfactor.';
   }
 
   protected get formSubmitLabel(): string {
@@ -200,7 +200,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           console.error('Error loading domains:', error);
           this.domainsLoading.set(false);
           this.notifications.danger(
-            error.error?.message || 'Could not load domains',
+            error.error?.message || 'Could not load factors',
             'Failed to load'
           );
           this.loadSubdomains(
@@ -267,8 +267,8 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           console.error('Error loading subdomains:', error);
           this.notifications.danger(
             error.error?.message ||
-              'An error occurred while loading subdomains',
-            'Failed to load subdomains'
+              'An error occurred while loading subfactors',
+            'Failed to load subfactors'
           );
           this.subdomains.set([]);
           this.tableRows.set([]);
@@ -361,8 +361,8 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
   protected openCreateSubdomain(): void {
     if (!this.domainSelectOptions.length) {
       this.notifications.info(
-        'Create a domain first, then add subdomains.',
-        'No domains'
+        'Create a factor first, then add subfactors.',
+        'No factors'
       );
       return;
     }
@@ -396,8 +396,8 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
     const full = this.subdomains().find((s) => s._id === id);
     if (!full) {
       this.notifications.danger(
-        'Subdomain not found',
-        'Could not load subdomain for editing'
+        'Subfactor not found',
+        'Could not load subfactor for editing'
       );
       return;
     }
@@ -415,8 +415,8 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
     const full = this.subdomains().find((s) => s._id === id);
     if (!full) {
       this.notifications.danger(
-        'Subdomain not found',
-        'Could not find subdomain to delete'
+        'Subfactor not found',
+        'Could not find subfactor to delete'
       );
       return;
     }
@@ -463,7 +463,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
             this.closeFormDialog();
             this.reloadCurrentPage();
             this.notifications.success(
-              'Subdomain updated',
+              'Subfactor updated',
               `${title} has been updated`
             );
           },
@@ -471,7 +471,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
             console.error('Error updating subdomain:', error);
             this.dialogLoading.set(false);
             this.notifications.danger(
-              error.error?.message || 'Unable to update subdomain',
+              error.error?.message || 'Unable to update subfactor',
               'Update failed'
             );
           },
@@ -494,7 +494,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           this.closeFormDialog();
           this.reloadCurrentPage();
           this.notifications.success(
-            'Subdomain created',
+            'Subfactor created',
             `${title} has been added`
           );
         },
@@ -502,7 +502,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           console.error('Error creating subdomain:', error);
           this.dialogLoading.set(false);
           this.notifications.danger(
-            error.error?.message || 'Unable to create subdomain',
+            error.error?.message || 'Unable to create subfactor',
             'Create failed'
           );
         },
@@ -537,8 +537,8 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           this.closeDeleteDialog();
           this.reloadCurrentPage();
           this.notifications.success(
-            'Subdomain deleted',
-            `${deletedTitle ?? 'Subdomain'} has been removed`
+            'Subfactor deleted',
+            `${deletedTitle ?? 'Subfactor'} has been removed`
           );
           this.tableLoading.set(false);
         },
@@ -547,7 +547,7 @@ export class SubdomainsCmsComponent implements OnInit, OnDestroy {
           this.deleteDialogLoading.set(false);
           this.tableLoading.set(false);
           this.notifications.danger(
-            error.error?.message || 'Unable to delete subdomain',
+            error.error?.message || 'Unable to delete subfactor',
             'Delete failed'
           );
         },

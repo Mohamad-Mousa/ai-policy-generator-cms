@@ -3,18 +3,18 @@
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
       <div>
         <p class="text-uppercase text-muted fw-semibold small mb-1">Catalogue</p>
-        <h2 class="h4 mb-0">Subdomains</h2>
+        <h2 class="h4 mb-0">Subfactors</h2>
         <p class="text-muted mb-0 small">
-          View and manage subdomains across all domains. Use the filter to focus on one domain.
+          View and manage subfactors across all factors. Use the filter to focus on one factor.
         </p>
       </div>
       <div class="d-flex flex-wrap gap-2">
         <a routerLink="/dashboard/domains" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
           <span class="material-symbols-rounded" style="font-size: 1.125rem">arrow_back</span>
-          <span>Back to Domains</span>
+          <span>Back to Factors</span>
         </a>
         <app-button
-          label="Add subdomain"
+          label="Add subfactor"
           size="sm"
           variant="primary"
           icon="add"
@@ -27,7 +27,7 @@
 
     <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
       <label class="text-muted small mb-0 text-uppercase fw-semibold" for="subdomainDomainFilter">
-        Domain filter
+        Factor filter
       </label>
       <select
         id="subdomainDomainFilter"
@@ -37,7 +37,7 @@
         [value]="domainFilterId()"
         (change)="onDomainFilterChange($any($event.target).value)"
       >
-        <option value="">All domains</option>
+        <option value="">All factors</option>
         @for (d of allDomains(); track d._id) {
           <option [value]="d._id">{{ d.title }}</option>
         }
@@ -53,7 +53,7 @@
       [enableSorting]="true"
       [enablePagination]="true"
       [loading]="tableLoading() || domainsLoading()"
-      loadingLabel="Loading subdomains..."
+      loadingLabel="Loading subfactors..."
       [functionKey]="functionKey"
       [excludedActions]="excludedActions"
       [serverSideSearch]="true"
@@ -84,7 +84,7 @@
     <app-form-input
       [control]="domainIdControl"
       formControlName="domainId"
-      label="Domain"
+      label="Factor"
       type="select"
       [options]="domainSelectOptionsForInput"
       [required]="true"
@@ -95,7 +95,7 @@
       formControlName="title"
       label="Title"
       type="text"
-      placeholder="Enter subdomain title"
+      placeholder="Enter subfactor title"
       [required]="true"
       [minlength]="2"
     ></app-form-input>
@@ -104,7 +104,7 @@
       <span class="field-label">Active</span>
       <div class="checkbox-wrapper">
         <input type="checkbox" formControlName="isActive" id="subdomainPageIsActive" />
-        <label for="subdomainPageIsActive" class="checkbox-text">Enable this subdomain</label>
+        <label for="subdomainPageIsActive" class="checkbox-text">Enable this subfactor</label>
       </div>
     </div>
   </form>
@@ -130,7 +130,7 @@
 
 <app-dialog
   [open]="isDeleteDialogOpen"
-  title="Delete subdomain"
+  title="Delete subfactor"
   description="This action cannot be undone."
   width="460px"
   (closed)="closeDeleteDialog()"
@@ -141,7 +141,7 @@
         <span class="material-symbols-rounded" style="font-size: 2rem">warning</span>
       </div>
       <div>
-        <p class="fw-semibold mb-1">Delete this subdomain?</p>
+        <p class="fw-semibold mb-1">Delete this subfactor?</p>
         @if (subdomainToDelete) {
           <p class="text-muted mb-0">
             <strong>{{ subdomainToDelete.title }}</strong> will be permanently removed.
