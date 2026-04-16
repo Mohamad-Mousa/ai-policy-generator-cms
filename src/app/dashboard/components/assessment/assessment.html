@@ -2,12 +2,31 @@
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <div class="mb-4">
-        <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center mb-2"
-          (click)="cancelAssessment()">
-          <span class="material-symbols-rounded me-2">arrow_back</span>
-          <span>Back to Assessments</span>
-        </button>
-        <h2 class="h4 mb-0">{{ assessment.id ? 'Edit' : 'New' }} AI Readiness Assessment</h2>
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+          <div class="min-w-0">
+            <button type="button" class="btn btn-link text-decoration-none p-0 d-flex align-items-center mb-2"
+              (click)="cancelAssessment()">
+              <span class="material-symbols-rounded me-2">arrow_back</span>
+              <span>Back to Assessments</span>
+            </button>
+            <h2 class="h4 mb-0">{{ assessment.id ? 'Edit' : 'New' }} AI Readiness Assessment</h2>
+          </div>
+          @if (!isLoadingAssessment() && !isLoadingQuestions() && currentDomain) {
+            @if (!assessment.isCompleted) {
+            <div class="assessment-actions-header d-flex flex-wrap gap-2 flex-shrink-0 align-items-center">
+              <app-button label="Save as Draft" size="sm" variant="outline" icon="save" [loading]="isSavingDraft()"
+                (click)="saveAssessment()"></app-button>
+              <app-button label="Complete Assessment" size="sm" variant="primary" icon="check_circle"
+                [loading]="isCompleting()" [disabled]="!canCompleteAssessment || isSavingDraft()"
+                (click)="completeAssessment()"></app-button>
+            </div>
+            } @else {
+            <span class="badge bg-success-subtle text-success-emphasis flex-shrink-0 align-self-center">
+              Assessment completed — editing disabled
+            </span>
+            }
+          }
+        </div>
       </div>
 
       @if (assessment.domainTitle) {
@@ -28,12 +47,12 @@
             [(ngModel)]="assessment.name" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>
         <div class="col-md-6">
-          <label class="form-label">Full Name <span class="text-danger">*</span></label>
+          <label class="form-label">Full name <span class="text-muted fw-normal">(optional)</span></label>
           <input type="text" class="form-control" placeholder="Full name of the person being assessed"
             [(ngModel)]="assessment.fullName" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>
         <div class="col-md-12">
-          <label class="form-label">Description</label>
+          <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
           <input type="text" class="form-control" placeholder="Brief description of this assessment"
             [(ngModel)]="assessment.description" (ngModelChange)="markAsDirty()" [readonly]="!!assessment.isCompleted" />
         </div>

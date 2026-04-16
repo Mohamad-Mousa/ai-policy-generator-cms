@@ -409,13 +409,7 @@ export class AssessmentComponent implements OnInit, OnDestroy {
   }
 
   protected get canCompleteAssessment(): boolean {
-    // All required top-level fields must be present
-    if (
-      !this.assessment.domainId ||
-      !this.assessment.name ||
-      !this.assessment.description ||
-      !this.assessment.fullName
-    ) {
+    if (!this.assessment.domainId || !this.assessment.name) {
       return false;
     }
 
@@ -701,22 +695,6 @@ export class AssessmentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.assessment.description) {
-      this.notifications.danger(
-        'Description is required to complete assessment.',
-        'Validation error',
-      );
-      return;
-    }
-
-    if (!this.assessment.fullName) {
-      this.notifications.danger(
-        'Full name is required to complete assessment.',
-        'Validation error',
-      );
-      return;
-    }
-
     if (!this.canCompleteDomain) {
       this.notifications.info(
         'Please answer all required questions before completing the assessment.',
@@ -763,8 +741,12 @@ export class AssessmentComponent implements OnInit, OnDestroy {
           _id: this.assessment.id,
           domain: this.assessment.domainId,
           title: this.assessment.name,
-          description: this.assessment.description,
-          fullName: this.assessment.fullName,
+          ...(this.assessment.description?.trim() && {
+            description: this.assessment.description.trim(),
+          }),
+          ...(this.assessment.fullName?.trim() && {
+            fullName: this.assessment.fullName.trim(),
+          }),
           questions: questions,
           status: 'completed',
         })
@@ -799,8 +781,12 @@ export class AssessmentComponent implements OnInit, OnDestroy {
         .create({
           domain: this.assessment.domainId,
           title: this.assessment.name,
-          description: this.assessment.description,
-          fullName: this.assessment.fullName,
+          ...(this.assessment.description?.trim() && {
+            description: this.assessment.description.trim(),
+          }),
+          ...(this.assessment.fullName?.trim() && {
+            fullName: this.assessment.fullName.trim(),
+          }),
           questions: questions,
           status: 'completed',
         })

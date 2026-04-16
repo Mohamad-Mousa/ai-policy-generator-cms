@@ -34,8 +34,8 @@ export interface PublicSubmitAssessmentRequest {
   status: 'completed';
   domain: string;
   title: string;
-  description: string;
-  fullName: string;
+  description?: string;
+  fullName?: string;
   questions: Array<{
     question: string;
     answer: string | number | string[];

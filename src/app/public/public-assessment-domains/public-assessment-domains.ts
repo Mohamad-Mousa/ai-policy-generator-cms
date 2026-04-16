@@ -242,9 +242,6 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
   }
 
   protected goNextFromFill(): void {
-    if (!this.validateRespondentName()) {
-      return;
-    }
     const draft = this.currentDraft();
     if (!draft || !this.validateDraft(draft)) {
       return;
@@ -284,9 +281,6 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
 
   protected submitAll(): void {
     if (this.isSubmitting()) {
-      return;
-    }
-    if (!this.validateRespondentName()) {
       return;
     }
     for (const id of this.activeSequence) {
@@ -408,17 +402,6 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
     };
   }
 
-  private validateRespondentName(): boolean {
-    if (!this.respondentFullName.trim()) {
-      this.notifications.warning(
-        'Please enter your full name once; it applies to every assessment.',
-        'Required field',
-      );
-      return false;
-    }
-    return true;
-  }
-
   private validateDraft(d: DomainDraft): boolean {
     for (const q of d.questions) {
       if (!q.required) {
@@ -483,8 +466,10 @@ export class PublicAssessmentDomainsComponent implements OnInit, OnDestroy {
       status: 'completed',
       domain: d.domainId,
       title: d.assessmentTitle,
-      description: d.description.trim(),
-      fullName: this.respondentFullName.trim(),
+      ...(d.description.trim() && { description: d.description.trim() }),
+      ...(this.respondentFullName.trim() && {
+        fullName: this.respondentFullName.trim(),
+      }),
       questions,
     };
   }

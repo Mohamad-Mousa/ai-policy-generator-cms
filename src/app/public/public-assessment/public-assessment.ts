@@ -168,13 +168,6 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
   }
 
   private validate(): boolean {
-    if (!this.fullName.trim()) {
-      this.notifications.warning(
-        'Please enter your full name.',
-        'Required field',
-      );
-      return false;
-    }
     for (const q of this.questions) {
       if (!q.required) continue;
       if (q.type === 'checkbox') {
@@ -233,8 +226,10 @@ export class PublicAssessmentComponent implements OnInit, OnDestroy {
         status: 'completed',
         domain: this.domainId,
         title: this.assessmentTitle,
-        description: this.assessmentDescription.trim(),
-        fullName: this.fullName.trim(),
+        ...(this.assessmentDescription.trim() && {
+          description: this.assessmentDescription.trim(),
+        }),
+        ...(this.fullName.trim() && { fullName: this.fullName.trim() }),
         questions: payloadQuestions,
       })
       .pipe(takeUntil(this.destroy$))
