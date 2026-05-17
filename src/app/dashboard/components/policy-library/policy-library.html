@@ -53,8 +53,10 @@
             </div>
             <div class="d-flex gap-2">
               <app-button label="Export PDF" size="sm" variant="outline" icon="picture_as_pdf"
+                [loading]="isExporting()" [disabled]="isExporting()"
                 (click)="exportPolicy(policy, 'pdf')"></app-button>
               <app-button label="Export DOCX" size="sm" variant="outline" icon="description"
+                [loading]="isExporting()" [disabled]="isExporting()"
                 (click)="exportPolicy(policy, 'docx')"></app-button>
             </div>
           </div>

@@ -13,8 +13,12 @@ import {
 } from '@shared/services';
 import { NotificationService } from '@shared/components/notification/notification.service';
 import { PrivilegeAccess } from '@shared/enums';
-import { Subject } from 'rxjs';
-import { takeUntil, filter, take } from 'rxjs/operators';
+import { Subject, from } from 'rxjs';
+import { takeUntil, filter, take, mergeMap, finalize } from 'rxjs/operators';
+import {
+  exportPolicyToDocx,
+  exportPolicyToPdf,
+} from '@shared/utils/policy-export';
 
 @Component({
   selector: 'app-policy-library',
@@ -48,6 +52,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   protected isDeleteDialogOpen = false;
   protected policyToDelete?: Policy;
   protected deleteDialogLoading = signal(false);
+  protected isExporting = signal(false);
 
   protected readonly excludedActions: Array<
     'canRead' | 'canWrite' | 'canEdit' | 'canDelete'
@@ -90,7 +95,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
       )
       .subscribe((payload) => {
         this.policyCreatedService.clearCreatedPolicy();
-        this.loadPolicyDetails(payload.policyId);
+        this.loadPolicyDetails(payload.policyId, true);
       });
   }
 
@@ -262,23 +267,21 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected selectPolicy(policy: Policy) {
-    this.viewMode = 'detail';
-    this.isLoadingPolicy.set(true);
-    this.selectedPolicy.set(null);
-    this.expandedAssessmentIndex.set(0);
-    this.assessmentPage.set(1);
-    this.assessmentLimit.set(10);
-
-    this.loadPolicyDetails(policy._id);
+    this.loadPolicyDetails(policy._id, true);
   }
 
-  protected loadPolicyDetails(policyId: string): void {
+  protected loadPolicyDetails(
+    policyId: string,
+    resetAssessmentPagination = true,
+  ): void {
     this.viewMode = 'detail';
     this.isLoadingPolicy.set(true);
     this.selectedPolicy.set(null);
     this.expandedAssessmentIndex.set(0);
-    this.assessmentPage.set(1);
-    this.assessmentLimit.set(10);
+    if (resetAssessmentPagination) {
+      this.assessmentPage.set(1);
+      this.assessmentLimit.set(10);
+    }
 
     this.policyService
       .findOne(policyId, this.assessmentPage(), this.assessmentLimit())
@@ -358,7 +361,41 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
   }
 
   protected exportPolicy(policy: Policy, format: 'pdf' | 'docx') {
-    console.log(`Exporting policy ${policy._id} as ${format}`);
+    if (this.isExporting()) return;
+
+    const limit = this.exportAssessmentFetchLimit(policy);
+
+    this.isExporting.set(true);
+
+    this.policyService
+      .findOne(policy._id, 1, limit)
+      .pipe(
+        takeUntil(this.destroy$),
+        mergeMap((full) =>
+          from(
+            format === 'pdf'
+              ? Promise.resolve().then(() => exportPolicyToPdf(full))
+              : exportPolicyToDocx(full),
+          ),
+        ),
+        finalize(() => this.isExporting.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          this.notifications.success(
+            `Downloaded policy export (${format.toUpperCase()}).`,
+            'Export complete',
+          );
+        },
+        error: (error) => {
+          console.error('Policy export failed', error);
+          this.notifications.danger(
+            error.error?.message ||
+              'Unable to export policy. Please try again.',
+            'Export failed',
+          );
+        },
+      });
   }
 
   protected viewVersionHistory(policy: Policy) {
@@ -397,7 +434,7 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
 
     this.assessmentPage.set(page);
     this.expandedAssessmentIndex.set(0); // Reset expanded assessment when changing page
-    this.loadPolicyDetails(policy._id);
+    this.loadPolicyDetails(policy._id, false);
   }
 
   protected onAssessmentLimitChange(limit: number): void {
@@ -407,7 +444,20 @@ export class PolicyLibraryComponent implements OnInit, OnDestroy {
     this.assessmentLimit.set(limit);
     this.assessmentPage.set(1); // Reset to first page when changing limit
     this.expandedAssessmentIndex.set(0);
-    this.loadPolicyDetails(policy._id);
+    this.loadPolicyDetails(policy._id, false);
+  }
+
+  private exportAssessmentFetchLimit(policy: Policy): number {
+    const a = policy.assessments;
+    let total = 0;
+    if (!a) {
+      total = 0;
+    } else if (Array.isArray(a)) {
+      total = a.length;
+    } else if (typeof a === 'object' && 'totalCount' in a) {
+      total = a.totalCount;
+    }
+    return Math.min(Math.max(total, 100), 5000);
   }
 
   protected get assessmentsData(): Array<{
